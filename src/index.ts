@@ -194,6 +194,9 @@ export {
 // Marks for hosts with menus or drag surfaces of their own — the shell's own
 // start menu and window gestures already mark themselves.
 export { markMenuOpen, beginWindowGesture, type MenuLayer } from './shell/perfEvents';
+// Rendering a report for a bug tracker — shared so the portals cannot drift
+// into three different descriptions of the same thing.
+export { describePerfReport, perfReportFile } from './shell/perfDescribe';
 export {
   readEnvironment as readPerfEnvironment,
   requestAsyncEnvironment,

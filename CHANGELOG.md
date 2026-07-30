@@ -4,10 +4,25 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
-## [4.5.0] — 2026-07-30
+## [4.6.0] — 2026-07-30
 
-> Supersedes 4.4.0, which was published mid-review and carried everything below
-> except the machine snapshot. Consumers should pin `^4.5.0`.
+> Supersedes 4.4.0 and 4.5.0, both published mid-review. Consumers should pin
+> `^4.6.0`.
+
+### Added
+- **`describePerfReport(report)` and `perfReportFile(report)`** — a perf report
+  rendered as plain text, and as a `File` ready to attach. The attachment is
+  complete but nobody opens it first: a bug tracker shows *descriptions*, so a
+  performance report whose description is one sentence about a stutter sits in
+  the list looking like every other vague complaint while the numbers that
+  would rank it stay zipped inside 140 KB. The description now carries the
+  machine, the verdict, the median, the worst frame and the slowest gesture.
+
+  In the shell rather than in each consuming portal because it is pure
+  formatting of a shell type and was otherwise going to exist three times —
+  which is how three copies quietly stop agreeing about what a report says.
+  What stays portal-side is what is genuinely portal-shaped: which endpoint to
+  post to, and which module list to seed from.
 
 ### Added
 - **The report names the machine it came off.** A frame rate without a machine
