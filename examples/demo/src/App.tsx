@@ -35,6 +35,7 @@ import {
   useLocalStoragePrefs,
   useWindowManager,
   toast,
+  describeMachine,
   VERSION,
   type NotificationsConfig,
 } from 'react-os-shell';
@@ -536,7 +537,7 @@ export default function App() {
                     // is also the quickest way to eyeball the new activity
                     // breakdown while working on the HUD.
                     onSubmitPerfReport: (report) => {
-                      console.log('[demo] perf report', report.summary, report);
+                      console.log('[demo] perf report', describeMachine(report.environment), report);
                       const worst = report.summary.byActivity[0];
                       toast.success(
                         `Report filed: ${report.verdict}` +

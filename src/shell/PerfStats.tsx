@@ -31,6 +31,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { classify, summariseFrames, type PerfReading, type Verdict } from './perfVerdict';
 import { appendRecord, summariseLog, type LogSummary, type PerfLogRecord } from './perfLog';
 import { drainPerfEvents, setPerfCollecting } from './perfEvents';
+import {
+  readEnvironment,
+  requestAsyncEnvironment,
+  type AsyncEnvironment,
+  type PerfEnvironment,
+} from './perfEnvironment';
 
 /** How often the accumulated frame data is turned into a render and a log record. */
 const FLUSH_MS = 500;
@@ -100,6 +106,9 @@ export interface PerfReport {
   summary: LogSummary;
   /** The HUD's current headline, e.g. "GPU-bound (compositing)". */
   verdict: string;
+  /** The machine the readings came off — GPU, cores, memory, OS, screen. A
+   *  verdict of "GPU-bound" is not actionable until you know which GPU. */
+  environment: PerfEnvironment;
 }
 
 export interface PerfStatsProps {
@@ -129,6 +138,9 @@ export default function PerfStats({ onClose, onSubmit, className = '' }: PerfSta
    *  become twenty samples of typing at the end of the very report that
    *  sentence is about. */
   const snapshotRef = useRef<PerfLogRecord[] | null>(null);
+  /** Client hints and battery state are async and unchanging, so they are
+   *  fetched once here and read synchronously when a report is built. */
+  const envRef = useRef<AsyncEnvironment | null>(null);
 
   const [longTaskSupported, setLongTaskSupported] = useState(false);
   const [reading, setReading] = useState<PerfReading>({ fps: 0, frameMs: 0, worstMs: 0, blockedPct: null });
@@ -145,6 +157,15 @@ export default function PerfStats({ onClose, onSubmit, className = '' }: PerfSta
   useEffect(() => {
     setPerfCollecting(true);
     return () => setPerfCollecting(false);
+  }, []);
+
+  // ── Machine detail. Resolved on mount rather than at report time: the values
+  //    cannot change, and some browsers gate high-entropy hints behind a
+  //    prompt that must not fire while someone is filing a report.
+  useEffect(() => {
+    let live = true;
+    requestAsyncEnvironment().then(env => { if (live) envRef.current = env; });
+    return () => { live = false; };
   }, []);
 
   // ── Frame sampling: refs only, so this never triggers a render ──
@@ -330,20 +351,21 @@ export default function PerfStats({ onClose, onSubmit, className = '' }: PerfSta
   const buildReport = useCallback((): PerfReport => {
     const records = snapshotRef.current ?? logRef.current;
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const summary = summariseLog(records);
+    const environment = readEnvironment(envRef.current);
     return {
       message,
       filename: `perf-log-${stamp}.json`,
-      summary: summariseLog(records),
+      summary,
+      environment,
       verdict: verdict.label,
       json: JSON.stringify(
         {
           generatedAt: new Date().toISOString(),
           message,
           verdict: verdict.label,
-          userAgent: navigator.userAgent,
-          screen: { width: window.screen.width, height: window.screen.height, dpr: window.devicePixelRatio },
-          reducedTransparency: document.documentElement.classList.contains('rosh-reduce-transparency'),
-          summary: summariseLog(records),
+          environment,
+          summary,
           records,
         },
         null,

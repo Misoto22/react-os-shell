@@ -194,6 +194,15 @@ export {
 // Marks for hosts with menus or drag surfaces of their own — the shell's own
 // start menu and window gestures already mark themselves.
 export { markMenuOpen, beginWindowGesture, type MenuLayer } from './shell/perfEvents';
+export {
+  readEnvironment as readPerfEnvironment,
+  requestAsyncEnvironment,
+  describeMachine,
+  type PerfEnvironment,
+  type AsyncEnvironment,
+  type PlatformHints,
+  type BatteryInfo,
+} from './shell/perfEnvironment';
 export type { MetricBarProps } from './shell/MetricBar';
 export { severityOf, isSeverityTone } from './shell/severity';
 export type { SeverityTone } from './shell/severity';

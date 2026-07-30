@@ -411,7 +411,9 @@ export default function Customization({ omit, section }: CustomizationProps = {}
               opened, how long you spent moving or resizing a window, and counts of clicks,
               keystrokes and scrolls. No page content or keystroke text is recorded. The log
               stays on this device unless you use the overlay's Report button, which sends it
-              — with whatever you type in the box — to the team as a bug report.
+              — with whatever you type in the box, and a description of this computer
+              (browser, operating system, processor cores, memory, graphics card, screen,
+              connection speed and whether you are on battery) — to the team as a bug report.
             </span>
           </span>
         </label>
