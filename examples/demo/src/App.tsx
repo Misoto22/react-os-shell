@@ -34,6 +34,7 @@ import {
   createWindowRegistry,
   useLocalStoragePrefs,
   useWindowManager,
+  toast,
   VERSION,
   type NotificationsConfig,
 } from 'react-os-shell';
@@ -529,6 +530,19 @@ export default function App() {
                     productTagline: 'Desktop UI shell for React',
                     productIcon: PRODUCT_ICON,
                     wallpapers: WALLPAPER_OPTIONS,
+                    // A real host posts this to its bug tracker with `json` as
+                    // an attachment. The demo has nowhere to post to, so it
+                    // shows what a host receives — and logs the report, which
+                    // is also the quickest way to eyeball the new activity
+                    // breakdown while working on the HUD.
+                    onSubmitPerfReport: (report) => {
+                      console.log('[demo] perf report', report.summary, report);
+                      const worst = report.summary.byActivity[0];
+                      toast.success(
+                        `Report filed: ${report.verdict}` +
+                        (worst ? ` · slowest while ${worst.kind} (${worst.medianFps.toFixed(0)} fps)` : ''),
+                      );
+                    },
                   }}>
                     <WindowManagerProvider>
                       <DefaultWindows />

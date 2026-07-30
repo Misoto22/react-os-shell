@@ -4,6 +4,59 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.4.0] — 2026-07-30
+
+### Added
+- **The perf HUD files its own report.** The overlay's JSON and CSV download
+  buttons are replaced by one **Report this** button: it freezes the session log,
+  asks the one question the log cannot answer — *what were you doing?* — and hands
+  both to the host's feedback channel via the new
+  `DesktopHostConfig.onSubmitPerfReport`, which receives the message plus the whole
+  report pre-serialised as a JSON attachment. The download path was the weak link
+  in the chain: the person who can see the jank is rarely the person who can fix
+  it, and a file that has to be found, attached and explained mostly never gets
+  sent. Hosts that wire nothing still get the same JSON, downloaded, so the shell
+  stays usable standalone.
+
+  The log is snapshotted when the composer opens, so the twenty seconds spent
+  typing "the second-level menu stutters" don't become twenty samples of typing at
+  the end of the very report that sentence is about. A rejected submit keeps the
+  composer open with the text intact.
+
+- **The log records the interactions that were actually causing the jank.**
+  Opening the start menu, opening a 2nd- or 3rd-level flyout, moving a window and
+  resizing a window are now their own axes (`menus`, `submenus`, `menuKey`,
+  `moveMs`, `resizeMs`), marked at the source by `StartMenu` and by the window
+  drag/resize gesture rather than inferred from pointer noise. Before this, all
+  four arrived as an anonymous mouse-move — and a hover-opened flyout, which fires
+  no click and no keypress, was filed as **idle**, so the frames people were
+  reporting were landing in the one bucket that is supposed to mean "at rest".
+
+  New in the summary: `byActivity` ranks median frame rate per gesture worst-first
+  (the direct answer to "which gesture is slow"), and `worstMenus` names the
+  slowest flyout the way `worstWindows` already names the slowest screen. Groups
+  report from a lower floor (`MIN_EVENT_SAMPLES`) than window groups, because a
+  flyout opens inside a single 500 ms interval rather than across twenty of them.
+
+### Fixed
+- **`dragMs` counted stationary presses as dragging**, and could therefore report
+  more drag time than the interval it sits in — a 500 ms sample claiming 5,004 ms
+  of dragging, which is impossible on its face and discredits the columns beside
+  it. The counter credited the whole gap since the previous pointer move, so a
+  press held still and then nudged charged the entire hold to the move that ended
+  it. Gaps longer than a stationary-press threshold are no longer counted.
+
+### Changed
+- `FpsGroup` gains `worstMs` and `stalls`, and groups now bucket the full log
+  rather than pre-filtering it. A brief interaction barely moves a median, so the
+  worst frame in the group is the number that matters; and a sample too blocked to
+  report a frame rate is counted rather than dropped, so a group that stalled
+  outright reads as the emergency it is instead of vanishing from the summary. The
+  median is still taken over measurable samples only — a stall never becomes a
+  frame rate the display never showed.
+- The Diagnostics copy in Customization now discloses the new axes and that the
+  Report button sends the log, rather than describing the removed export buttons.
+
 ## [4.3.1] — 2026-07-29
 
 ### Fixed
