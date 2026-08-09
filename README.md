@@ -162,6 +162,23 @@ Items with `perms` are filtered through `<ShellAuthProvider value={{ hasAnyPerm 
 
 Reach for `allPerms` whenever the permission that lists a destination is broader than the one its page enforces — otherwise the row renders and then refuses on click. Both fields work on sections as well as items, and on nested children.
 
+#### Nesting
+
+An item's `children` are items, so a menu nests as deeply as you configure it — there is no maximum:
+
+```ts
+{ label: 'HR', items: [
+  { to: '/hr/recruitment', label: 'Recruitment', children: [
+    { to: '/hr/recruitment/jobs', label: 'Job Postings', children: [
+      { to: '/hr/recruitment/jobs/open', label: 'Open' },
+      { to: '/hr/recruitment/jobs/closed', label: 'Closed' },
+    ]},
+  ]},
+]}
+```
+
+Each level behaves the same way: in the start menu it opens a flyout on hover (flipping to the left of its parent when it runs out of screen), and in the sidebar it expands as an accordion, indented one more step. A group's `to` is a synthetic key by convention — no page sits behind it, and clicking the row opens its submenu rather than navigating. A group whose every branch is permission-hidden is dropped entirely, so a user never gets a row that opens onto nothing.
+
 ### useWindowManager
 
 The hook every component uses to open / close / minimise windows:

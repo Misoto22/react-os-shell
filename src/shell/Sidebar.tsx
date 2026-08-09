@@ -183,11 +183,15 @@ export default function Sidebar({
     </div>
   );
 
-  // 3rd-level: when a NavItem inside an accordion has children, render the
-  // parent as its own mini-accordion (further indented). Expansion key is
-  // `child:<to>` so it doesn't clash with the section labels in `expanded`.
-  const renderNestedItem = (item: NavItem) => {
-    const kids = visibleChildren(item, hasAnyPerm);
+  // A NavItem with children becomes its own mini-accordion, indented one step
+  // further — and so does one of ITS children, for as many levels as the nav
+  // data has. Recursion rather than a hand-written level: the version that
+  // rendered the children of a child as plain rows silently dropped everything
+  // below the third level, the same cap <StartMenu>'s flyouts used to have.
+  // Expansion key is `child:<to>` so it doesn't clash with the section labels
+  // in `expanded`.
+  const renderNestedItem = (item: NavItem): ReactNode => {
+    const kids = visibleChildren(item, hasAnyPerm).filter(k => isReachable(k, hasAnyPerm));
     if (kids.length === 0) return renderItem(item);
     const key = `child:${item.to}`;
     const isOpen = expanded.has(key);
@@ -208,16 +212,7 @@ export default function Sidebar({
         </button>
         {isOpen && (
           <div className="pl-4 mt-0.5 mb-1 space-y-0.5">
-            {kids.map(c => (
-              <button
-                key={c.to}
-                onClick={() => handleClick(c.to)}
-                className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}
-              >
-                {iconEl(c.to)}
-                <span className="truncate">{c.label}</span>
-              </button>
-            ))}
+            {kids.map(c => renderNestedItem(c))}
           </div>
         )}
         {item.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
