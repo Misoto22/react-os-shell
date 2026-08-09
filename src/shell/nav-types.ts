@@ -15,8 +15,9 @@ export interface NavItem {
    *  audience (it's an OR), so the extra one goes here instead. */
   allPerms?: string[];
   dividerAfter?: boolean;
-  /** Optional 3rd-level sub-items. Hovering the parent in <StartMenu> opens
-   *  a nested flyout; in <Sidebar> the parent becomes an inline sub-accordion. */
+  /** Optional sub-items, to any depth — a child may have children of its own.
+   *  Hovering the parent in <StartMenu> opens a nested flyout; in <Sidebar>
+   *  the parent becomes an inline sub-accordion. */
   children?: NavItem[];
 }
 
@@ -107,11 +108,17 @@ export function visibleChildren(item: NavItem, hasAnyPerm: HasAnyPerm): NavItem[
 
 /**
  * Whether a nav row leads anywhere for this user: either it's a plain
- * destination, or it's a group with at least one visible child. A group whose
- * children are all hidden has nothing to open — and by convention a group's
- * `to` is a synthetic key that never navigates, so there is nothing to fall
- * back to either. Such a row is dropped rather than rendered inert.
+ * destination, or it's a group with at least one child that itself leads
+ * somewhere. A group whose children are all hidden has nothing to open — and
+ * by convention a group's `to` is a synthetic key that never navigates, so
+ * there is nothing to fall back to either. Such a row is dropped rather than
+ * rendered inert.
+ *
+ * The test recurses because nesting does: a group holding one sub-group whose
+ * own children are all permission-hidden is just as inert as a group holding
+ * nothing, and at four levels deep that shape is easy to build by accident.
  */
 export function isReachable(item: NavItem, hasAnyPerm: HasAnyPerm): boolean {
-  return !item.children?.length || visibleChildren(item, hasAnyPerm).length > 0;
+  if (!item.children?.length) return true;
+  return visibleChildren(item, hasAnyPerm).some(child => isReachable(child, hasAnyPerm));
 }

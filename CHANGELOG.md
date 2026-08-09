@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.14.0] — 2026-08-09
+
+### Fixed
+- **Nested menus open on the first try, at every level.** Past the second
+  level, opening a submenu was unreliable — slow to appear, and often not
+  appearing at all until the pointer was moved off the row and back on. The
+  cause was that the start menu had TWO mechanisms: one that opened a section's
+  flyout, and a second, separately written one for a flyout inside that flyout.
+  The second armed a 200ms "close the submenu" timer on every leaf row it
+  passed under, each one overwriting the handle of the last WITHOUT cancelling
+  it. Sweeping across two leaf rows on the way to a group therefore left an
+  orphaned timer that nothing could cancel, and it fired a fifth of a second
+  later — after the submenu had opened — closing it under the pointer.
+
+  There is now one mechanism, one close timer that every handler cancels before
+  doing anything else, and one panel component. The second level and the sixth
+  are the same code.
+
+### Added
+- **Menus nest as deeply as the nav data does.** `NavItem.children` has always
+  been recursive, but only three levels were ever rendered: a 4th-level group
+  came out as a plain row that navigated to its own synthetic key and closed
+  the menu. `StartMenu` flyouts and the `Sidebar` accordion now both recurse for
+  as many levels as are configured.
+- **A flyout with no room to its right opens to the left.** Each level costs
+  another panel width, so a deep enough branch always ran out of screen — and a
+  menu opened from a right-hand taskbar ran out on the very first flyout.
+
+### Changed
+- **Clicking a group row opens its submenu instead of navigating.** A group's
+  `to` is a synthetic key by convention, with no page behind it, so clicking one
+  used to close the menu on a route that goes nowhere. Leaf rows are unchanged.
+- **`isReachable` recurses.** A group whose every branch dead-ends in
+  permission-hidden items is as inert as an empty one, and is dropped the same
+  way — a shape that is easy to build by accident once nesting is unbounded.
+- **Flyouts position themselves before the first paint** rather than by
+  measuring and re-rendering. A panel repositioned from state moves after paint,
+  which slides its rows out from under a pointer that has not moved — and a row
+  that moves away from the pointer never gets its `mouseenter`.
+
 ## [4.13.0] — 2026-08-08
 
 ### Added

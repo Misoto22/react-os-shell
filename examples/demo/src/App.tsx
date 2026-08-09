@@ -258,6 +258,33 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    // Nesting has no depth limit — every level opens the same way, so this
+    // tray goes five deep to make that visible (and to keep it that way).
+    label: 'Nested menu',
+    items: [
+      { to: '/primitives-demo', label: 'Level 2 — a plain row' },
+      {
+        to: '#nested/3', label: 'Level 2 — a group',
+        children: [
+          { to: '/form-demo', label: 'Level 3 — a plain row' },
+          {
+            to: '#nested/4', label: 'Level 3 — a group',
+            children: [
+              { to: '/badges-demo', label: 'Level 4 — a plain row' },
+              {
+                to: '#nested/5', label: 'Level 4 — a group',
+                children: [
+                  { to: '/templates-demo', label: 'Level 5 — a plain row' },
+                  { to: '/breadcrumbs-demo', label: 'Level 5 — another' },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     // Widgets (Calculator, Weather, Currency, Pomodoro, World Clock, Stocks)
     // are added/removed from the desktop's Widget Manager panel (right-click
     // the desktop → Manage Widgets…), so they're filtered out here — the
@@ -275,7 +302,7 @@ const NAV_SECTIONS = [
   { to: '/shortcuts-demo', label: 'Keyboard Shortcuts', dividerAfter: true },
 ];
 
-const START_MENU_CATEGORIES = { erp: [], system: ['Components', 'Data', 'Layout & navigation', 'Utilities'] };
+const START_MENU_CATEGORIES = { erp: [], system: ['Components', 'Data', 'Layout & navigation', 'Nested menu', 'Utilities'] };
 
 // Per-route icons rendered next to each start-menu item. Keep paths tight —
 // they re-render at h-4 w-4 inside the menu.

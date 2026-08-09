@@ -66,6 +66,18 @@ test('a plain destination stays reachable — the rule only gates groups', () =>
   }
 });
 
+test('a group whose only sub-group is empty is not reachable either', () => {
+  // Nesting is unbounded, so the rule has to be. A visible row leading to a
+  // visible row leading to nothing is still a row that opens onto nothing.
+  const item: NavItem = {
+    to: '/hr',
+    label: 'HR',
+    children: [{ ...RECRUITMENT }],
+  };
+  assert.equal(isReachable(item, NONE), false);
+  assert.equal(isReachable(item, allow(['view_offer'])), true);
+});
+
 test('reachability is exactly "visibleChildren is non-empty" for a group', () => {
   // The invariant the bug broke: the chevron is drawn off visibleChildren and
   // the row is kept off isReachable, so the two can never disagree again.

@@ -11,6 +11,10 @@ import {
   type VirtualSection,
 } from '../shell-config/nav';
 import { visibleChildren as navVisibleChildren, isReachable, navVisible } from './nav-types';
+import {
+  openMenuLevel, closeMenuBelow, resolveMenuLevels, clampMenuTop, menuPanelLeft,
+  type MenuAnchor,
+} from './menuPath';
 import { markMenuOpen } from './perfEvents';
 import { useAuth } from '../contexts/AuthContext';
 import { glassStyle, GLASS_INPUT_BG } from '../utils/glass';
@@ -36,6 +40,59 @@ interface StartMenuProps {
 
 const ITEM_H = 36; // approximate height per menu item in px
 
+/** Gap between a panel and the one it opened from. */
+const PANEL_GAP = 4;
+/** Grace period before a submenu closes, so the pointer can cut the corner
+ *  across sibling rows and the gap on its way into the panel. */
+const CLOSE_DELAY = 200;
+
+/**
+ * One flyout panel — the same component at every depth.
+ *
+ * It positions itself in a layout effect rather than from state. The `top` in
+ * the style prop is only an estimate from the item count; the effect replaces
+ * it with one measured off the rendered panel, before the browser paints. That
+ * ordering is the point: a panel repositioned from state moves AFTER paint,
+ * which slides its rows out from under a pointer that hasn't moved — and a row
+ * that moves away from the pointer never gets its `mouseenter`, so the next
+ * level opens late or not at all.
+ */
+function MenuPanel({ left, anchorY, estHeight, minTop, maxBottom, flipped, className, style, onMouseEnter, onMouseLeave, children }: {
+  left: number;
+  anchorY: number;
+  estHeight: number;
+  minTop: number;
+  maxBottom: number;
+  /** Opened to the LEFT of its parent — slide in from that side too. */
+  flipped?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  // No dep array: any re-render can change the content's height, and the
+  // correction costs one property write against the DOM node React just wrote.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.top = `${clampMenuTop(anchorY, el.offsetHeight, minTop, maxBottom)}px`;
+  });
+  return (
+    <div
+      ref={ref}
+      data-menu-panel
+      className={`fixed rounded-2xl overflow-hidden ${className ?? ''}`}
+      style={{ left, top: clampMenuTop(anchorY, estHeight, minTop, maxBottom), animation: `${flipped ? 'submenu-in-left' : 'submenu-in'} 0.1s ease-out`, ...style }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function StartMenu({
   open, onClose, openPage, profile, user, onLogout,
   taskbarPosition, taskbarH, taskbarW = 0, taskbarGap = 4, size = 'medium',
@@ -56,65 +113,34 @@ export default function StartMenu({
   // Preferences. Rendered directly — no flyout — unlike `categories.footer`.
   const footerItems = (categories.footerItems ?? []).filter(item => navVisible(item, hasAnyPerm));
   const isMobile = useIsMobile();
-  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
-  const [hoveredY, setHoveredY] = useState(0);
-  // 3rd-level flyout: when the user hovers a NavItem (inside a section flyout)
-  // that has `children`, we open a sub-flyout anchored next to that item.
-  const [hoveredChild, setHoveredChild] = useState<string | null>(null);
-  const [hoveredChildY, setHoveredChildY] = useState(0);
+  // Which flyouts are open, outermost first — one entry per panel, any depth.
+  // `openPath[0]` is the section row hovered in the menu itself, `openPath[1]`
+  // the row hovered inside the panel that opened, and so on. See `menuPath.ts`
+  // for the rules; every level goes through them, so there is no such thing
+  // here as "the 3rd-level case".
+  const [openPath, setOpenPath] = useState<MenuAnchor[]>([]);
   const [search, setSearch] = useState('');
   const [searchIdx, setSearchIdx] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
-  const flyoutRef = useRef<HTMLDivElement>(null);
-  const subFlyoutRef = useRef<HTMLDivElement>(null);
-  const hoverTimeout = useRef<ReturnType<typeof setTimeout>>();
-  const childHoverTimeout = useRef<ReturnType<typeof setTimeout>>();
-  // Measured heights — used to refine the estimate-based top position so the
-  // flyout fits its content without needing a scrollbar. Tracked together
-  // with the target (section/child) the measurement is FOR, so a stale value
-  // from a previous target is never used: when the target changes the
-  // derived `flyoutH` falls back to the estimate until useLayoutEffect
-  // re-measures. This avoids the post-paint reset that previously caused the
-  // level-2 flyout to "bounce" between estimate and measured positions —
-  // that bounce would shift items vertically right under the cursor, so
-  // hovering an item with children on the first try never registered.
-  const [measuredFlyout, setMeasuredFlyout] = useState<{ key: string; h: number } | null>(null);
-  const [measuredSub, setMeasuredSub] = useState<{ key: string; h: number } | null>(null);
+  // ONE close timer for the whole menu. Every handler that could close
+  // something clears it before doing anything else, so a pending close from a
+  // row the pointer merely passed over can never fire after a submenu has
+  // opened and shut it under the cursor.
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => { if (!open) { setSearch(''); setHoveredSection(null); setHoveredChild(null); setSearchIdx(0); } }, [open]);
-
-  // Clear the 3rd-level flyout whenever the level-2 flyout changes target.
-  useEffect(() => { setHoveredChild(null); }, [hoveredSection]);
+  useEffect(() => { if (!open) { setSearch(''); setOpenPath([]); setSearchIdx(0); } }, [open]);
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
 
   // ── Perf marks ──
   // Each layer is a fresh frosted-glass surface measured, positioned and
   // animated in over everything already on screen, which makes opening one the
   // most expensive thing this menu does — and, on a slow machine, the moment
-  // people notice. Marked from effects rather than from the hover handlers so
+  // people notice. Marked from an effect rather than from the hover handlers so
   // every route in (pointer, keyboard, a section cleared and re-entered) is
   // counted once, and only when the layer actually renders.
+  const deepestOpen = openPath.length > 0 ? openPath[openPath.length - 1].key : null;
   useEffect(() => { if (open) markMenuOpen('menu', 'start'); }, [open]);
-  useEffect(() => { if (hoveredSection) markMenuOpen('submenu', hoveredSection); }, [hoveredSection]);
-  useEffect(() => { if (hoveredChild) markMenuOpen('submenu', hoveredChild); }, [hoveredChild]);
-
-  // Capture each flyout's intrinsic rendered height after layout. Runs
-  // before paint, so the very next paint repositions using the actual h.
-  // Stale measurements from a different target are discarded by the
-  // `measuredFlyout?.key === hoveredSection` check below.
-  useLayoutEffect(() => {
-    if (!flyoutRef.current || !hoveredSection || search.length >= 2) return;
-    const h = flyoutRef.current.offsetHeight;
-    if (measuredFlyout?.key !== hoveredSection || measuredFlyout.h !== h) {
-      setMeasuredFlyout({ key: hoveredSection, h });
-    }
-  }, [hoveredSection, search, measuredFlyout]);
-  useLayoutEffect(() => {
-    if (!subFlyoutRef.current || !hoveredChild || search.length >= 2) return;
-    const h = subFlyoutRef.current.offsetHeight;
-    if (measuredSub?.key !== hoveredChild || measuredSub.h !== h) {
-      setMeasuredSub({ key: hoveredChild, h });
-    }
-  }, [hoveredChild, search, measuredSub]);
+  useEffect(() => { if (deepestOpen) markMenuOpen('submenu', deepestOpen); }, [deepestOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -136,8 +162,8 @@ export default function StartMenu({
   // with search + a flat, tappable list instead of the dense desktop columns.
   if (isMobile) {
     const allItems: { item: NavItem; sectionLabel?: string }[] = [];
-    // Recursively flatten — 3rd-level children show up as their own rows so
-    // they can be searched/tapped from the mobile sheet too.
+    // Recursively flatten — nested children at any depth show up as their own
+    // rows so they can be searched/tapped from the mobile sheet too.
     const pushItem = (it: NavItem, sectionLabel?: string) => {
       if (!navVisible(it, hasAnyPerm)) return;
       // Same reachability rule as the desktop flyout — an empty group is not a
@@ -234,8 +260,14 @@ export default function StartMenu({
 
   const visibleChildren = (item: NavItem) => navVisibleChildren(item, hasAnyPerm);
 
-  // Search — walks 3rd-level children too. Section column shows the parent
-  // item label for children so users can tell nested entries apart.
+  /** The sub-items a row opens — nothing for a leaf, and nothing for a group
+   *  whose every branch dead-ends in permission-hidden items. Same list the
+   *  chevron is drawn from, at every depth. */
+  const submenuItems = (item: NavItem) =>
+    visibleChildren(item).filter(child => isReachable(child, hasAnyPerm));
+
+  // Search — walks nested children to any depth. Section column shows the
+  // parent item label for children so users can tell nested entries apart.
   const matchTree = (it: NavItem, sectionLabel: string): (NavItem & { section: string })[] => {
     if (!navVisible(it, hasAnyPerm)) return [];
     // Same rule as the flyout: a group whose children are all hidden isn't a
@@ -279,6 +311,7 @@ export default function StartMenu({
   };
 
   // Flyout data — either a real section or a configured virtual section
+  const hoveredSection = openPath.length > 0 ? openPath[0].key : null;
   const hoveredVirtual = hoveredSection ? virtualByLabel[hoveredSection] : undefined;
   const hoveredData = hoveredVirtual
     ? null
@@ -294,44 +327,77 @@ export default function StartMenu({
   const menuDensity = typeof document !== 'undefined' ? (getComputedStyle(document.documentElement).getPropertyValue('--menu-density')?.trim() || 'normal') : 'normal';
   const density: 'tight' | 'normal' | 'large' = menuDensity === 'tight' || menuDensity === 'large' ? menuDensity : 'normal';
 
-  // Size-dependent styles, adjusted for density.
+  // Size-dependent styles, adjusted for density. `fwPx` is `fw` in pixels —
+  // panels are placed before they render, so the flip-to-the-left decision
+  // can't wait for a measurement.
   const sizeConfigByDensity = {
-    tight:  { small: { w: 'w-52', fw: 'w-44', text: 'text-xs', py: 'py-1',   px: 'px-3', mw: 208, itemH: 24 }, medium: { w: 'w-56', fw: 'w-48', text: 'text-xs', py: 'py-1',   px: 'px-3', mw: 224, itemH: 26 }, large: { w: 'w-64', fw: 'w-52', text: 'text-sm', py: 'py-1.5', px: 'px-3', mw: 256, itemH: 30 } },
-    normal: { small: { w: 'w-56', fw: 'w-48', text: 'text-xs', py: 'py-1.5', px: 'px-3', mw: 224, itemH: 30 }, medium: { w: 'w-64', fw: 'w-56', text: 'text-sm', py: 'py-1.5', px: 'px-4', mw: 256, itemH: 32 }, large: { w: 'w-72', fw: 'w-60', text: 'text-sm', py: 'py-2',   px: 'px-4', mw: 288, itemH: 36 } },
-    large:  { small: { w: 'w-56', fw: 'w-48', text: 'text-xs', py: 'py-2', px: 'px-3', mw: 224, itemH: 32 }, medium: { w: 'w-64', fw: 'w-56', text: 'text-sm', py: 'py-2', px: 'px-4', mw: 256, itemH: 36 }, large: { w: 'w-72', fw: 'w-60', text: 'text-sm', py: 'py-2', px: 'px-4', mw: 288, itemH: 36 } },
+    tight:  { small: { w: 'w-52', fw: 'w-44', fwPx: 176, text: 'text-xs', py: 'py-1',   px: 'px-3', mw: 208, itemH: 24 }, medium: { w: 'w-56', fw: 'w-48', fwPx: 192, text: 'text-xs', py: 'py-1',   px: 'px-3', mw: 224, itemH: 26 }, large: { w: 'w-64', fw: 'w-52', fwPx: 208, text: 'text-sm', py: 'py-1.5', px: 'px-3', mw: 256, itemH: 30 } },
+    normal: { small: { w: 'w-56', fw: 'w-48', fwPx: 192, text: 'text-xs', py: 'py-1.5', px: 'px-3', mw: 224, itemH: 30 }, medium: { w: 'w-64', fw: 'w-56', fwPx: 224, text: 'text-sm', py: 'py-1.5', px: 'px-4', mw: 256, itemH: 32 }, large: { w: 'w-72', fw: 'w-60', fwPx: 240, text: 'text-sm', py: 'py-2',   px: 'px-4', mw: 288, itemH: 36 } },
+    large:  { small: { w: 'w-56', fw: 'w-48', fwPx: 192, text: 'text-xs', py: 'py-2', px: 'px-3', mw: 224, itemH: 32 }, medium: { w: 'w-64', fw: 'w-56', fwPx: 224, text: 'text-sm', py: 'py-2', px: 'px-4', mw: 256, itemH: 36 }, large: { w: 'w-72', fw: 'w-60', fwPx: 240, text: 'text-sm', py: 'py-2', px: 'px-4', mw: 288, itemH: 36 } },
   };
   const sizeConfig = sizeConfigByDensity[density][size];
   const menuGlass = glassStyle();
   const itemCls = `w-full flex items-center gap-2 rounded-lg ${sizeConfig.px} ${sizeConfig.py} ${sizeConfig.text}`;
 
-  // Calculate flyout vertical position — center on hovered item, clamp into the
-  // usable viewport span (the screen minus the taskbar edge and an 8px gutter)
-  // so the flyout can never sit over the taskbar or run off the bottom of the
-  // screen. The span is the viewport, NOT the main menu's rect: a submenu can
+  // The usable vertical span for a panel: the screen minus the taskbar edge and
+  // an 8px gutter, so a flyout can never sit over the taskbar or run off the
+  // bottom. The span is the viewport, NOT the main menu's rect: a submenu can
   // legitimately be taller than the menu that opened it (e.g. "System" with far
-  // more items than the menu has rows). When even the full span isn't enough,
-  // the flyout is capped at `availH` and scrolls — see `maxHeight` below.
-  // First render uses a rough estimate (`flyoutEstH`); a `useLayoutEffect` then
-  // captures the actual rendered height in `measuredFlyout` and the next paint
-  // repositions using it, so the centering stays accurate when labels wrap.
-  const flyoutEstH = flyoutItems.length * sizeConfig.itemH + 12;
-  const flyoutH = measuredFlyout?.key === hoveredSection ? measuredFlyout.h : flyoutEstH;
-  const menuWidth = sizeConfig.mw;
+  // more items than the menu has rows). A panel taller than the span is capped
+  // at `availH` and scrolls — see `maxHeight` below.
   const viewportH = typeof window !== 'undefined' ? window.innerHeight : 800;
+  const viewportW = typeof window !== 'undefined' ? window.innerWidth : 1280;
   const minTop = (taskbarPosition === 'top' ? taskbarH : 0) + 8;
   const maxBottom = viewportH - (taskbarPosition === 'bottom' ? taskbarH : 0) - 8;
   const availH = Math.max(0, maxBottom - minTop);
-  const flyoutBoxH = Math.min(flyoutH, availH);
-  let flyoutTop = hoveredY - flyoutBoxH / 2;
-  if (flyoutTop < minTop) flyoutTop = minTop;
-  if (flyoutTop + flyoutBoxH > maxBottom) flyoutTop = Math.max(minTop, maxBottom - flyoutBoxH);
 
-  const handleSectionHover = (label: string, e: React.MouseEvent) => {
-    clearTimeout(hoverTimeout.current);
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    setHoveredY(rect.top + rect.height / 2);
-    setHoveredSection(label);
+  // Every open flyout's items, outermost first.
+  const levels = resolveMenuLevels(flyoutItems, openPath, submenuItems);
+
+  const cancelClose = () => clearTimeout(closeTimer.current);
+
+  /**
+   * Where the panel opened from a row in panel `depth` starts horizontally.
+   *
+   * Panel 0 is the main menu, so it gets measured. Deeper panels are ours: we
+   * put them where `openPath` says, and `offsetWidth` is the untransformed
+   * layout width — neither reading is disturbed by the `submenu-in` animation
+   * still running on the panel the pointer is in, which a `getBoundingClientRect`
+   * would pick up and shift the next panel by.
+   */
+  const nextPanelLeft = (depth: number, row: HTMLElement) => {
+    const owner = row.closest('[data-menu-panel]') as HTMLElement | null;
+    if (!owner) return { left: 0, flipped: false };
+    const ownerLeft = depth === 0 ? owner.getBoundingClientRect().left : (openPath[depth - 1]?.left ?? 0);
+    const ownerRight = depth === 0 ? owner.getBoundingClientRect().right : ownerLeft + owner.offsetWidth;
+    const preferLeft = depth > 0 && (openPath[depth - 1]?.flipped ?? false);
+    return menuPanelLeft(ownerLeft, ownerRight, sizeConfig.fwPx, viewportW, PANEL_GAP, preferLeft);
   };
+
+  /** Hovering a row in panel `depth` that has a submenu — open it now. */
+  const openSubmenu = (depth: number, key: string, e: React.MouseEvent) => {
+    cancelClose();
+    const row = e.currentTarget as HTMLElement;
+    const rect = row.getBoundingClientRect();
+    const anchor: MenuAnchor = { key, y: rect.top + rect.height / 2, ...nextPanelLeft(depth, row) };
+    setOpenPath(prev => openMenuLevel(prev, depth, anchor));
+  };
+
+  /**
+   * Nothing under panel `depth` is wanted any more — the pointer is on a row
+   * with no submenu, or has left a panel entirely. Deferred by `CLOSE_DELAY`
+   * because the pointer may simply be cutting the corner on its way into the
+   * panel it just opened, and immediate by cancellation because whatever the
+   * pointer lands on next re-states the intent.
+   */
+  const scheduleClose = (depth: number) => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpenPath(prev => closeMenuBelow(prev, depth)), CLOSE_DELAY);
+  };
+
+  const chevron = (
+    <svg className="h-3.5 w-3.5 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+  );
 
   const renderSection = (section: NavSection, isErp: boolean) => {
     if (!navVisible(section, hasAnyPerm)) return null;
@@ -339,13 +405,11 @@ export default function StartMenu({
     if (items.length === 0) return null;
     const isHovered = hoveredSection === section.label;
     return (
-      <div key={section.label}
-        onMouseEnter={e => handleSectionHover(section.label, e)}
-        onMouseLeave={() => { hoverTimeout.current = setTimeout(() => setHoveredSection(null), 200); }}>
+      <div key={section.label} onMouseEnter={e => openSubmenu(0, section.label, e)}>
         <button className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
           {secIcon(section.label)}
           <span className={isErp ? 'font-medium' : ''}>{section.label}</span>
-          <svg className="h-3.5 w-3.5 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          {chevron}
         </button>
         {section.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
       </div>
@@ -356,13 +420,11 @@ export default function StartMenu({
     if (v.items.length === 0) return null;
     const isHovered = hoveredSection === v.label;
     return (
-      <div key={v.label}
-        onMouseEnter={e => handleSectionHover(v.label, e)}
-        onMouseLeave={() => { hoverTimeout.current = setTimeout(() => setHoveredSection(null), 200); }}>
+      <div key={v.label} onMouseEnter={e => openSubmenu(0, v.label, e)}>
         <button className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
           {v.icon}
           <span>{v.label}</span>
-          <svg className="h-3.5 w-3.5 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+          {chevron}
         </button>
       </div>
     );
@@ -377,15 +439,20 @@ export default function StartMenu({
        startup, logout — z-[9999]), which should still cover the menu. */
     <div ref={menuRef} className="fixed z-[1100]" style={posStyle}>
       <div className="flex">
-        {/* Main menu */}
-        <div className={`${sizeConfig.w} rounded-2xl flex ${isVertical ? 'flex-col-reverse' : 'flex-col'} overflow-hidden`}
-          style={{ animation: 'menu-in 0.15s ease-out', ...menuGlass }}>
+        {/* Main menu — panel 0. Entering or leaving it schedules the flyouts
+            shut; whichever row the pointer settles on says otherwise, either by
+            opening its own submenu or by scheduling the same close again. */}
+        <div data-menu-panel className={`${sizeConfig.w} rounded-2xl flex ${isVertical ? 'flex-col-reverse' : 'flex-col'} overflow-hidden`}
+          style={{ animation: 'menu-in 0.15s ease-out', ...menuGlass }}
+          onMouseEnter={() => scheduleClose(0)}
+          onMouseLeave={() => scheduleClose(0)}>
 
           {/* Search — at top for horizontal, at bottom for vertical */}
-          <div className={`px-3 ${isVertical ? 'pb-3 pt-2 border-t border-white/20' : 'pt-3 pb-2'}`}>
+          <div className={`px-3 ${isVertical ? 'pb-3 pt-2 border-t border-white/20' : 'pt-3 pb-2'}`}
+            onMouseEnter={() => scheduleClose(0)}>
             <div className={`flex items-center gap-2 ${GLASS_INPUT_BG} rounded-lg px-2.5 py-1.5`}>
               <svg className="h-3.5 w-3.5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-              <input value={search} onChange={e => { setSearch(e.target.value); setHoveredSection(null); setSearchIdx(0); }}
+              <input value={search} onChange={e => { setSearch(e.target.value); setOpenPath([]); setSearchIdx(0); }}
                 onKeyDown={e => {
                   if (search.length >= 2 && searchResults.length > 0) {
                     if (e.key === 'ArrowDown') { e.preventDefault(); setSearchIdx(i => Math.min(i + 1, searchResults.length - 1)); }
@@ -419,6 +486,7 @@ export default function StartMenu({
                     sections render first to stay pinned next to it. */}
                 {footerItems.map(item => (
                   <button key={item.to} onClick={() => handleClick(item.to)}
+                    onMouseEnter={() => scheduleClose(0)}
                     className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                     {iconEl(item.to)}
                     <span>{item.label}</span>
@@ -431,7 +499,7 @@ export default function StartMenu({
                 {erpSections.length > 0 && hasAppsGroup && <div className="border-t border-white/20 my-1.5 mx-2" />}
                 {/* Then top-level items + system */}
                 {topItems.map(item => (
-                  <div key={item.to}>
+                  <div key={item.to} onMouseEnter={() => scheduleClose(0)}>
                     <button onClick={() => handleClick(item.to)}
                       className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                       {iconEl(item.to)}
@@ -446,7 +514,7 @@ export default function StartMenu({
               {!isVertical && (<>
                 {/* Horizontal layout: top-level items first, ERP after divider */}
                 {topItems.map(item => (
-                  <div key={item.to}>
+                  <div key={item.to} onMouseEnter={() => scheduleClose(0)}>
                     <button onClick={() => handleClick(item.to)}
                       className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                       {iconEl(item.to)}
@@ -463,6 +531,7 @@ export default function StartMenu({
                 {footerSections.map(s => renderSection(s as NavSection, false))}
                 {footerItems.map(item => (
                   <button key={item.to} onClick={() => handleClick(item.to)}
+                    onMouseEnter={() => scheduleClose(0)}
                     className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                     {iconEl(item.to)}
                     <span>{item.label}</span>
@@ -473,7 +542,7 @@ export default function StartMenu({
           )}
 
           {/* User profile — name + sign out on same row */}
-          <div className={`${isVertical ? 'border-b' : 'border-t'} border-white/20 p-1`}>
+          <div className={`${isVertical ? 'border-b' : 'border-t'} border-white/20 p-1`} onMouseEnter={() => scheduleClose(0)}>
             <div onClick={() => handleClick('/profile')}
               className="rounded-lg px-2 py-1.5 flex items-center gap-2.5 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
               {profile?.avatar_url ? (
@@ -494,85 +563,60 @@ export default function StartMenu({
           </div>
         </div>
 
-        {/* Flyout submenu — positioned vertically centered on hovered item and
-            clamped into the usable viewport span. Caps at `availH` and scrolls
-            when the section has more items than fit above the taskbar. */}
-        {hoveredSection && flyoutItems.length > 0 && search.length < 2 && (
-          <div ref={flyoutRef} className={`fixed ${sizeConfig.fw} rounded-2xl overflow-hidden`}
-            style={{ left: menuRef.current ? menuRef.current.getBoundingClientRect().right + 4 : menuWidth + 12, top: flyoutTop, animation: 'submenu-in 0.1s ease-out', ...menuGlass }}
-            onMouseEnter={() => clearTimeout(hoverTimeout.current)}
-            onMouseLeave={() => { hoverTimeout.current = setTimeout(() => { setHoveredSection(null); setHoveredChild(null); }, 200); }}>
+        {/* Flyouts — one panel per open level, centred on the row that opened
+            it and clamped into the usable viewport span. Every level renders
+            from this one loop: the section flyout is `levels[0]` and is built
+            exactly like the one six levels down, so there is no depth at which
+            the menu starts behaving differently. */}
+        {search.length < 2 && levels.map((items, i) => (
+          <MenuPanel
+            key={`${i}:${openPath[i].key}`}
+            left={openPath[i].left}
+            anchorY={openPath[i].y}
+            estHeight={items.length * sizeConfig.itemH + 12}
+            minTop={minTop}
+            maxBottom={maxBottom}
+            flipped={openPath[i].flipped}
+            className={sizeConfig.fw}
+            style={menuGlass}
+            /* Landing anywhere in this panel — a row, a divider, the padding —
+               retires the branch below it. A row that has its own submenu
+               cancels that on the way past, because React fires the panel's
+               `mouseenter` before the row's. */
+            onMouseEnter={() => scheduleClose(i + 1)}
+            onMouseLeave={() => scheduleClose(i)}
+          >
             <div className="py-1 px-1 overflow-y-auto overscroll-contain" style={{ maxHeight: availH }}>
-              {flyoutItems.map(item => {
-                const hasChildren = visibleChildren(item).length > 0;
-                const isChildHovered = hoveredChild === item.to;
+              {items.map(item => {
+                const kids = submenuItems(item);
+                const isOpen = openPath[i + 1]?.key === item.to;
                 return (
                   <div key={item.to}
-                    onMouseEnter={hasChildren ? (e) => {
-                      clearTimeout(childHoverTimeout.current);
-                      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                      setHoveredChildY(rect.top + rect.height / 2);
-                      setHoveredChild(item.to);
-                    } : () => {
-                      // Hovering a leaf inside the flyout cancels any pending
-                      // sub-flyout from a sibling that had children.
-                      childHoverTimeout.current = setTimeout(() => setHoveredChild(null), 200);
-                    }}>
-                    <button onClick={() => handleClick(item.to)}
-                      className={`${itemCls} transition-colors ${isChildHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+                    onMouseEnter={kids.length > 0 ? e => openSubmenu(i + 1, item.to, e) : () => scheduleClose(i + 1)}>
+                    <button
+                      /* A group's `to` is a synthetic key by convention, so
+                         clicking one navigates nowhere — it opens its submenu,
+                         the same thing hovering it does, instead of closing the
+                         menu on a route that does not exist. */
+                      onClick={kids.length > 0 ? e => openSubmenu(i + 1, item.to, e) : () => handleClick(item.to)}
+                      className={`${itemCls} transition-colors ${isOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
                       {iconEl(item.to)}
                       <span>{item.label}</span>
-                      {hasChildren && (
-                        <svg className="h-3.5 w-3.5 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
-                      )}
+                      {kids.length > 0 && chevron}
                     </button>
                     {item.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
                   </div>
                 );
               })}
             </div>
-          </div>
-        )}
-
-        {/* 3rd-level flyout — anchored to the right of the level-2 flyout. */}
-        {(() => {
-          if (search.length >= 2 || !hoveredChild) return null;
-          const parent = flyoutItems.find(it => it.to === hoveredChild);
-          const kids = parent ? visibleChildren(parent) : [];
-          if (!parent || kids.length === 0) return null;
-          const flyoutRect = flyoutRef.current?.getBoundingClientRect();
-          const subLeft = flyoutRect ? flyoutRect.right + 4 : 0;
-          const subEstH = kids.length * sizeConfig.itemH + 12;
-          const subH = measuredSub?.key === hoveredChild ? measuredSub.h : subEstH;
-          const subBoxH = Math.min(subH, availH);
-          let subTop = hoveredChildY - subBoxH / 2;
-          if (subTop < minTop) subTop = minTop;
-          if (subTop + subBoxH > maxBottom) subTop = Math.max(minTop, maxBottom - subBoxH);
-          return (
-            <div ref={subFlyoutRef} className={`fixed ${sizeConfig.fw} rounded-2xl overflow-hidden`}
-              style={{ left: subLeft, top: subTop, animation: 'submenu-in 0.1s ease-out', ...menuGlass }}
-              onMouseEnter={() => { clearTimeout(hoverTimeout.current); clearTimeout(childHoverTimeout.current); }}
-              onMouseLeave={() => { childHoverTimeout.current = setTimeout(() => setHoveredChild(null), 200); }}>
-              <div className="py-1 px-1 overflow-y-auto overscroll-contain" style={{ maxHeight: availH }}>
-                {kids.map(child => (
-                  <div key={child.to}>
-                    <button onClick={() => handleClick(child.to)}
-                      className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
-                      {iconEl(child.to)}
-                      <span>{child.label}</span>
-                    </button>
-                    {child.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
+          </MenuPanel>
+        ))}
       </div>
 
       <style>{`
         @keyframes menu-in { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @keyframes submenu-in { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes submenu-in-left { from { opacity: 0; transform: translateX(4px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
     </div>
   );
