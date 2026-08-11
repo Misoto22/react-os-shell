@@ -7,10 +7,19 @@
  * `form`, …); the component only adds the look, a `loading` spinner state, and
  * optional icon slots.
  */
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'sm' | 'md';
+/**
+ * `sm`/`md` are the desktop scale. The `touch-*` rungs are for a finger on
+ * glass — a till, a warehouse tablet — and are a SEPARATE ladder on purpose:
+ * a till's idea of "medium" is 56px, and naming it `md` would have made the
+ * same word mean two sizes depending on which app you were reading.
+ *
+ * Nothing picks a touch size automatically. An app that wants them asks for
+ * them, so a desktop portal cannot grow finger-sized buttons by accident.
+ */
+export type ButtonSize = 'sm' | 'md' | 'touch' | 'touch-lg' | 'touch-xl';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
   variant?: ButtonVariant;
@@ -22,6 +31,17 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   /** Stretch to the full width of the container. */
   block?: boolean;
   className?: string;
+  /**
+   * Why this button is disabled, rendered as text BESIDE it — never as a
+   * `title` tooltip. A tooltip needs a hover, a touchscreen has no hover, and a
+   * cashier facing a dead button with no explanation calls a manager.
+   *
+   * Only rendered while the button is actually disabled (or loading); ignored
+   * otherwise, so it is safe to pass unconditionally. Note it changes the
+   * rendered shape: the button gains a wrapper element, which matters to a
+   * parent `flex gap-*` row or a `:first-child` selector.
+   */
+  disabledReason?: ReactNode;
 }
 
 const BASE =
@@ -35,9 +55,22 @@ const VARIANTS: Record<ButtonVariant, string> = {
   danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-400/40',
 };
 
+// A Record keyed by the union, not a ternary chain: adding a member without a
+// size here is then a compile error rather than a silent fall-through to the
+// default branch. The desktop two are byte-for-byte what they have always been,
+// and `tests/buttonSizes.test.tsx` pins them against a captured literal.
+//
+// The touch rungs carry an explicit `h-*` where the desktop pair uses `py-*`.
+// That is deliberate: a hit target has to be a guaranteed height, not a height
+// implied by the current font size. They are separate map entries and never
+// concatenated with each other, so no two competing utilities land in one class
+// attribute.
 const SIZES: Record<ButtonSize, string> = {
   sm: 'gap-1 px-2.5 py-1 text-xs',
   md: 'gap-1.5 px-3 py-1.5 text-sm',
+  'touch': 'gap-2 h-14 px-5 text-base',      // 56px — the comfortable default
+  'touch-lg': 'gap-2 h-16 px-6 text-lg',     // 64px — primary action on a page
+  'touch-xl': 'gap-3 h-20 px-8 text-2xl',    // 80px — keypad keys, tender
 };
 
 function Spinner() {
@@ -51,15 +84,23 @@ function Spinner() {
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'primary', size = 'md', loading = false, leftIcon, rightIcon, block = false,
-    disabled, type = 'button', children, className = '', ...rest },
+    disabled, type = 'button', children, className = '', disabledReason, ...rest },
   ref,
 ) {
-  return (
+  // useId, not a module counter: a counter assigns different ids on the server
+  // and the client and breaks hydration. Called unconditionally — it is a hook.
+  const generatedId = useId();
+  const isDisabled = disabled || loading;
+  const showReason = isDisabled && disabledReason != null && disabledReason !== '';
+  const reasonId = showReason ? generatedId : undefined;
+
+  const button = (
     <button
       ref={ref}
       type={type}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       aria-busy={loading || undefined}
+      aria-describedby={reasonId}
       className={[BASE, VARIANTS[variant], SIZES[size], block ? 'w-full' : '', className].filter(Boolean).join(' ')}
       {...rest}
     >
@@ -67,6 +108,17 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       {children}
       {!loading && rightIcon}
     </button>
+  );
+
+  // No reason to show ⇒ the bare <button>, byte-identical to every release
+  // before this prop existed. Only the disabled-with-a-reason case wraps.
+  if (!showReason) return button;
+
+  return (
+    <span className={block ? 'flex w-full flex-col gap-1' : 'inline-flex flex-col items-start gap-1'}>
+      {button}
+      <span id={reasonId} className="text-xs text-red-600">{disabledReason}</span>
+    </span>
   );
 });
 

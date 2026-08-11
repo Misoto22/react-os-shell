@@ -65,17 +65,25 @@ export { default as MediaUploadGrid } from '../forms/MediaUploadGrid';
 export type { MediaUploadGridProps, MediaUploadGridItem } from '../forms/MediaUploadGrid';
 export { default as DateRangePicker, toISODate } from '../forms/DateRangePicker';
 export type { DateRangePickerProps } from '../forms/DateRangePicker';
-export { INPUT_BASE, inputClasses } from '../forms/styles';
+export { INPUT_BASE, INPUT_SIZES, inputClasses } from '../forms/styles';
+export type { InputSize } from '../forms/styles';
+
+// ── Touch controls (a finger on glass — a till, a warehouse tablet) ──
+export { default as NumericKeypad } from '../forms/NumericKeypad';
+export type { NumericKeypadProps } from '../forms/NumericKeypad';
+export { appendKey, backspace, MAX_FRACTION_DIGITS } from '../forms/keypadInput';
+export { default as TileButton } from '../forms/TileButton';
+export type { TileButtonProps, TileSize } from '../forms/TileButton';
 export { default as SearchableSelect } from '../shell/SearchableSelect';
 export type { SearchableOption, SearchableSelectProps } from '../shell/SearchableSelect';
 
 // ── Display primitives ──
 export { default as Card, StatCard } from '../shell/Card';
-export type { CardProps, StatCardProps } from '../shell/Card';
+export type { CardProps, StatCardProps, CardPadding } from '../shell/Card';
 export { default as Avatar, AvatarGroup } from '../shell/Avatar';
 export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarStatus } from '../shell/Avatar';
 export { default as Banner } from '../shell/Banner';
-export type { BannerProps, BannerTone } from '../shell/Banner';
+export type { BannerProps, BannerTone, BannerEmphasis } from '../shell/Banner';
 export { default as Tabs } from '../shell/Tabs';
 export type { TabsProps, TabItem } from '../shell/Tabs';
 export { default as Accordion } from '../shell/Accordion';
@@ -119,6 +127,7 @@ export { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from '../s
 
 // ── Feedback ──
 export { default as toast } from '../shell/toast';
+export type { ToastOptions, ToastPlacement } from '../shell/toast';
 
 // ── Data primitives (pageless — no react-query, no axios) ──
 export { default as EditableGrid } from '../shell/EditableGrid';

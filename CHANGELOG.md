@@ -4,6 +4,86 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.17.0] — 2026-08-11
+
+### Added
+- **A touch scale, so a finger-sized control is something the kit offers rather
+  than something an app re-implements.** `ButtonSize` gains `touch` (56px),
+  `touch-lg` (64px) and `touch-xl` (80px) alongside `sm` and `md`, and
+  `inputClasses` gains a matching `size: 'touch'` for a 56px field.
+
+  They are a separate ladder rather than a bigger `lg` on the existing one,
+  because a till's idea of "medium" is 56px and reusing the name would have
+  made one word mean two sizes depending on which app you were reading. Nothing
+  selects a touch size automatically — an app asks for it, so a desktop portal
+  cannot grow finger-sized buttons by accident.
+
+  The input size is **swapped into** the class string, never appended: two
+  competing utilities in one class attribute are resolved by their order in the
+  compiled stylesheet, which neither this package nor the caller controls, so
+  appending would render one size or the other essentially at random and look
+  correct in review either way. `INPUT_BASE` is assembled from the same
+  fragments and remains byte-identical, since it and `inputClasses` are public
+  exports whose exact values are contract. `touch` uses `text-base` by agreement
+  with the existing rule that forces 16px on form controls under
+  `(pointer: coarse)` — the one that stops iOS zooming the viewport on focus.
+
+- **`Button` takes a `disabledReason`,** rendered as text beside the button and
+  never as a `title` tooltip. A tooltip needs a hover, a touchscreen has none,
+  and a user facing a dead button with no explanation asks a colleague instead.
+  It renders only while the button is actually disabled, so it is safe to pass
+  unconditionally — note it wraps the button in that case, which a parent
+  `flex gap-*` row will see.
+
+- **`NumericKeypad`,** with its press rules in `keypadInput` as pure functions.
+  Values are strings throughout: `'1.'` is a state a user passes through while
+  typing and does not survive a float — it would become `1` and erase the
+  decimal point the moment it was pressed. The rules are the ones that are easy
+  to get wrong and produce a wrong amount rather than an error: one decimal
+  point, at most two fraction digits, a leading zero replaced rather than
+  appended to, and a bare `.` normalised to `0.`.
+
+- **`TileButton`** — a fixed-height, left-aligned tile for a grid of choices
+  (a product catalogue, a payment method). Separate from `Button` because the
+  content model differs: a title and subtitle stacked, at a constant height so a
+  grid lines up whether or not every tile has a subtitle.
+
+- **`Banner` gains `emphasis` and `sticky`.** `solid` is a saturated
+  full-contrast bar for a condition the user must not miss and cannot work
+  around — a till that has lost the server and cannot take payment. The subtle
+  version of that message is a bug. `sticky` uses `position: sticky`, so the
+  banner still occupies layout and pushes the page down rather than covering
+  the first row of it.
+
+- **`Card` gains a `padding` scale** (`none`/`sm`/`md`/`lg`) that scales the
+  header and footer rows with the body — those rows take no `className`, so a
+  `p-6` body above a `px-4 py-3` footer was not something a caller could fix.
+  `padded` remains supported as the two-value shorthand.
+
+- **`LoadingSpinner` takes a `label`.** On a full-screen wait there is nothing
+  else on the page to infer the operation from. A labelled spinner gains
+  `role="status"`; a bare one deliberately does not, since adding it
+  unconditionally would have changed the accessibility tree for every existing
+  caller.
+
+- **`toast` takes options** — `placement` (`top`/`bottom`), `duration`,
+  `sticky`, `dedupe` — plus `toast.configure()` to set them once at startup, the
+  same "wire it once" shape as `setShellApiClient`. `dedupe` refreshes a message
+  already on screen instead of stacking a second copy, and **restarts its
+  timer**: the user asked twice, so the message should persist rather than
+  expire on the first one's schedule.
+
+### Changed
+- **Toasts are now dismissed by tapping them,** in every app. A toast has no
+  other click affordance, and a sticky one has no other exit at all — the
+  `notify` card has behaved this way since it existed. This is the one change
+  here that is visible without opting in.
+
+- Every other addition above is inert by default: the `sm`/`md` button sizes,
+  `INPUT_BASE`, and the default rendering of `Card`, `Banner` and
+  `LoadingSpinner` are pinned byte-identical to 4.16.0 by equality assertions in
+  `tests/touchPrimitives.test.tsx`, against captured literals.
+
 ## [4.16.0] — 2026-08-11
 
 ### Added

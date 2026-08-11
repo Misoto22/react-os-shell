@@ -8,14 +8,35 @@ import { type ReactNode } from 'react';
 
 export type BannerTone = 'info' | 'success' | 'warning' | 'danger';
 
+/**
+ * How loudly the banner speaks.
+ *
+ * `subtle` (the default, and what every existing caller renders) is a tinted
+ * panel that sits politely in a form. `solid` is a saturated full-contrast bar
+ * for a condition the user must not miss and cannot work around — a till that
+ * has lost the server and cannot take payment. The subtle version of that
+ * message is a bug: a cashier who misses it takes money for a sale that will
+ * not complete.
+ */
+export type BannerEmphasis = 'subtle' | 'solid';
+
 export interface BannerProps {
   tone?: BannerTone;
+  emphasis?: BannerEmphasis;
   title?: ReactNode;
   children?: ReactNode;
   /** Override the default tone icon. */
   icon?: ReactNode;
   /** When provided, renders a dismiss × that calls this. */
   onDismiss?: () => void;
+  /**
+   * Pin to the top of the scroll container while its content scrolls past.
+   *
+   * `position: sticky`, so the banner still occupies layout — it pushes the
+   * page down rather than covering the first row of it, which is what a
+   * blocking notice needs. Defeated by any ancestor with `overflow: hidden`.
+   */
+  sticky?: boolean;
   className?: string;
 }
 
@@ -24,6 +45,17 @@ const TONE: Record<BannerTone, { box: string; icon: string }> = {
   success: { box: 'bg-green-50 border-green-200', icon: 'text-green-600' },
   warning: { box: 'bg-amber-50 border-amber-200', icon: 'text-amber-600' },
   danger: { box: 'bg-red-50 border-red-200', icon: 'text-red-600' },
+};
+
+// Solid tones are saturated -700 backgrounds with white text, all inside the
+// dark-mode allow-list. Text colour is carried on the root here (rather than by
+// the neutral gray-900/gray-700 the subtle variant uses on its children) so the
+// title, body and dismiss control all inherit it.
+const TONE_SOLID: Record<BannerTone, string> = {
+  info: 'bg-blue-700 border-blue-700 text-white',
+  success: 'bg-green-700 border-green-700 text-white',
+  warning: 'bg-amber-700 border-amber-700 text-white',
+  danger: 'bg-red-700 border-red-700 text-white',
 };
 
 function ToneIcon({ tone }: { tone: BannerTone }) {
@@ -40,17 +72,34 @@ function ToneIcon({ tone }: { tone: BannerTone }) {
   }
 }
 
-export default function Banner({ tone = 'info', title, children, icon, onDismiss, className = '' }: BannerProps) {
+export default function Banner({
+  tone = 'info', emphasis = 'subtle', title, children, icon, onDismiss, sticky = false, className = '',
+}: BannerProps) {
   const t = TONE[tone];
+  const solid = emphasis === 'solid';
+  // Every branch below collapses to the original string when emphasis is
+  // 'subtle' and sticky is false, so existing callers render byte-identically.
+  const box = solid ? TONE_SOLID[tone] : t.box;
+  const stick = sticky ? 'sticky top-0 z-30' : '';
   return (
-    <div role={tone === 'danger' ? 'alert' : 'status'} className={`flex items-start gap-3 rounded-lg border px-4 py-3 ${t.box} ${className}`.trim()}>
-      <span className={`mt-0.5 shrink-0 ${t.icon}`}>{icon ?? <ToneIcon tone={tone} />}</span>
+    <div
+      role={tone === 'danger' ? 'alert' : 'status'}
+      className={`${stick} flex items-start gap-3 rounded-lg border px-4 py-3 ${box} ${className}`.trim()}
+    >
+      <span className={`mt-0.5 shrink-0 ${solid ? '' : t.icon}`.trim()}>{icon ?? <ToneIcon tone={tone} />}</span>
       <div className="min-w-0 flex-1 text-sm">
-        {title && <div className="font-semibold text-gray-900">{title}</div>}
-        {children && <div className={`text-gray-700 ${title ? 'mt-0.5' : ''}`.trim()}>{children}</div>}
+        {title && <div className={`font-semibold ${solid ? '' : 'text-gray-900'}`.trim()}>{title}</div>}
+        {children && (
+          <div className={`${solid ? '' : 'text-gray-700'} ${title ? 'mt-0.5' : ''}`.trim()}>{children}</div>
+        )}
       </div>
       {onDismiss && (
-        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="shrink-0 text-gray-400 hover:text-gray-600">
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className={`shrink-0 ${solid ? 'opacity-80 hover:opacity-100' : 'text-gray-400 hover:text-gray-600'}`}
+        >
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
             <path d="M6 6l8 8M14 6l-8 8" />
           </svg>

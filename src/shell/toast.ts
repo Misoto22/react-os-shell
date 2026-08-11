@@ -12,8 +12,46 @@
  */
 
 const TOAST_CONTAINER_ID = 'toast-container';
+const TOAST_BOTTOM_CONTAINER_ID = 'toast-container-bottom';
 const NOTIF_CONTAINER_ID = 'notif-container';
 const FADE_MS = 300;
+
+export type ToastPlacement = 'top' | 'bottom';
+
+export interface ToastOptions {
+  /** Milliseconds before auto-dismiss. Ignored when `sticky`. */
+  duration?: number;
+  /**
+   * Stay until dismissed. For a message the user must actually act on — the
+   * kind that must not scroll past while they are looking at a customer.
+   * Implies tap-to-dismiss is the only way out, which it already is.
+   */
+  sticky?: boolean;
+  /**
+   * `bottom` centres toasts along the bottom edge. On a till the top of the
+   * screen is the cart total and the bottom is nearest the hand.
+   */
+  placement?: ToastPlacement;
+  /**
+   * Drop a message identical to one already showing, and RESTART its timer
+   * rather than stacking a second copy. A failing poll otherwise writes the
+   * same sentence a dozen times. The restart matters: the user asked twice, so
+   * the message should persist, not expire on the first one's schedule.
+   */
+  dedupe?: boolean;
+}
+
+/**
+ * Defaults for every subsequent toast, set once at app startup — the same
+ * "consumer wires this once" shape as `setShellApiClient`/`setShellNavIcons`.
+ * A till calls `toast.configure({ placement: 'bottom', duration: 6000,
+ * dedupe: true })` instead of repeating those options at 40 call sites.
+ * Per-call options still win.
+ */
+let defaults: ToastOptions = {};
+
+/** Live toasts by dedupe key, so a repeat can find and refresh its own. */
+const live = new Map<string, { el: HTMLElement; restart: () => void }>();
 
 function getOrCreate(id: string, className: string): HTMLElement {
   let el = document.getElementById(id);
@@ -47,14 +85,27 @@ const GLASS_COMMON = `
 // ── Toast (operation feedback) — top-center, brief ──
 
 function showToast(variant: 'success' | 'error' | 'info', message: string,
-                   opts?: { duration?: number }) {
+                   opts?: ToastOptions) {
+  const opts_ = { ...defaults, ...opts };
+  const placement: ToastPlacement = opts_.placement ?? 'top';
+  const sticky = opts_.sticky ?? false;
+
+  // A repeat of a message already on screen refreshes it instead of stacking.
+  const key = `${placement}|${variant}|${message}`;
+  if (opts_.dedupe) {
+    const existing = live.get(key);
+    if (existing) { existing.restart(); return; }
+  }
+
   import('../utils/sounds').then(s => {
     if (variant === 'success') s.playSuccess();
     else if (variant === 'error') s.playError();
     else s.playNotification();
   }).catch(() => {});
 
-  const container = getOrCreate(TOAST_CONTAINER_ID, 'fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 items-center pointer-events-none');
+  const container = placement === 'bottom'
+    ? getOrCreate(TOAST_BOTTOM_CONTAINER_ID, 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col-reverse gap-2 items-center pointer-events-none')
+    : getOrCreate(TOAST_CONTAINER_ID, 'fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 items-center pointer-events-none');
   const o = getMenuOpacity();
   const color = variant === 'success' ? '#22c55e' : variant === 'error' ? '#ef4444' : '#3b82f6';
   const icons = {
@@ -64,12 +115,16 @@ function showToast(variant: 'success' | 'error' | 'info', message: string,
   };
   const icon = icons[variant];
 
+  // Enter from the edge the toast is anchored to, so it reads as arriving from
+  // off-screen rather than drifting in from the wrong direction.
+  const offscreen = placement === 'bottom' ? 'translateY(10px)' : 'translateY(-10px)';
+
   const el = document.createElement('div');
-  el.className = 'pointer-events-auto';
+  el.className = 'pointer-events-auto cursor-pointer';
   el.style.cssText = `
     padding: 8px 20px; border-radius: 12px;
     background: ${glassBackground(o)}; ${GLASS_COMMON}
-    opacity: 0; transform: translateY(-10px) scale(0.95);
+    opacity: 0; transform: ${offscreen} scale(0.95);
     transition: opacity ${FADE_MS}ms ease, transform ${FADE_MS}ms ease;
     display: flex; align-items: center; gap: 8px;
     font-size: 13px; font-weight: 500; color: rgb(55,65,81);
@@ -83,14 +138,33 @@ function showToast(variant: 'success' | 'error' | 'info', message: string,
   container.appendChild(el);
   requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateY(0) scale(1)'; });
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let gone = false;
+  const dismiss = () => {
+    if (gone) return;
+    gone = true;
+    if (timer) clearTimeout(timer);
+    live.delete(key);
+    el.style.opacity = '0';
+    el.style.transform = `${offscreen} scale(0.95)`;
+    setTimeout(() => el.remove(), FADE_MS);
+  };
+
   // Info messages are usually a sentence ("no matches — check X"); give them a
   // beat longer to read than the terse success/error confirmations.
-  const duration = opts?.duration ?? (variant === 'info' ? 4500 : 3000);
-  setTimeout(() => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(-10px) scale(0.95)';
-    setTimeout(() => el.remove(), FADE_MS);
-  }, duration);
+  const duration = opts_.duration ?? (variant === 'info' ? 4500 : 3000);
+  const restart = () => {
+    if (timer) clearTimeout(timer);
+    if (!sticky) timer = setTimeout(dismiss, duration);
+  };
+  restart();
+
+  // Tap anywhere on the toast to dismiss it. A toast has no other click
+  // affordance, and a sticky one has no other exit at all — `notify` has
+  // behaved this way since it existed.
+  el.addEventListener('click', dismiss);
+
+  live.set(key, { el, restart });
 }
 
 // ── Notification (system alert) — top-right, stays longer ──
@@ -141,11 +215,17 @@ function showNotification(message: string, opts?: { duration?: number }) {
 }
 
 const toast = {
-  success: (message: string) => showToast('success', message),
-  error: (message: string) => showToast('error', message),
-  info: (message: string, opts?: { duration?: number }) => showToast('info', message, opts),
+  success: (message: string, opts?: ToastOptions) => showToast('success', message, opts),
+  error: (message: string, opts?: ToastOptions) => showToast('error', message, opts),
+  info: (message: string, opts?: ToastOptions) => showToast('info', message, opts),
   // Persistent top-right notification card (the old toast.info presentation).
   notify: (message: string, opts?: { duration?: number }) => showNotification(message, opts),
+  /**
+   * Set defaults for every subsequent toast. Call once at app startup; later
+   * calls replace the whole object rather than merging, so a consumer sets its
+   * policy in one place. Per-call options still take precedence.
+   */
+  configure: (next: ToastOptions) => { defaults = { ...next }; },
 };
 
 export default toast;

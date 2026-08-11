@@ -5,27 +5,39 @@
  * field unchanged. Native dark-mode input styling applies automatically.
  */
 import { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
-import { inputClasses } from './styles';
+import { inputClasses, type InputSize } from './styles';
 
-export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className'> {
+export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'size'> {
   /** Error state — red border + ring. */
   invalid?: boolean;
   /** Icon rendered inside the field's left edge (e.g. a search glyph). */
   leftIcon?: ReactNode;
   /** Content pinned to the field's right edge (e.g. a unit, a small action). */
   rightAdornment?: ReactNode;
+  /**
+   * `touch` gives a 56px field for a finger. Defaults to the desktop size.
+   *
+   * This shadows the native `size` attribute (a character count), which is
+   * omitted above rather than left to collide — the width of a `w-full` field
+   * has never come from that attribute here, so nothing loses a capability it
+   * was using. Set `style`/`className` for width instead.
+   */
+  size?: InputSize;
   className?: string;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { invalid, leftIcon, rightAdornment, className = '', ...rest },
+  { invalid, leftIcon, rightAdornment, size, className = '', ...rest },
   ref,
 ) {
   const pad = `${leftIcon ? 'pl-9' : ''} ${rightAdornment ? 'pr-9' : ''}`.trim();
   const field = (
+    // `inputMode` needs no plumbing — it rides the native spread onto the
+    // <input>, which is how a till sets inputMode="none" to keep the OS
+    // keyboard off the screen while its own keypad drives the field.
     <input
       ref={ref}
-      className={inputClasses({ invalid, className: [pad, className].filter(Boolean).join(' ') })}
+      className={inputClasses({ invalid, size, className: [pad, className].filter(Boolean).join(' ') })}
       {...rest}
     />
   );
