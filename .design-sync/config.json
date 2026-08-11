@@ -17,6 +17,8 @@
     "TopNav": { "cardMode": "column" },
     "Pagination": { "cardMode": "column" },
     "BulkImportGrid": { "cardMode": "single", "viewport": "960x560" },
+    "NumericKeypad": { "cardMode": "single", "primaryStory": "Entry" },
+    "TileButton": { "cardMode": "column", "primaryStory": "Catalogue" },
     "MilestoneTimeline": { "cardMode": "column" },
     "ContainerFillChart": { "cardMode": "column" },
 

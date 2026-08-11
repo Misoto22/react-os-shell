@@ -5,6 +5,10 @@
  */
 import { type ReactNode } from 'react';
 
+/** How much room the card gives its contents. `md` is the desktop default;
+ *  `lg` suits a touch layout, where the same density reads as cramped. */
+export type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+
 export interface CardProps {
   children: ReactNode;
   /** Title row above the body, divided by a hairline. */
@@ -13,17 +17,33 @@ export interface CardProps {
   footer?: ReactNode;
   /** Apply default padding to the body. Default true; set false to fill edge-to-edge. */
   padded?: boolean;
+  /**
+   * Padding scale. Takes precedence over `padded`, which remains supported and
+   * is now the two-value shorthand for it (`true` → `md`, `false` → `none`).
+   */
+  padding?: CardPadding;
   className?: string;
 }
 
-export default function Card({ children, header, footer, padded = true, className = '' }: CardProps) {
+// Header/footer padding scales WITH the body. A `p-6` body above a `px-4 py-3`
+// footer reads as a mistake, and the caller cannot fix it — those rows take no
+// className. `edge` is the horizontal/vertical pair for those rows.
+const PADDING: Record<CardPadding, { body: string; edge: string }> = {
+  none: { body: '', edge: 'px-4 py-3' },
+  sm: { body: 'p-3', edge: 'px-3 py-2' },
+  md: { body: 'p-4', edge: 'px-4 py-3' },
+  lg: { body: 'p-6', edge: 'px-6 py-4' },
+};
+
+export default function Card({ children, header, footer, padded = true, padding, className = '' }: CardProps) {
+  const p = PADDING[padding ?? (padded ? 'md' : 'none')];
   return (
     <div className={`rounded-lg border border-gray-200 bg-white shadow-sm ${className}`.trim()}>
       {header && (
-        <div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">{header}</div>
+        <div className={`border-b border-gray-100 ${p.edge} text-sm font-semibold text-gray-900`}>{header}</div>
       )}
-      <div className={padded ? 'p-4' : ''}>{children}</div>
-      {footer && <div className="border-t border-gray-100 px-4 py-3">{footer}</div>}
+      <div className={p.body}>{children}</div>
+      {footer && <div className={`border-t border-gray-100 ${p.edge}`}>{footer}</div>}
     </div>
   );
 }
