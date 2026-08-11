@@ -4,6 +4,91 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.16.0] — 2026-08-11
+
+### Added
+- **The UI kit is importable without the window manager — `react-os-shell/ui`.**
+  Importing a single form control pulled the whole desktop in behind it.
+  `forms/Select` reached one function on `shell/Modal` — a bare `Set` of Escape
+  interceptors — and that one import dragged `react-router-dom`,
+  `@tanstack/react-query`, `axios`, `@headlessui/react` and `@heroicons/react`
+  into any bundle containing a dropdown, along with Modal's module-scope
+  `localStorage` reads, which ran at import time. An app that wanted a button
+  and a text field paid for a desktop it never rendered.
+
+  That seam now lives in `shell/escapeInterceptors`, a leaf module that imports
+  nothing; Modal and Select each import it, and neither imports the other.
+  `registerModalEscapeInterceptor` is still exported from Modal and from the
+  package root, with the same binding, so every existing import path is
+  unchanged — and with no Modal mounted the registration is inert and Select
+  closes its own listbox on Escape, exactly as it already documented for a
+  plain page.
+
+  `react-os-shell/ui` re-exports the peer-light half: every form control, the
+  display and layout primitives, the charts, all nine page templates, the
+  pageless data primitives, `toast`, and the theming hooks. Nothing it reaches
+  imports anything but `react` and `react-dom` — 69 modules, asserted at source
+  by `tests/uiEntryIsPeerFree.test.ts` and against the built artifact by
+  `scripts/verify-dist.mjs`. The second is the one that matters: tsup builds
+  with code splitting, so a peer can enter the kit's graph through a shared
+  chunk without any source file changing.
+
+  Measured on the same nine kit imports: 27.9 KB minified through `./ui` versus
+  36.4 KB through the root — and, more to the point, the root version still
+  *requires* `@headlessui/react`, `@heroicons/react` and `@tanstack/react-query`
+  as external imports, while the `./ui` version requires only React. Those peers
+  are declared optional, so a consumer that has not installed them gets an
+  unresolvable import rather than a missing style.
+
+  **Nothing changes for a consumer on the root entry.** `react-os-shell`
+  re-exports the same modules from the same bindings — verified name by name
+  against 4.15.0, with no export lost. Four names are added: `useTheme`,
+  `resolveTheme`, `applyThemePrefs` and `useIsMobile`, previously internal. A
+  ui-only consumer needs them, because dark mode and the accent themes work by
+  remapping utility classes under `[data-theme]` and there was otherwise no
+  supported way to stamp that attribute.
+
+- **A stylesheet for the kit alone — `react-os-shell/ui.css`.** A consumer
+  taking `./ui` had to load the whole sheet — window tints, taskbar variables,
+  sticky-note paper, the Documents editor — to get the dark remaps its buttons
+  and inputs depend on.
+
+  Rules were allocated by **selector scope, not by the comment above them**. A
+  rule belongs to the shell half only if its selector is scoped to DOM the shell
+  alone produces (`[data-sticky-id]`, `.glass-input-bg`, `.docs-editor`) or it
+  declares a `--window-*` / `--taskbar-*` property. That is why the taskbar
+  text-brightening rule went to `ui.css`: its selector is a bare
+  `.text-gray-600`, it applies to every button in every app, and it is in fact
+  the winning declaration for that class package-wide.
+
+  `ui.css` deliberately does **not** `@import "tailwindcss"` — `styles.css`
+  does, first. Every consuming portal already imports Tailwind itself, so their
+  cascade is untouched, and it lets an app mid-migration off another component
+  library take the theme and utility layers *without* preflight, whose bare
+  element selectors would otherwise out-specify that library's
+  `:where()`-wrapped reset and restyle it silently.
+
+  One rule is genuinely new: `:root { --menu-opacity: 0.95 }`, the value
+  `utils/glass.ts` already fell back to, now declared rather than assumed.
+
+### Changed
+- **`react-os-shell/styles.css` is now an umbrella over `ui.css` and
+  `shell.css`.** The rules, their order, and the resulting cascade are
+  unchanged: all 294 declarations are present, none is declared in both halves,
+  and compiling the umbrella produces the same 421 rule blocks as 4.15.0 plus
+  the one new `--menu-opacity` line. Because no selector declares the same
+  property in both files, no cascade outcome depends on which half is imported
+  first — pinned by `tests/cssSplit.test.ts`, since the two halves were
+  interleaved in the original and no ordering of two files reproduces the old
+  sequence exactly.
+
+  **Consumers need change nothing.** Keep importing `styles.css`; import
+  `ui.css` instead only if you are taking `./ui`. Importing both doubles every
+  rule.
+
+- CI's dist check now walks the `exports` map instead of four hard-coded
+  `test -f` lines, so a newly added subpath can no longer ship unverified.
+
 ## [4.15.0] — 2026-08-09
 
 ### Fixed

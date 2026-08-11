@@ -1,6 +1,26 @@
 /**
  * react-os-shell — public API barrel.
+ *
+ * This entry is the SHELL: the window manager, the desktop, and everything
+ * that needs them — plus the whole UI kit, re-exported from `./ui` below.
+ *
+ * The kit's list lives in `src/ui/kit.ts` and is re-exported here wholesale, so
+ * there is exactly one list to maintain and this entry stays a superset.
+ * Add a kit component there, never in both: TypeScript resolves an explicit
+ * local export ahead of a star export SILENTLY, so re-declaring one of those
+ * names here would shadow it with no error and let the two entries drift while
+ * both still compiled. `tests/uiBarrelMatchesRoot.test.ts` catches that.
+ *
+ * The star must point at `./ui/kit` and NOT at `./ui`: the latter is a tsup
+ * entry, and esbuild does not expand a star re-export of an entry module — the
+ * built root barrel then ships with none of the kit on it, silently.
  */
+
+// ── The UI kit, in full ──
+// Also available as `react-os-shell/ui`, which is the same modules with no
+// window manager in the graph — for consumers that want the kit and not a
+// desktop. Nothing here differs; this is the same binding, re-exported.
+export * from './ui/kit';
 
 // ── Window registry composer + types ──
 export { createWindowRegistry } from './windowRegistry/createWindowRegistry';
@@ -23,38 +43,14 @@ export { requestWindowFront } from './shell/Modal';
 export { createWindowTarget, useWindowTarget } from './shell/windowTarget';
 export type { WindowTarget, WindowTargetOptions, StagedTarget } from './shell/windowTarget';
 export { default as WindowErrorBoundary, WindowCrashedFallback } from './shell/WindowErrorBoundary';
-export { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from './shell/PopupMenu';
 export { ConfirmProvider, confirm, confirmDestructive, prompt } from './shell/ConfirmDialog';
 export { default as GlobalSearch } from './shell/GlobalSearch';
 export type { SearchResult, SearchProvider, SearchConfig } from './shell/GlobalSearch';
 export { default as ShortcutHelp } from './shell/ShortcutHelp';
-export { default as HelpCenter } from './shell/HelpCenter';
-export type { HelpCenterProps, HelpCenterDoc } from './shell/HelpCenter';
-export { default as Markdown } from './shell/Markdown';
-export type { MarkdownProps } from './shell/Markdown';
-export { ALT_SHIFT_E, ALT_SHIFT_D, ALT_SHIFT_N, CMD_ENTER, CMD_S, CMD_K, CMD_DOT, CMD_A, MOD, ALT, SHIFT, ENTER, isMac } from './shell/Kbd';
-export { default as toast } from './shell/toast';
-export { default as EditableGrid } from './shell/EditableGrid';
-export type { GridColumn, CellStyle, EditableGridProps } from './shell/EditableGrid';
-export { default as SidebarLayout } from './shell/SidebarLayout';
-export type { SidebarLayoutProps } from './shell/SidebarLayout';
-export { default as SidebarActionButton } from './shell/SidebarActionButton';
-export type { SidebarActionButtonProps } from './shell/SidebarActionButton';
-export { default as SearchableSelect } from './shell/SearchableSelect';
-export type { SearchableOption, SearchableSelectProps } from './shell/SearchableSelect';
-export { default as TopNav } from './shell/TopNav';
-export type { TopNavProps, TopNavItem } from './shell/TopNav';
-export { default as Breadcrumbs } from './shell/Breadcrumbs';
-export type { BreadcrumbsProps, BreadcrumbItem } from './shell/Breadcrumbs';
 
 // ── Notification system ──
 export { default as NotificationBell } from './shell/NotificationBell';
 export type { NotificationsConfig, ShellNotification } from './shell/NotificationBell';
-
-
-// ── Status badges ──
-export { default as StatusBadge, StatusBadgeProvider } from './shell/StatusBadge';
-export type { SemanticGroup } from './shell/StatusBadge';
 
 // ── Dev-environment chrome (localhost-only tray badge + tab-title prefix) ──
 export { default as DevIndicator } from './shell/DevIndicator';
@@ -105,72 +101,23 @@ export { default as ImageAnnotator } from './apps/ImageAnnotator';
 export type { ImageAnnotatorHandle, ImageAnnotatorProps } from './apps/ImageAnnotator';
 
 // ── Pageless data grid primitives ──
+// The rest of the data primitives (Kanban, Pagination, ListFooter,
+// ListLoadError, the types) come through `./ui`. These four stay here: they
+// reach axios and react-query, which the kit entry must not.
 export { default as EntityList } from './data/EntityList';
 export type { EntityListColumn, EntityListProps, EntityListContextAction } from './data/EntityList';
-export { default as Kanban } from './data/Kanban';
-export type { KanbanColumn, KanbanProps } from './data/Kanban';
 export { default as ResizableTable } from './data/ResizableTable';
-export { default as ListFooter } from './data/ListFooter';
-export { default as ListLoadError } from './data/ListLoadError';
-export type { ListLoadErrorProps } from './data/ListLoadError';
 export { default as useTableNav } from './data/useTableNav';
 export { useColumnConfig } from './data/useColumnConfig';
 export { useInfiniteScroll } from './data/useInfiniteScroll';
 export { useSort } from './data/useSort';
-export type { ColumnDef, SortState, PaginatedResponse } from './data/types';
-export { default as Pagination } from './data/Pagination';
-export type { PaginationProps } from './data/Pagination';
 
-// ── Form controls ──
-export { default as Button } from './forms/Button';
-export type { ButtonProps, ButtonVariant, ButtonSize } from './forms/Button';
-export { default as Input } from './forms/Input';
-export type { InputProps } from './forms/Input';
-export { default as Textarea } from './forms/Textarea';
-export type { TextareaProps } from './forms/Textarea';
-export { default as Select, NativeSelect } from './forms/Select';
-export type { SelectProps, SelectOption } from './forms/Select';
-export { default as Checkbox } from './forms/Checkbox';
-export type { CheckboxProps } from './forms/Checkbox';
-export { default as Radio } from './forms/Radio';
-export type { RadioProps } from './forms/Radio';
-export { default as FormField } from './forms/FormField';
-export type { FormFieldProps } from './forms/FormField';
-export { default as Label } from './forms/Label';
-export type { LabelProps } from './forms/Label';
-export { default as MediaUploadField, mediaFileName } from './forms/MediaUploadField';
-export type { MediaUploadFieldProps } from './forms/MediaUploadField';
-export { default as MediaUploadGrid } from './forms/MediaUploadGrid';
-export type { MediaUploadGridProps, MediaUploadGridItem } from './forms/MediaUploadGrid';
-export { default as DateRangePicker, toISODate } from './forms/DateRangePicker';
-export type { DateRangePickerProps } from './forms/DateRangePicker';
-export { INPUT_BASE, inputClasses } from './forms/styles';
-
-// ── Display & layout primitives ──
-export { default as Card, StatCard } from './shell/Card';
-export type { CardProps, StatCardProps } from './shell/Card';
-export { default as Avatar, AvatarGroup } from './shell/Avatar';
-export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarStatus } from './shell/Avatar';
-export { default as Banner } from './shell/Banner';
-export type { BannerProps, BannerTone } from './shell/Banner';
-export { default as Tabs } from './shell/Tabs';
-export type { TabsProps, TabItem } from './shell/Tabs';
-export { default as Accordion } from './shell/Accordion';
-export type { AccordionProps, AccordionItem } from './shell/Accordion';
-export { default as Tooltip } from './shell/Tooltip';
-export type { TooltipProps } from './shell/Tooltip';
-export { default as ColoredBadge } from './shell/ColoredBadge';
-export type { ColoredBadgeProps } from './shell/ColoredBadge';
-export { default as EmptyState } from './shell/EmptyState';
-export type { EmptyStateProps } from './shell/EmptyState';
-export { default as PageHeader } from './shell/PageHeader';
-export type { PageHeaderProps } from './shell/PageHeader';
-export { default as LoadingSpinner } from './shell/Spinner';
-export type { LoadingSpinnerProps } from './shell/Spinner';
+// ── Display primitives that reach an optional peer ──
+// (The peer-free ones — Card, Banner, Tabs, Avatar, … — come through `./ui`.)
 export { default as FilterBar, useFilters } from './shell/FilterBar';
 export type { FilterOption } from './shell/FilterBar';
-export { SidebarNavItem, SidebarGroupLabel } from './shell/SidebarNav';
-export { default as MetricBar } from './shell/MetricBar';
+
+// ── Perf HUD and its analysis modules ──
 export { default as PerfStats, type PerfStatsProps, type PerfReport } from './shell/PerfStats';
 export {
   classify as classifyPerf,
@@ -210,9 +157,6 @@ export {
   type PlatformHints,
   type BatteryInfo,
 } from './shell/perfEnvironment';
-export type { MetricBarProps } from './shell/MetricBar';
-export { severityOf, isSeverityTone } from './shell/severity';
-export type { SeverityTone } from './shell/severity';
 
 // ── Portal-promoted components (phase 2/3 — app concerns lifted to props) ──
 export { default as BulkImportGrid } from './shell/BulkImportGrid';
@@ -221,48 +165,17 @@ export { mergeBulkItems, findDuplicateKeys } from './utils/mergeBulkItems';
 export type { BulkRow, DuplicateGroup, MergeBulkResult, MergeBulkOptions } from './utils/mergeBulkItems';
 export { default as UndoControls } from './shell/UndoControls';
 export type { UndoControlsProps } from './shell/UndoControls';
-export { default as ContainerFillChart } from './shell/ContainerFillChart';
-export type { ContainerFillChartProps, ContainerFillItem } from './shell/ContainerFillChart';
 export { default as ServerStatusIndicator } from './shell/ServerStatusIndicator';
 export type { ServerStatusIndicatorProps, ServerStatusUser, HealthCheckResult } from './shell/ServerStatusIndicator';
 export { default as ChangePasswordForm } from './shell/ChangePasswordForm';
 export type { ChangePasswordFormProps } from './shell/ChangePasswordForm';
 export { default as PdfActionButton } from './shell/PdfActionButton';
 export type { PdfActionButtonProps } from './shell/PdfActionButton';
-export { default as MilestoneTimeline } from './shell/MilestoneTimeline';
-export type { Milestone, MilestoneKind, MilestoneTimelineProps } from './shell/MilestoneTimeline';
-
-// ── Charts (dependency-free SVG) ──
-export { default as Sparkline } from './charts/Sparkline';
-export { default as BarChart } from './charts/BarChart';
-export { default as DonutChart } from './charts/DonutChart';
-export type { SparklineProps, BarChartProps, DonutChartProps, DonutSegment } from './charts/types';
-
-// ── Page templates (starter screens; see src/templates) ──
-export { default as DashboardTemplate } from './templates/DashboardTemplate';
-export { default as DataTablePage } from './templates/DataTablePage';
-export { default as FormLayoutPage } from './templates/FormLayoutPage';
-export { default as CheckoutTemplate } from './templates/CheckoutTemplate';
-export { default as EmailTemplate } from './templates/EmailTemplate';
-export { default as ChatTemplate } from './templates/ChatTemplate';
-export { default as GalleryTemplate } from './templates/GalleryTemplate';
-export { default as AuthScreen } from './templates/AuthScreen';
-export type { AuthScreenProps } from './templates/AuthScreen';
-export { default as ErrorPage } from './templates/ErrorPage';
-export type { ErrorPageProps } from './templates/ErrorPage';
-
-// ── Package version (tsup-injected at build time) ──
-export { VERSION } from './version';
 
 // ── Bridge surfaces (consumer wires these once at App startup) ──
+// ShellPrefs comes through `./ui` — the kit's theming needs it.
 export { ShellAuthProvider, useShellAuth } from './shell/ShellAuth';
 export type { ShellAuth } from './shell/ShellAuth';
-export {
-  ShellPrefsProvider,
-  useShellPrefs,
-  useLocalStoragePrefs,
-} from './shell/ShellPrefs';
-export type { ShellPrefsAdapter } from './shell/ShellPrefs';
 export {
   ShellEntityFetcherProvider,
   useShellEntityFetcher,
@@ -275,11 +188,14 @@ export type { TodoTask } from './apps/_todoTypes';
 export { setShellAuthBridge } from './contexts/AuthContext';
 
 // ── Utilities ──
-export { glassStyle, GLASS_DIVIDER, GLASS_INPUT_BG } from './utils/glass';
-export { formatDate } from './utils/date';
+// glassStyle + GLASS_DIVIDER come through `./ui`. GLASS_INPUT_BG stays here:
+// its CSS rule lives in shell.css, so the class would name a rule a ui-only
+// consumer has not loaded.
+export { GLASS_INPUT_BG } from './utils/glass';
 
-// ── Hooks (theming, hotkeys, modal nav) ──
-export { default as useClickOutside } from './hooks/useClickOutside';
+// ── Hooks (hotkeys, modal nav) ──
+// useClickOutside and the theming hooks come through `./ui`. These ask which
+// window is active, so they belong to the shell.
 export { default as useNewHotkey } from './hooks/useNewHotkey';
 export { default as useEditHotkey } from './hooks/useEditHotkey';
 export { UndoProvider, useUndo, useUndoable, useUndoableState } from './shell/UndoProvider';

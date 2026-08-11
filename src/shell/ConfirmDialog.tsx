@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react';
 import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { registerModalEscapeInterceptor } from './Modal';
+import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
 interface ConfirmOptions {
   title?: string;

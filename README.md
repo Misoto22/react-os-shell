@@ -278,6 +278,52 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | `Calculator`, `Spreadsheet`, `Weather`, `CurrencyConverter`, `PomodoroTimer`, `TodoList`, `Browser` | Lazy components — use directly in custom registry entries. |
 | `BUILTIN_APP_INFO` | Per-app metadata for the document/web apps (Spreadsheets, Notepad, Documents, Preview, Files, Browser): display name, independent app version and one-line description. Drives each app's "About" dialog (window title menu → About <App>), which also shows the shell version. |
 
+### UI kit without the window manager — `react-os-shell/ui`
+
+Not every app that wants this package's components wants a desktop. A
+point-of-sale till is one full-screen screen; a portal may keep its own routed
+pages and sidebar. Both still want the buttons, inputs, cards, badges, tables
+and charts.
+
+```tsx
+import { Button, Card, Banner, FormField, Input } from 'react-os-shell/ui';
+import 'react-os-shell/ui.css';
+```
+
+**It reaches nothing but `react` and `react-dom`.** None of the optional peers —
+no `react-router-dom`, `@tanstack/react-query`, `axios`, `@headlessui/react` or
+`@heroicons/react` — which matters because they are declared *optional*, so a
+consumer who has not installed them gets an unresolvable import rather than a
+degraded style. CI asserts it against the built artifact
+(`scripts/verify-dist.mjs`), not just the source, because leakage can arrive
+through a shared chunk.
+
+What you get: every form control, the display and layout primitives
+(`Card`/`StatCard`, `Avatar`, `Banner`, `Tabs`, `Accordion`, `Tooltip`,
+`StatusBadge`, `ColoredBadge`, `EmptyState`, `PageHeader`, `Spinner`,
+`Breadcrumbs`, `TopNav`, `SidebarLayout`, `MetricBar`, `Markdown`,
+`HelpCenter`, `EditableGrid`, `SearchableSelect`, `PopupMenu`), the charts, all
+nine page templates, the pageless data primitives (`Pagination`, `Kanban`,
+`ListFooter`, `ListLoadError`), `toast`, and the theming hooks (`useTheme`,
+`resolveTheme`, `applyThemePrefs`) — you need those last ones to reach dark mode
+or an accent at all, since both work by stamping `data-theme`.
+
+What you do not get: `Modal` and the window manager, `Layout`, `Desktop`,
+`StartMenu`, `GlobalSearch`, the settings panels, the bundled apps, and the
+components that reach an optional peer for their own reasons (`EntityList`,
+`ResizableTable` and the react-query data hooks, `FilterBar`, `UndoControls`,
+`BulkImportGrid`, `ConfirmProvider`/`confirm`).
+
+**Stylesheets: import exactly one.** `ui.css` is the kit; `styles.css` is the
+umbrella over the kit *plus* the window/taskbar/desktop rules. Taking both
+doubles every rule. `ui.css` deliberately does not `@import "tailwindcss"` — you
+supply Tailwind v4 yourself (every consumer already does), which also lets an
+app mid-migration off another component library take the theme and utility
+layers without preflight.
+
+`react-os-shell` (the root entry) is unchanged and remains a superset: same
+components, same bindings, plus the shell.
+
 ### Editorial markup — `react-os-shell/markup`
 
 One grammar for copy a human types into a plain text box, so a toolbar button and

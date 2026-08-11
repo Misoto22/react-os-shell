@@ -3,7 +3,7 @@ import type { ReactNode, KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { XMarkIcon } from '@heroicons/react/20/solid';
 import { glassStyle as getGlassStyle } from '../utils/glass';
 import useClickOutside from '../hooks/useClickOutside';
-import { registerModalEscapeInterceptor } from './Modal';
+import { registerModalEscapeInterceptor } from './escapeInterceptors';
 import { firstEnabledIndex, lastEnabledIndex, matchTypeahead, nextEnabledIndex } from '../forms/selectNav';
 
 export interface FilterOption {

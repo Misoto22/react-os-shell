@@ -38,13 +38,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      # Walks the `exports` map rather than a hard-coded file list, so a new
+      # subpath cannot ship unverified, and asserts that dist/ui/index.js
+      # reaches no optional peer — the check that catches leakage arriving
+      # through a shared chunk, which no source-level test can see.
       - name: Verify dist artifacts
-        run: |
-          test -f dist/index.js || (echo "dist/index.js missing" && exit 1)
-          test -f dist/index.d.ts || (echo "dist/index.d.ts missing" && exit 1)
-          test -f dist/apps/index.js || (echo "dist/apps/index.js missing" && exit 1)
-          test -f dist/styles.css || (echo "dist/styles.css missing" && exit 1)
-          echo "Build artifacts present."
+        run: node scripts/verify-dist.mjs
 
   browser:
     runs-on: ubuntu-latest
