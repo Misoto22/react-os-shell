@@ -33,6 +33,20 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0'] as const;
 export default function NumericKeypad({
   value, onChange, onEnter, enterLabel = 'Enter', enterDisabled, className = '',
 }: NumericKeypadProps) {
+  /**
+   * A rejected press notifies NOBODY.
+   *
+   * `appendKey` returns the value unchanged when a press is not allowed — a
+   * third decimal place, a second point — and firing `onChange` with that
+   * unchanged value reports a change that did not happen. The displayed number
+   * is identical either way, so this is invisible on screen; what it corrupts
+   * is everything downstream that treats "onChange fired" as "the user did
+   * something": a dirty flag, a cleared validation error, a reset idle timer.
+   */
+  const press = (next: string) => {
+    if (next !== value) onChange(next);
+  };
+
   return (
     <div className={`grid grid-cols-3 gap-3 ${className}`.trim()}>
       {KEYS.map(key => (
@@ -40,7 +54,7 @@ export default function NumericKeypad({
           key={key}
           size="touch-xl"
           variant="secondary"
-          onClick={() => onChange(appendKey(value, key))}
+          onClick={() => press(appendKey(value, key))}
         >
           {key}
         </Button>
@@ -49,7 +63,7 @@ export default function NumericKeypad({
         size="touch-xl"
         variant="secondary"
         aria-label="Backspace"
-        onClick={() => onChange(backspace(value))}
+        onClick={() => press(backspace(value))}
       >
         ⌫
       </Button>
