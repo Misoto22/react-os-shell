@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.20.0] — 2026-08-11
+
+### Added
+- **`DataTable` — a table for server-driven lists.** It renders and it reports:
+  the caller owns `sort` and `page` and hands back new data, and the component
+  never touches the array it was given.
+
+  That restraint is the whole design. A table that sorts its own `data` prop
+  sorts THE CURRENT PAGE, and against a paginated endpoint that is wrong in the
+  most expensive way available — page one looks perfectly sorted, so nobody
+  checks it, and page two silently disagrees. Everything else follows from
+  keeping the ordering where the rows come from.
+
+  Sort uses the package's existing `SortState` (`{ field, direction: 'asc' |
+  'desc' }`) rather than a table-specific vocabulary, so `DataTable`, `useSort`
+  and `ResizableTable` all speak one language. A column's `sortField` is the
+  name sent upward, so a column titled "Part" keyed `no` can sort by
+  `part_number` without the call site mapping names. Clicking cycles
+  **asc → desc → unsorted**; the third state exists because otherwise there is
+  no way back to the server's own default ordering once a column is touched.
+
+  Also: `fixed: 'left'` columns that pin with their own background (without one
+  the scrolling columns show through), `minWidth` for horizontal scroll,
+  `rowKey` as a field name or a function, `rowClassName`, `onRow`, `emptyText`,
+  a `footer` slot for an infinite-scroll sentinel, and optional `pagination`
+  that composes the existing `Pagination`.
+
+  `loading` draws an overlay rather than replacing the rows, so the table keeps
+  its height and scroll position — replacing them throws the page around under
+  the user on every re-sort.
+
+  How it differs from its neighbours: `EditableGrid` is a spreadsheet,
+  `ResizableTable` persists column widths and needs react-query and axios, and
+  `EntityList` is a whole list view including fetching and export. This one has
+  no data layer and no peers.
+
+- **`Drawer` — the same modal contract as `Dialog`, in a different shape.**
+  Focus trapped, page behind locked, Escape claimed through the shell's
+  interceptor. Slides from the right, left or bottom.
+
+  Reach for it when the content is a list or a long form that wants height, and
+  for `Dialog` when it is a question that wants answering and dismissing — a
+  drawer holding one sentence and two buttons is a dialog wearing the wrong
+  clothes, and a dialog holding twenty fields is a scroll trap. Only the body
+  scrolls, so the header and the action row stay reachable in a long form,
+  which is usually the reason a drawer was chosen.
+
+  A `blocking` drawer renders no close control, rather than advertising an exit
+  that Escape and the scrim both refuse.
+
+- `docs/antd-migration.md` gains the `Table` → `DataTable` and `Drawer` rows,
+  including the `'ascend'`/`'descend'` → `'asc'`/`'desc'` translation and the
+  list of antd table features deliberately not implemented.
+
 ## [4.19.0] — 2026-08-11
 
 ### Added

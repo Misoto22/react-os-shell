@@ -97,7 +97,41 @@ compiled stylesheet, so px sizing goes through `style`. Colour never does.
 | `Breadcrumb` | `Breadcrumbs` | |
 | `Avatar` | `Avatar` | `size={30}` → `size="sm" \| "md"` |
 | `DatePicker.RangePicker` | `DateRangePicker` | **`Dayjs` → ISO `'YYYY-MM-DD'` strings.** Removes the dayjs dependency |
-| `Table` | `DataTable` | see the `DataTable` docs |
+| `Drawer` | `Drawer` | `placement` → `side`; `width` → `size` |
+| `Table` | `DataTable` | see below |
+
+### `Table` → `DataTable`
+
+`DataTable` renders and reports. It never sorts or paginates its own `data` —
+against a paginated endpoint that would sort the current page only, which looks
+perfect on page one and disagrees with it on page two.
+
+| antd | kit |
+|---|---|
+| `columns[].dataIndex` / `render` / `align` / `width` / `ellipsis` | same |
+| `columns[].sorter: true` | `sortable: true` |
+| `columns[].fixed: 'left'` | `fixed: 'left'` — set `minWidth` too, or nothing scrolls |
+| `sortOrder: 'ascend' \| 'descend'` | table-level `sort: { field, direction: 'asc' \| 'desc' } \| null` |
+| `onChange(pagination, filters, sorter)` | `onSortChange(sort)` and `pagination.onPageChange(page)`, separately |
+| `scroll={{ x: 900 }}` | `minWidth={900}` |
+| `scroll={{ x: true }}` | omit `minWidth`; wrap in `overflow-x-auto` if the content needs it |
+| `pagination={{current, pageSize, total, onChange}}` | `pagination={{page, pageCount, onPageChange}}` — compute `pageCount` yourself |
+| `pagination={false}` | omit `pagination` |
+| `locale.emptyText` | `emptyText` |
+| `rowKey` / `rowClassName` / `onRow` / `loading` / `bordered` / `size` | same |
+
+Sort direction is `'asc'`/`'desc'`, not antd's `'ascend'`/`'descend'` — it uses
+the package's own `SortState`, so `DataTable`, `useSort` and `ResizableTable`
+all speak one language. If you already round-trip a backend ordering string,
+keep that mapping exactly as it is and translate the two direction words at the
+`onSortChange` boundary.
+
+Sorting cycles **asc → desc → unsorted**. The third state is deliberate:
+without it there is no way back to the server's own default ordering once a
+column has been clicked.
+
+Not implemented, because nothing asked for them: `rowSelection`, `expandable`,
+`Table.Summary`, column-level `filters`/`onFilter`, `sticky`, `virtual`.
 
 ### `Segmented` covers two antd components
 
