@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.21.1] — 2026-08-11
+
+### Fixed
+- **`NumericKeypad` no longer reports a change when the press was rejected.**
+
+  `appendKey` returns the value unchanged when a press is not allowed — a third
+  decimal place, a second decimal point — and the keypad called `onChange` with
+  that unchanged value anyway. On screen this is invisible, because the number
+  really is identical either way. What it corrupts is everything downstream
+  that reasonably treats "onChange fired" as "the user did something": a dirty
+  flag, a cleared validation error, a reset idle timer.
+
+  Found by the POS till's own keypad spec while migrating it onto this kit —
+  it had asserted `not.toHaveBeenCalled()` on a rejected press since before
+  this component existed, which is a contract the kit should have matched from
+  the start.
+
 ## [4.21.0] — 2026-08-11
 
 ### Added
