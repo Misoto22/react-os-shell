@@ -74,12 +74,40 @@ export type { NumericKeypadProps } from '../forms/NumericKeypad';
 export { appendKey, backspace, MAX_FRACTION_DIGITS } from '../forms/keypadInput';
 export { default as TileButton } from '../forms/TileButton';
 export type { TileButtonProps, TileSize } from '../forms/TileButton';
+export { default as Segmented } from '../forms/Segmented';
+export type { SegmentedProps, SegmentedOption, SegmentedSize } from '../forms/Segmented';
+export { default as Switch } from '../forms/Switch';
+export type { SwitchProps, SwitchSize } from '../forms/Switch';
+export { default as InputNumber } from '../forms/InputNumber';
+export type { InputNumberProps } from '../forms/InputNumber';
+export { default as FilePicker } from '../forms/FilePicker';
+export type { FilePickerProps } from '../forms/FilePicker';
 export { default as SearchableSelect } from '../shell/SearchableSelect';
 export type { SearchableOption, SearchableSelectProps } from '../shell/SearchableSelect';
 
 // ── Display primitives ──
 export { default as Card, StatCard } from '../shell/Card';
 export type { CardProps, StatCardProps, CardPadding } from '../shell/Card';
+
+// ── Typography and layout ──
+export { Text, Title, Paragraph } from '../shell/Text';
+export type { TextProps, TitleProps, ParagraphProps, TextTone, TextSize, TextWeight, TitleLevel } from '../shell/Text';
+export { Stack, Inline, Grid } from '../shell/Stack';
+export type { StackProps, InlineProps, GridProps, Gap, GridCols, Align, Justify } from '../shell/Stack';
+export { default as Divider } from '../shell/Divider';
+export type { DividerProps, DividerSpacing } from '../shell/Divider';
+
+// ── Display ──
+export { default as Skeleton } from '../shell/Skeleton';
+export type { SkeletonProps, SkeletonVariant } from '../shell/Skeleton';
+export { default as DescriptionList } from '../shell/DescriptionList';
+export type { DescriptionListProps, DescriptionItem, DescriptionColumns } from '../shell/DescriptionList';
+export { default as Result } from '../shell/Result';
+export type { ResultProps, ResultStatus } from '../shell/Result';
+export { default as CountBadge } from '../shell/CountBadge';
+export type { CountBadgeProps, CountBadgeTone } from '../shell/CountBadge';
+export { default as Statistic } from '../shell/Statistic';
+export type { StatisticProps, StatisticSize, StatisticTone } from '../shell/Statistic';
 export { default as Avatar, AvatarGroup } from '../shell/Avatar';
 export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarStatus } from '../shell/Avatar';
 export { default as Banner } from '../shell/Banner';

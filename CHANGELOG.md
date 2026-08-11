@@ -4,6 +4,74 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.19.0] — 2026-08-11
+
+### Added
+- **Thirteen components, so a portal can leave Ant Design.** These are the
+  pieces the dealer portal was still importing a component library for, and
+  each is the smallest thing that does the job rather than a reimplementation
+  of antd's version of it.
+
+  **Typography** — `Text`, `Title`, `Paragraph`. `tone` is semantic
+  (`secondary`, `danger`, `success`, …) and every tone resolves to a utility
+  class the dark-mode remaps know about. That is the point of them: text
+  coloured through a token object or an inline style is correct in light mode
+  and permanently wrong in dark, invisibly. `Title`'s `level` drives both the
+  heading tag and the size, so the document outline and the visual hierarchy
+  cannot drift apart.
+
+  **Layout** — `Stack`, `Inline`, `Grid`. `gap` and column counts are closed
+  unions mapped to literal class strings, because Tailwind reads source text:
+  an interpolated `gap-${n}` compiles to nothing, everything sits flush, and it
+  looks like a styling opinion rather than a bug. A union makes an unsupported
+  value a compile error instead. `Grid` takes `cols`/`smCols`/`lgCols` and is
+  not a grid system — no twelfths, no span arithmetic.
+
+  **Display** — `Skeleton`, `DescriptionList`, `Result`, `Divider`,
+  `CountBadge`, `Statistic`. `DescriptionList` renders `<dl>/<dt>/<dd>`, which
+  is what label/value pairs actually are, and takes responsive `columns`
+  because a thirteen-item shipment header at three columns has to fall back to
+  one on a phone. `CountBadge` hides a zero unless asked — a badge reading "0"
+  is noise that trains people to stop looking at badges. `Result`'s 404 is
+  coloured as information rather than as an error, because a missing page is
+  not a mistake the user made.
+
+  **Form controls** — `Segmented`, `Switch`, `InputNumber`, `FilePicker`.
+
+- **`Segmented` covers both a button group and a radio group,** and the
+  difference is whether you pass `name`. With it you get real
+  `<input type="radio">` elements in a `radiogroup` — it submits, it restores
+  on back, and a screen reader understands it. Without it you get buttons, for
+  a view toggle that is UI state rather than data. They are one component
+  because they look identical, and having two is how a form ends up containing
+  a button group that submits nothing.
+
+- **`InputNumber` keeps the text you are typing.** A controlled numeric field
+  that stores `Number(e.target.value)` and renders it back destroys every
+  intermediate state: type `1.` and it parses to `1`, re-renders as `"1"`, and
+  the decimal point disappears under the cursor. The same happens to a leading
+  `-` and to the trailing zero of `1.50`. It passes any test that types `"1.5"`
+  in one go, because the parsed result is identical — which is how it reaches
+  production and gets found by someone entering a price. This keeps the raw
+  text in local state and reports the parsed value upward, re-syncing only when
+  the incoming value genuinely differs from what the text already represents.
+  Clamping to `min`/`max` happens on blur, not on change, so typing `25` into a
+  field with `min={10}` does not rewrite the `2` before the `5` arrives.
+  `tests/inputNumber.test.tsx` types character by character, which is the only
+  way any of this shows up.
+
+- **`FilePicker` does not upload.** It hands the caller a `File[]` and stops.
+  An uploader that owns transport also owns retry, progress, cancellation, auth
+  and the endpoint, and every consumer ends up fighting one of them. Rejected
+  files report why — that is the case where someone is most certain they did
+  the thing and most confused that nothing happened.
+
+- **`docs/antd-migration.md`** — the mapping table, including what replaces
+  `theme.useToken()`. Nothing does, deliberately: dark mode here remaps utility
+  class names, so a hook returning hex values would be correct in light and
+  permanently wrong in dark at every call site. The doc maps each antd token to
+  the class that survives both themes.
+
 ## [4.18.0] — 2026-08-11
 
 ### Added
