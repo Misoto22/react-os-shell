@@ -35,8 +35,8 @@
  * the settings panels and the bundled apps. Also the components that reach an
  * optional peer for their own reasons — `EntityList`, `ResizableTable` and the
  * react-query data hooks (react-query + axios), `FilterBar`, `UndoControls`,
- * `BulkImportGrid`, `ConfirmProvider`/`confirm` (headlessui + heroicons), and
- * `useNewHotkey`/`useEditHotkey` (they ask which window is active).
+ * `BulkImportGrid`, and `useNewHotkey`/`useEditHotkey` (they ask which window
+ * is active).
  *
  * Several of those are one small refactor from being clean, and can join this
  * barrel later without breaking anyone — adding an export is a minor bump.
@@ -128,6 +128,12 @@ export { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from '../s
 // ── Feedback ──
 export { default as toast } from '../shell/toast';
 export type { ToastOptions, ToastPlacement } from '../shell/toast';
+
+// ── Dialogs (modal sheets, NOT shell windows — see Dialog's docstring) ──
+export { default as Dialog } from '../shell/Dialog';
+export type { DialogProps, DialogSize } from '../shell/Dialog';
+export { useFocusTrap, useScrollLock } from '../shell/focusTrap';
+export { ConfirmProvider, useConfirm, confirm, confirmDestructive, prompt } from '../shell/ConfirmDialog';
 
 // ── Data primitives (pageless — no react-query, no axios) ──
 export { default as EditableGrid } from '../shell/EditableGrid';

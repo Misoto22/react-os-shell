@@ -17,6 +17,7 @@
     "TopNav": { "cardMode": "column" },
     "Pagination": { "cardMode": "column" },
     "BulkImportGrid": { "cardMode": "single", "viewport": "960x560" },
+    "Dialog": { "cardMode": "single", "viewport": "720x480", "primaryStory": "Confirm" },
     "NumericKeypad": { "cardMode": "single", "primaryStory": "Entry" },
     "TileButton": { "cardMode": "column", "primaryStory": "Catalogue" },
     "MilestoneTimeline": { "cardMode": "column" },

@@ -4,6 +4,68 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.18.0] — 2026-08-11
+
+### Added
+- **`Dialog` — a modal sheet that is not a shell window.** `Modal` is a window:
+  it has a title bar, it minimises, drags, stacks and restores, and it lives in
+  the window manager's activation order. This is the other thing — an overlay
+  that interrupts, is answered, and goes away. A till has no desktop to put a
+  window on and a routed portal page has no window manager, so both needed one.
+
+  It imports nothing but React. Focus containment and scroll locking come from
+  a new `focusTrap` module (`useFocusTrap`, `useScrollLock`, both exported)
+  rather than a library, and the panel is plain DOM with `role="dialog"` and
+  `aria-modal`. `blocking` makes Escape and backdrop clicks inert, for a state
+  the user must resolve rather than dismiss.
+
+  A closed `Dialog` renders nothing at all, where the Headless UI dialogs it
+  replaces stayed mounted whether or not they were open.
+
+### Changed
+- **`confirm`, `confirmDestructive` and `prompt` no longer cost a consumer
+  `@headlessui/react` and `@heroicons/react`.** They were the last thing
+  standing between the UI kit and a yes/no question: asking one pulled in two
+  peer libraries, so `react-os-shell/ui` could not offer them at all and an app
+  taking the kit had to hand-roll its own. They are rebuilt on `Dialog`, the
+  two Heroicons are inlined as SVG, and all four now export from
+  `react-os-shell/ui` as well as the package root.
+
+  Behaviour is unchanged except where stated here. Confirms still **queue**
+  rather than drop — a dropped one would resolve a question the user was never
+  asked, and the caller cannot tell that from a genuine "no". `confirm()` with
+  no provider mounted still answers **false**: a dialog nobody can see must
+  never authorise anything.
+
+- **`confirmDestructive`'s `confirmWord` is now optional.** Omitting it gives a
+  plain two-button destructive confirm. Type-to-confirm assumes a keyboard, and
+  on a device that has none — a till, a warehouse scanner — it made the dialog
+  literally unanswerable. Ask for a typed word when the cost of a mis-tap
+  justifies making someone work for it, not by default. Existing callers that
+  pass one are unaffected.
+
+- **Cancel is now the focused control in every one of these dialogs,** and the
+  destructive action sits on the right where Enter cannot reach it by accident.
+  Previously nothing was focused, so a keypress went wherever the browser
+  decided.
+
+- **Escape interceptors run most-recently-registered first, instead of in
+  registration order.** Registration order tracks stacking order, and Escape
+  belongs to whatever is on top. Two stacked dialogs each register one;
+  oldest-first handed Escape to the dialog *underneath*, dismissing something
+  the user could not see while the one in front of them stayed put. This was
+  invisible until now because `ConfirmDialog` registered a single interceptor
+  and hand-ordered its three dialogs inside it. Interceptors that check
+  `getActiveModalId()` are unaffected — at most one of them can consume an
+  event, so the order they are offered it in cannot change which one takes it.
+
+### Removed
+- The Headless UI test double (`tests/headlessui.tsx`) and the second, isolated
+  esbuild pass in `scripts/test.mjs` that existed to inject it. It was there
+  because Headless UI's portal and transition layer needs browser layout and CSS
+  animation APIs jsdom does not implement. `Dialog` is plain DOM, so there is
+  nothing left to double and every spec now builds in one pass.
+
 ## [4.17.0] — 2026-08-11
 
 ### Added

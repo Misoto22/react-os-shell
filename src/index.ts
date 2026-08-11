@@ -43,7 +43,6 @@ export { requestWindowFront } from './shell/Modal';
 export { createWindowTarget, useWindowTarget } from './shell/windowTarget';
 export type { WindowTarget, WindowTargetOptions, StagedTarget } from './shell/windowTarget';
 export { default as WindowErrorBoundary, WindowCrashedFallback } from './shell/WindowErrorBoundary';
-export { ConfirmProvider, confirm, confirmDestructive, prompt } from './shell/ConfirmDialog';
 export { default as GlobalSearch } from './shell/GlobalSearch';
 export type { SearchResult, SearchProvider, SearchConfig } from './shell/GlobalSearch';
 export { default as ShortcutHelp } from './shell/ShortcutHelp';
