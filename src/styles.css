@@ -506,6 +506,3 @@ html.rosh-reduce-transparency *::after {
 .docs-editor p { margin: 0 0 0.5rem; }
 .docs-editor img { max-width: 100%; height: auto; cursor: pointer; }
 .docs-editor img:hover { outline: 2px solid rgba(59, 130, 246, 0.45); outline-offset: 1px; }
-
-
-/* ═══════════════════════════════════════════════════
