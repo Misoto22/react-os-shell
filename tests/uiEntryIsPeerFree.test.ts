@@ -25,7 +25,7 @@ import { dirname, join, resolve } from 'node:path';
  */
 
 const ROOT = process.env.REPO_ROOT ?? resolve(import.meta.dirname, '..');
-const ENTRY = join(ROOT, 'src/ui/index.ts');
+const ENTRY = join(ROOT, 'src/ui/kit.ts');
 
 /** The only bare specifiers a peer-free module may import. */
 const ALLOWED_BARE = new Set(['react', 'react-dom', 'react/jsx-runtime', 'react-dom/server']);

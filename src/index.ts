@@ -4,19 +4,23 @@
  * This entry is the SHELL: the window manager, the desktop, and everything
  * that needs them — plus the whole UI kit, re-exported from `./ui` below.
  *
- * The kit's list lives in `src/ui/index.ts` and is re-exported here wholesale,
- * so there is exactly one list to maintain and this entry stays a superset.
+ * The kit's list lives in `src/ui/kit.ts` and is re-exported here wholesale, so
+ * there is exactly one list to maintain and this entry stays a superset.
  * Add a kit component there, never in both: TypeScript resolves an explicit
  * local export ahead of a star export SILENTLY, so re-declaring one of those
  * names here would shadow it with no error and let the two entries drift while
  * both still compiled. `tests/uiBarrelMatchesRoot.test.ts` catches that.
+ *
+ * The star must point at `./ui/kit` and NOT at `./ui`: the latter is a tsup
+ * entry, and esbuild does not expand a star re-export of an entry module — the
+ * built root barrel then ships with none of the kit on it, silently.
  */
 
 // ── The UI kit, in full ──
 // Also available as `react-os-shell/ui`, which is the same modules with no
 // window manager in the graph — for consumers that want the kit and not a
 // desktop. Nothing here differs; this is the same binding, re-exported.
-export * from './ui';
+export * from './ui/kit';
 
 // ── Window registry composer + types ──
 export { createWindowRegistry } from './windowRegistry/createWindowRegistry';

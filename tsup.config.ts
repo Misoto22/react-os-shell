@@ -7,7 +7,13 @@ export default defineConfig({
   // `src/markup` is its own entry so a consumer can take the editorial markup
   // rule WITHOUT the shell: it imports nothing (no React, no peers), and the
   // public storefront depends on that being provably true.
-  entry: ['src/index.ts', 'src/apps/index.ts', 'src/markup/index.ts'],
+  // `src/ui` is its own entry so a consumer can take the UI kit WITHOUT the
+  // window manager — see its header. It stays in THIS config rather than a
+  // second one with its own outdir: `splitting: true` puts the shared modules
+  // in chunks both entries import, which is what keeps `toast`'s container, the
+  // Escape-interceptor Set and `useIsMobile`'s store to ONE instance for an app
+  // importing from both. A separate build would silently duplicate all three.
+  entry: ['src/index.ts', 'src/apps/index.ts', 'src/markup/index.ts', 'src/ui/index.ts'],
   format: ['esm'],
   dts: true,
   splitting: true,

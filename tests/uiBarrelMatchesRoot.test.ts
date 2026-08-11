@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 /**
- * `src/index.ts` re-exports the kit with `export * from './ui'`, so the root
+ * `src/index.ts` re-exports the kit with `export * from './ui/kit'`, so the root
  * entry is a superset of `react-os-shell/ui` and there is ONE list to maintain.
  *
  * The hazard is silent: TypeScript resolves an EXPLICIT local export ahead of a
@@ -47,14 +47,34 @@ function exportedNames(src: string): Set<string> {
 }
 
 const rootSrc = readFileSync(join(ROOT, 'src/index.ts'), 'utf-8');
-const uiSrc = readFileSync(join(ROOT, 'src/ui/index.ts'), 'utf-8');
+const uiSrc = readFileSync(join(ROOT, 'src/ui/kit.ts'), 'utf-8');
+const uiEntrySrc = readFileSync(join(ROOT, 'src/ui/index.ts'), 'utf-8');
 
-test('the root barrel re-exports ./ui with a star, not by hand', () => {
+test('the root barrel re-exports the kit with a star, not by hand', () => {
   assert.match(
     rootSrc,
-    /export\s+\*\s+from\s+'\.\/ui'/,
-    "src/index.ts must carry `export * from './ui'` — that is what makes the " +
+    /export\s+\*\s+from\s+'\.\/ui\/kit'/,
+    "src/index.ts must carry `export * from './ui/kit'` — that is what makes the " +
       'root entry a superset of the kit without a second copy of the list.',
+  );
+});
+
+test('the root stars ./ui/kit and NOT ./ui — the indirection is load-bearing', () => {
+  // esbuild does not expand `export * from` when the target is also a build
+  // entry. Pointing the root at './ui' compiles and typechecks cleanly, then
+  // ships a dist/index.js missing all 91 kit exports. scripts/verify-dist.mjs
+  // catches it against the artifact; this catches it in review.
+  assert.doesNotMatch(
+    rootSrc,
+    /export\s+\*\s+from\s+'\.\/ui'/,
+    "src/index.ts must star './ui/kit', not './ui'. './ui' is a tsup entry, and " +
+      'esbuild silently drops a star re-export of an entry module — the built ' +
+      'root barrel then ships with none of the kit on it.',
+  );
+  assert.match(
+    uiEntrySrc,
+    /export\s+\*\s+from\s+'\.\/kit'/,
+    "src/ui/index.ts is the build entry and must re-export './kit'.",
   );
 });
 

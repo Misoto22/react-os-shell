@@ -70,15 +70,25 @@ test('a runaway token cannot become a runaway tooltip', () => {
 });
 
 test('the barrel exports the new surface', () => {
-  // The components are unreachable to consumers until index.ts says so, and a
+  // The components are unreachable to consumers until a barrel says so, and a
   // missing export is invisible to every other test in this file.
-  const barrel = readFileSync(`${process.env.REPO_ROOT}/src/index.ts`, 'utf8');
-  for (const line of [
-    "export { default as MetricBar } from './shell/MetricBar';",
-    "export type { MetricBarProps } from './shell/MetricBar';",
-    "export { severityOf, isSeverityTone } from './shell/severity';",
-    "export type { SeverityTone } from './shell/severity';",
+  //
+  // Both barrels are read because these are peer-free primitives and so live in
+  // `src/ui/kit.ts` since 4.16.0, reaching the root entry through its star
+  // re-export. Matching on the exported NAME rather than a literal line keeps
+  // this pinning what it cares about — that the surface is reachable — instead
+  // of which file happens to declare it or how the relative path is spelled.
+  const barrels = ['src/ui/kit.ts', 'src/index.ts']
+    .map(f => readFileSync(`${process.env.REPO_ROOT}/${f}`, 'utf8'))
+    .join('\n');
+  for (const [name, from] of [
+    ['MetricBar', 'shell/MetricBar'],
+    ['MetricBarProps', 'shell/MetricBar'],
+    ['severityOf', 'shell/severity'],
+    ['isSeverityTone', 'shell/severity'],
+    ['SeverityTone', 'shell/severity'],
   ]) {
-    assert.ok(barrel.includes(line), `src/index.ts is missing: ${line}`);
+    const re = new RegExp(`export[^;]*\\b${name}\\b[^;]*from '[^']*${from}'`);
+    assert.match(barrels, re, `no barrel exports ${name} from ${from}`);
   }
 });
