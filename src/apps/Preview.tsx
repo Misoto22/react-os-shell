@@ -12,7 +12,8 @@ import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import * as pdfjsLib from 'pdfjs-dist';
 import toast from '../shell/toast';
-import { WindowTitle, getActiveModalId, registerModalEscapeInterceptor } from '../shell/Modal';
+import { WindowTitle, getActiveModalId } from '../shell/Modal';
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 import AboutApp from './_about';
 import ImageAnnotator, { type ImageAnnotatorHandle } from './ImageAnnotator';
 import {

@@ -29,7 +29,7 @@ import { inputClasses } from './styles';
 import { firstEnabledIndex, lastEnabledIndex, matchTypeahead, nextEnabledIndex } from './selectNav';
 import { glassStyle } from '../utils/glass';
 import { useIsMobile } from '../shell/useIsMobile';
-import { registerModalEscapeInterceptor } from '../shell/Modal';
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 
 export interface SelectOption {
   value: string;

@@ -11,6 +11,7 @@ import { beginWindowGesture } from './perfEvents';
 import WindowErrorBoundary from './WindowErrorBoundary';
 import { useShellPrefs } from './ShellPrefs';
 import { boxFillsWorkArea, computeMaximizedBox, isSidebarStripReserved, readAlwaysMaximizedFlag } from './workArea';
+import { runEscapeInterceptors } from './escapeInterceptors';
 
 /** Context that passes the modal's unique ID to children */
 const ModalIdContext = createContext<string>('');
@@ -851,19 +852,12 @@ export function subscribeActive(cb: () => void) {
 }
 
 // ── Escape interceptors ────────────────────────────────────────────────────
-// Window content can claim an Escape press before the topmost-modal handler
-// closes the window — e.g. the DXF Preview's measure tool exits AutoCAD-style
-// (clear the command input, then the tool, and only a further Esc closes the
-// window). Interceptors run in registration order; the first to return true
-// consumes the event (the modal neither closes nor sees it). An interceptor
-// is global, so it must check it belongs to the *active* modal itself (via
-// `getActiveModalId()`) before consuming.
-const escapeInterceptors = new Set<(e: KeyboardEvent) => boolean>();
-/** Register an Escape interceptor; returns an unregister function. */
-export function registerModalEscapeInterceptor(fn: (e: KeyboardEvent) => boolean): () => void {
-  escapeInterceptors.add(fn);
-  return () => { escapeInterceptors.delete(fn); };
-}
+// The registry itself lives in `./escapeInterceptors`, a leaf that imports
+// nothing, so `forms/Select` can register one without pulling this file — and
+// the window manager behind it — into a bundle. Re-exported here (and so from
+// the package root) with the same binding identity: the import path and
+// behaviour are unchanged for every consumer. See that file for the contract.
+export { registerModalEscapeInterceptor } from './escapeInterceptors';
 
 const MODAL_CLOSE_REQUEST_EVENT = 'modal-close-request';
 interface ModalCloseRequestDetail { windowKey: string }
@@ -876,14 +870,6 @@ export function requestModalClose(windowKey: string): void {
   }));
 }
 
-function runEscapeInterceptors(e: KeyboardEvent): boolean {
-  for (const fn of escapeInterceptors) {
-    try {
-      if (fn(e)) return true;
-    } catch { /* a broken interceptor must not block closing */ }
-  }
-  return false;
-}
 /** Hook: returns true if this modal ID is the frontmost */
 function useIsActiveModal(modalId: string): boolean {
   const activeId = useSyncExternalStore(subscribeActive, getActiveModalId);
