@@ -35,9 +35,6 @@ const outDir = join(root, 'node_modules', '.cache', 'react-os-shell-tests');
 const specs = readdirSync(testsDir)
   .filter((f) => f.endsWith('.test.tsx') || f.endsWith('.test.ts'))
   .map((f) => join(testsDir, f));
-const focusedConfirmSpec = join(testsDir, 'windowDirty.test.tsx');
-const regularSpecs = specs.filter(spec => spec !== focusedConfirmSpec);
-
 if (specs.length === 0) {
   console.error('No specs found in tests/');
   process.exit(1);
@@ -64,31 +61,16 @@ const sharedBuild = {
   define: { __PKG_VERSION__: '"test"' },
 };
 
+// One build for every spec. There used to be a second, isolated build for
+// windowDirty.test.tsx that swapped @headlessui/react for a hand-written double
+// — Headless UI's portal/transition layer needs browser layout and CSS
+// animation APIs jsdom does not implement, and ConfirmDialog rendered it. Since
+// 4.18.0 ConfirmDialog is built on the package's own `Dialog`, which is plain
+// DOM, so there is nothing left to double.
 await build({
   ...sharedBuild,
-  entryPoints: regularSpecs,
+  entryPoints: specs,
   outdir: outDir,
-});
-
-const focusedOutDir = join(outDir, 'focused-confirm');
-await build({
-  ...sharedBuild,
-  entryPoints: [focusedConfirmSpec],
-  outdir: focusedOutDir,
-  plugins: [{
-    name: 'confirm-dialog-headlessui-test-double',
-    setup(build) {
-      build.onResolve({ filter: /^@headlessui\/react$/ }, (args) => {
-        if (!args.importer.endsWith('/src/shell/ConfirmDialog.tsx')) return null;
-        // This focused jsdom spec uses a visual double because Headless UI's
-        // portal/transition layer depends on browser layout and CSS animation
-        // APIs jsdom deliberately does not implement. All other specs resolve
-        // real Headless UI, and the browser suite covers this boundary without
-        // a double.
-        return { path: join(root, 'tests', 'headlessui.tsx') };
-      });
-    },
-  }],
 });
 
 // Specs run from the bundle, so `import.meta.url` points into the cache dir —
@@ -96,7 +78,6 @@ await build({
 const bundled = readdirSync(outDir)
   .filter((f) => f.endsWith('.js'))
   .map((f) => join(outDir, f));
-bundled.push(join(focusedOutDir, 'windowDirty.test.js'));
 
 const child = spawn(process.execPath, ['--test', ...bundled], {
   stdio: 'inherit',

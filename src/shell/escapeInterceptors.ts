@@ -24,10 +24,22 @@
  * Window content can claim an Escape press before the topmost-modal handler
  * closes the window — e.g. the DXF Preview's measure tool exits AutoCAD-style
  * (clear the command input, then the tool, and only a further Esc closes the
- * window). Interceptors run in registration order; the first to return true
- * consumes the event (the modal neither closes nor sees it). An interceptor
- * is global, so it must check it belongs to the *active* modal itself (via
- * `getActiveModalId()`) before consuming.
+ * window). Interceptors run in REVERSE registration order — most recently
+ * registered first — and the first to return true consumes the event (the
+ * modal neither closes nor sees it). An interceptor is global, so it must
+ * check it belongs to the *active* modal itself (via `getActiveModalId()`)
+ * before consuming.
+ *
+ * Reverse, because registration order tracks stacking order and Escape belongs
+ * to whatever is on top. Two stacked `Dialog`s each register one; oldest-first
+ * would hand Escape to the dialog UNDERNEATH and dismiss the wrong surface,
+ * leaving the one the user is looking at on screen. This was invisible while
+ * `ConfirmDialog` was the only multi-dialog registrant, because it registered
+ * a single interceptor and hand-ordered its three dialogs inside it.
+ *
+ * Registrants that check `getActiveModalId()` are unaffected: at most one of
+ * them can consume, so the order they are offered the event in cannot change
+ * which one takes it.
  *
  * With no Modal mounted nothing drains this Set, and that is correct rather
  * than merely harmless: a registered interceptor simply never runs, and the
@@ -42,12 +54,18 @@ export function registerModalEscapeInterceptor(fn: (e: KeyboardEvent) => boolean
   return () => { escapeInterceptors.delete(fn); };
 }
 
-/** Run the registered interceptors; true if one consumed the event. Internal
- *  to the shell — the window key handler calls this, consumers never do. */
+/** Run the registered interceptors, most recent first; true if one consumed
+ *  the event. Internal to the shell — the window key handler calls this,
+ *  consumers never do. */
 export function runEscapeInterceptors(e: KeyboardEvent): boolean {
-  for (const fn of escapeInterceptors) {
+  // A Set iterates in insertion order and has no reverse iterator, so snapshot
+  // it. The copy also makes the walk safe against an interceptor that
+  // unregisters itself while handling the event — which is exactly what a
+  // dialog closing on Escape does.
+  const ordered = Array.from(escapeInterceptors);
+  for (let i = ordered.length - 1; i >= 0; i--) {
     try {
-      if (fn(e)) return true;
+      if (ordered[i](e)) return true;
     } catch { /* a broken interceptor must not block closing */ }
   }
   return false;
