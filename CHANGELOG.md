@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.21.0] — 2026-08-11
+
+### Added
+- **`Button` gains a `touch-sm` rung (44px) and a `ghost-danger` variant.**
+
+  Both came out of migrating the POS till onto the kit, which is the useful
+  thing about them: they are not speculative API, they are the two places a
+  real consumer had built something the kit could not express.
+
+  `touch-sm` is 44px — the WCAG 2.5.5 floor, and a floor is not a comfortable
+  size. It is for chrome that sits outside the task (switching screens, ending
+  a shift) and never for the path someone is working through. It exists so a
+  dense toolbar has something legitimate to reach for instead of borrowing the
+  desktop `sm`, which is less than half the height and looks fine to whoever is
+  holding a mouse.
+
+  `ghost-danger` is a destructive action sitting in a row of ordinary ones —
+  Clear, Discard, Remove — where solid `danger` would be wrong. Two solid
+  shouting buttons on one screen means neither gets read, so this keeps
+  `ghost`'s weight and takes only the colour. The colour is the point: it lets
+  someone tell what a button costs without reading it, which under time
+  pressure is what actually happens.
+
+  Both are additive. Every existing size and variant renders exactly as before,
+  pinned by equality in `tests/touchPrimitives.test.tsx`, and a new spec asserts
+  no touch rung ever drops below 44px.
+
 ## [4.20.0] — 2026-08-11
 
 ### Added
