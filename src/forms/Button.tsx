@@ -9,7 +9,15 @@
  */
 import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+/**
+ * `ghost-danger` is a destructive action sitting in a row of ordinary ones —
+ * Clear, Discard, Remove — where solid `danger` would be wrong. Two solid
+ * shouting buttons on one screen means neither is read, so the destructive one
+ * borrows `ghost`'s weight and keeps only the colour. The colour is the point:
+ * it lets someone tell what the button costs WITHOUT reading it, which under
+ * time pressure is what actually happens.
+ */
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger';
 /**
  * `sm`/`md` are the desktop scale. The `touch-*` rungs are for a finger on
  * glass — a till, a warehouse tablet — and are a SEPARATE ladder on purpose:
@@ -19,7 +27,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
  * Nothing picks a touch size automatically. An app that wants them asks for
  * them, so a desktop portal cannot grow finger-sized buttons by accident.
  */
-export type ButtonSize = 'sm' | 'md' | 'touch' | 'touch-lg' | 'touch-xl';
+export type ButtonSize = 'sm' | 'md' | 'touch-sm' | 'touch' | 'touch-lg' | 'touch-xl';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
   variant?: ButtonVariant;
@@ -52,6 +60,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-400/40',
   secondary: 'border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-blue-400/30',
   ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-blue-400/30',
+  'ghost-danger': 'text-red-600 hover:bg-red-50 focus:ring-red-400/30',
   danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-400/40',
 };
 
@@ -68,6 +77,12 @@ const VARIANTS: Record<ButtonVariant, string> = {
 const SIZES: Record<ButtonSize, string> = {
   sm: 'gap-1 px-2.5 py-1 text-xs',
   md: 'gap-1.5 px-3 py-1.5 text-sm',
+  // 44px is the WCAG 2.5.5 floor, and a floor is not a comfortable size. Use it
+  // ONLY for chrome that sits outside the task — switching screens, ending a
+  // shift — and never on the path someone is actually working through. It
+  // exists so a dense toolbar has something legitimate to reach for instead of
+  // borrowing the desktop `sm`, which is half this height.
+  'touch-sm': 'gap-1.5 h-11 px-4 text-base',
   'touch': 'gap-2 h-14 px-5 text-base',      // 56px — the comfortable default
   'touch-lg': 'gap-2 h-16 px-6 text-lg',     // 64px — primary action on a page
   'touch-xl': 'gap-3 h-20 px-8 text-2xl',    // 80px — keypad keys, tender

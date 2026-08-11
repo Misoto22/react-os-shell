@@ -66,10 +66,29 @@ test('Card, Banner and Spinner defaults are unchanged', () => {
 
 // ── The new surface ───────────────────────────────────────────────────────
 
-test('Button: the touch scale is 56 / 64 / 80px', () => {
+test('Button: the touch scale is 44 / 56 / 64 / 80px', () => {
+  assert.match(html(<Button size="touch-sm">x</Button>), /h-11/);
   assert.match(html(<Button size="touch">x</Button>), /h-14/);
   assert.match(html(<Button size="touch-lg">x</Button>), /h-16/);
   assert.match(html(<Button size="touch-xl">x</Button>), /h-20/);
+});
+
+test('Button: no touch rung drops below the 44px WCAG floor', () => {
+  // `touch-sm` sits exactly ON the floor, which is a considered choice for
+  // chrome outside the task. What must never happen is a rung being retuned
+  // BELOW it for visual reasons — the change that gets made in a hurry and is
+  // felt as mis-taps by someone who cannot report it.
+  for (const size of ['touch-sm', 'touch', 'touch-lg', 'touch-xl'] as const) {
+    const px = Number(/h-(\d+)/.exec(html(<Button size={size}>x</Button>))![1]) * 4;
+    assert.ok(px >= 44, `${size} renders at ${px}px, below the 44px floor`);
+  }
+});
+
+test('Button: ghost-danger keeps ghost weight and only takes the colour', () => {
+  // Two solid shouting buttons on one screen means neither is read.
+  const out = html(<Button variant="ghost-danger">Clear</Button>);
+  assert.match(out, /text-red-600/);
+  assert.doesNotMatch(out, /bg-red-600/, 'not solid — that is `danger`');
 });
 
 test('Button: a disabled reason is on-screen text, never a title attribute', () => {
