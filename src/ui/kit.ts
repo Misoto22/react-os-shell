@@ -160,6 +160,8 @@ export type { ToastOptions, ToastPlacement } from '../shell/toast';
 // ── Dialogs (modal sheets, NOT shell windows — see Dialog's docstring) ──
 export { default as Dialog } from '../shell/Dialog';
 export type { DialogProps, DialogSize } from '../shell/Dialog';
+export { default as Drawer } from '../shell/Drawer';
+export type { DrawerProps, DrawerSide, DrawerSize } from '../shell/Drawer';
 export { useFocusTrap, useScrollLock } from '../shell/focusTrap';
 export { ConfirmProvider, useConfirm, confirm, confirmDestructive, prompt } from '../shell/ConfirmDialog';
 
@@ -170,6 +172,8 @@ export { default as Kanban } from '../data/Kanban';
 export type { KanbanColumn, KanbanProps } from '../data/Kanban';
 export { default as Pagination } from '../data/Pagination';
 export type { PaginationProps } from '../data/Pagination';
+export { default as DataTable } from '../data/DataTable';
+export type { DataTableProps, DataTableColumn } from '../data/DataTable';
 export { default as ListFooter } from '../data/ListFooter';
 export { default as ListLoadError } from '../data/ListLoadError';
 export type { ListLoadErrorProps } from '../data/ListLoadError';

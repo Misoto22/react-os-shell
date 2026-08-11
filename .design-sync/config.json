@@ -6,43 +6,160 @@
   "cssEntry": "dist/_compiled.css",
   "readmeHeader": ".design-sync/conventions.md",
   "overrides": {
-    "Modal": { "cardMode": "single", "viewport": "720x560" },
-    "PopupMenu": { "cardMode": "single", "primaryStory": "ContextMenu" },
-    "PopupMenuItem": { "cardMode": "single", "primaryStory": "ItemStates" },
-    "PopupMenuLabel": { "cardMode": "single", "primaryStory": "SectionedMenu" },
-    "PopupMenuDivider": { "cardMode": "single", "primaryStory": "DividedSections" },
-    "ShortcutHelp": { "cardMode": "single", "primaryStory": "Overlay" },
-    "BehaviorPanel": { "cardMode": "column" },
-    "Customization": { "cardMode": "column" },
-    "TopNav": { "cardMode": "column" },
-    "Pagination": { "cardMode": "column" },
-    "BulkImportGrid": { "cardMode": "single", "viewport": "960x560" },
-    "Dialog": { "cardMode": "single", "viewport": "720x480", "primaryStory": "Confirm" },
-    "Text": { "cardMode": "column", "primaryStory": "Tones" },
-    "Stack": { "cardMode": "column", "primaryStory": "Layouts" },
-    "Skeleton": { "cardMode": "column", "primaryStory": "Shapes" },
-    "DescriptionList": { "cardMode": "column", "primaryStory": "Bordered" },
-    "Result": { "cardMode": "single", "primaryStory": "NotFound" },
-    "Divider": { "cardMode": "column", "primaryStory": "Rules" },
-    "CountBadge": { "cardMode": "column", "primaryStory": "Counts" },
-    "Statistic": { "cardMode": "column", "primaryStory": "Summary" },
-    "Segmented": { "cardMode": "column", "primaryStory": "Modes" },
-    "Switch": { "cardMode": "column", "primaryStory": "Settings" },
-    "InputNumber": { "cardMode": "column", "primaryStory": "Quantities" },
-    "FilePicker": { "cardMode": "single", "primaryStory": "Attachments" },
-    "NumericKeypad": { "cardMode": "single", "primaryStory": "Entry" },
-    "TileButton": { "cardMode": "column", "primaryStory": "Catalogue" },
-    "MilestoneTimeline": { "cardMode": "column" },
-    "ContainerFillChart": { "cardMode": "column" },
-
-    "DashboardTemplate": { "cardMode": "single", "viewport": "1120x760" },
-    "DataTablePage": { "cardMode": "single", "viewport": "1024x620" },
-    "FormLayoutPage": { "cardMode": "single", "viewport": "880x760" },
-    "CheckoutTemplate": { "cardMode": "single", "viewport": "1120x820" },
-    "GalleryTemplate": { "cardMode": "single", "viewport": "1024x620" },
-    "EmailTemplate": { "cardMode": "single", "viewport": "1120x600" },
-    "ChatTemplate": { "cardMode": "single", "viewport": "1024x600" },
-    "AuthScreen": { "cardMode": "single", "viewport": "880x560", "primaryStory": "Login" },
-    "ErrorPage": { "cardMode": "single", "viewport": "760x480", "primaryStory": "NotFound" }
+    "Modal": {
+      "cardMode": "single",
+      "viewport": "720x560"
+    },
+    "PopupMenu": {
+      "cardMode": "single",
+      "primaryStory": "ContextMenu"
+    },
+    "PopupMenuItem": {
+      "cardMode": "single",
+      "primaryStory": "ItemStates"
+    },
+    "PopupMenuLabel": {
+      "cardMode": "single",
+      "primaryStory": "SectionedMenu"
+    },
+    "PopupMenuDivider": {
+      "cardMode": "single",
+      "primaryStory": "DividedSections"
+    },
+    "ShortcutHelp": {
+      "cardMode": "single",
+      "primaryStory": "Overlay"
+    },
+    "BehaviorPanel": {
+      "cardMode": "column"
+    },
+    "Customization": {
+      "cardMode": "column"
+    },
+    "TopNav": {
+      "cardMode": "column"
+    },
+    "Pagination": {
+      "cardMode": "column"
+    },
+    "BulkImportGrid": {
+      "cardMode": "single",
+      "viewport": "960x560"
+    },
+    "Dialog": {
+      "cardMode": "single",
+      "viewport": "720x480",
+      "primaryStory": "Confirm"
+    },
+    "Text": {
+      "cardMode": "column",
+      "primaryStory": "Tones"
+    },
+    "Stack": {
+      "cardMode": "column",
+      "primaryStory": "Layouts"
+    },
+    "Skeleton": {
+      "cardMode": "column",
+      "primaryStory": "Shapes"
+    },
+    "DescriptionList": {
+      "cardMode": "column",
+      "primaryStory": "Bordered"
+    },
+    "Result": {
+      "cardMode": "single",
+      "primaryStory": "NotFound"
+    },
+    "Divider": {
+      "cardMode": "column",
+      "primaryStory": "Rules"
+    },
+    "CountBadge": {
+      "cardMode": "column",
+      "primaryStory": "Counts"
+    },
+    "Statistic": {
+      "cardMode": "column",
+      "primaryStory": "Summary"
+    },
+    "Segmented": {
+      "cardMode": "column",
+      "primaryStory": "Modes"
+    },
+    "Switch": {
+      "cardMode": "column",
+      "primaryStory": "Settings"
+    },
+    "InputNumber": {
+      "cardMode": "column",
+      "primaryStory": "Quantities"
+    },
+    "FilePicker": {
+      "cardMode": "single",
+      "primaryStory": "Attachments"
+    },
+    "NumericKeypad": {
+      "cardMode": "single",
+      "primaryStory": "Entry"
+    },
+    "TileButton": {
+      "cardMode": "column",
+      "primaryStory": "Catalogue"
+    },
+    "MilestoneTimeline": {
+      "cardMode": "column"
+    },
+    "ContainerFillChart": {
+      "cardMode": "column"
+    },
+    "DashboardTemplate": {
+      "cardMode": "single",
+      "viewport": "1120x760"
+    },
+    "DataTablePage": {
+      "cardMode": "single",
+      "viewport": "1024x620"
+    },
+    "FormLayoutPage": {
+      "cardMode": "single",
+      "viewport": "880x760"
+    },
+    "CheckoutTemplate": {
+      "cardMode": "single",
+      "viewport": "1120x820"
+    },
+    "GalleryTemplate": {
+      "cardMode": "single",
+      "viewport": "1024x620"
+    },
+    "EmailTemplate": {
+      "cardMode": "single",
+      "viewport": "1120x600"
+    },
+    "ChatTemplate": {
+      "cardMode": "single",
+      "viewport": "1024x600"
+    },
+    "AuthScreen": {
+      "cardMode": "single",
+      "viewport": "880x560",
+      "primaryStory": "Login"
+    },
+    "ErrorPage": {
+      "cardMode": "single",
+      "viewport": "760x480",
+      "primaryStory": "NotFound"
+    },
+    "DataTable": {
+      "cardMode": "single",
+      "viewport": "1024x560",
+      "primaryStory": "Orders"
+    },
+    "Drawer": {
+      "cardMode": "single",
+      "viewport": "960x600",
+      "primaryStory": "EditPanel"
+    }
   }
 }
