@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.32.0] — 2026-08-12
+
+### Added
+- **`Button` size `lg`** — a third rung on the DESKTOP ladder, between `md` and
+  the touch rungs. `sm`/`md` alone left nothing for a page's primary action to
+  reach for without borrowing a 44px hit target. The touch ladder is unchanged
+  and still has to be asked for by name. `IconButton` gains the matching square
+  rung, so the two stay rung for rung.
+- **`Button` variant `link`** — an action that belongs in running text or
+  beside a field, where a boxed button would claim more of the page than the
+  action deserves. It sheds the box rather than overriding it: the padding from
+  the size table is never applied, because `px-0` in a variant string does not
+  reliably beat `px-3` from a size string — two padding utilities in one class
+  attribute resolve by compiled-stylesheet order. It keeps the text size of
+  whichever rung was asked for. `IconButton` excludes it at the type level: the
+  variant exists to shed the box, and a square icon button is nothing but the
+  box.
+
 ## [4.31.0] — 2026-08-12
 
 ### Fixed

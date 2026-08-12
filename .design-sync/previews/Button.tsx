@@ -25,3 +25,21 @@ export function SizesAndStates() {
     </div>
   );
 }
+
+export function DesktopLadderAndLink() {
+  // The three desktop rungs together — the point of `lg` is the gap it fills,
+  // which only reads next to its neighbours. `link` beside them shows what it
+  // gives up: the box, not the scale.
+  return (
+    <div className="flex flex-col gap-4 p-5">
+      <div className="flex items-center gap-3">
+        <Button size="sm">Small</Button>
+        <Button size="md">Medium</Button>
+        <Button size="lg">Large</Button>
+      </div>
+      <p className="text-sm text-gray-600">
+        Signed in as henry@example.com. <Button variant="link">Use a different account</Button>
+      </p>
+    </div>
+  );
+}
