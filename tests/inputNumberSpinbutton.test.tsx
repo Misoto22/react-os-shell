@@ -142,3 +142,95 @@ test('typing still works exactly as before', () => {
   }
   view.unmount();
 });
+
+/**
+ * The field showed one number and reported another.
+ *
+ * `format` rounded for display on blur, but the value handed to `onChange` was
+ * the unrounded parse — and `onChange` only fired at all when clamping had
+ * changed it. So a precision-2 field given 12.345 displayed "12.35" and left
+ * the consumer holding 12.345. On a price, that is a posted order that does
+ * not match the one the user read back before submitting.
+ */
+
+test('blur reports the number it displays', () => {
+  const seen: (number | null)[] = [];
+  function Priced() {
+    const [value, setValue] = useState<number | null>(null);
+    return (
+      <InputNumber
+        value={value}
+        precision={2}
+        onChange={v => { seen.push(v); setValue(v); }}
+      />
+    );
+  }
+  const view = render(<Priced />);
+  const el = field(view);
+  const win = el.ownerDocument.defaultView as Window & typeof globalThis;
+  const setValue = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!;
+
+  act(() => {
+    setValue.call(el, '12.345');
+    el.dispatchEvent(new win.Event('input', { bubbles: true }));
+  });
+  act(() => { // React delegates onBlur from focusout — plain blur does not bubble,
+    // so dispatching it reaches nobody.
+    el.dispatchEvent(new win.FocusEvent('focusout', { bubbles: true })); });
+
+  assert.equal(el.value, '12.35');
+  assert.equal(seen.at(-1), 12.35, 'and the consumer holds the same number');
+  view.unmount();
+});
+
+test('a field with no precision is left alone', () => {
+  // Without `precision` there is no rounding to agree with, and a quantity
+  // field must not silently become an integer.
+  const seen: (number | null)[] = [];
+  function Loose() {
+    const [value, setValue] = useState<number | null>(null);
+    return <InputNumber value={value} onChange={v => { seen.push(v); setValue(v); }} />;
+  }
+  const view = render(<Loose />);
+  const el = field(view);
+  const win = el.ownerDocument.defaultView as Window & typeof globalThis;
+  const setValue = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!;
+  act(() => {
+    setValue.call(el, '12.345');
+    el.dispatchEvent(new win.Event('input', { bubbles: true }));
+  });
+  act(() => { // React delegates onBlur from focusout — plain blur does not bubble,
+    // so dispatching it reaches nobody.
+    el.dispatchEvent(new win.FocusEvent('focusout', { bubbles: true })); });
+
+  assert.equal(el.value, '12.345');
+  assert.equal(seen.at(-1), 12.345);
+  view.unmount();
+});
+
+test('clamping and rounding compose', () => {
+  const seen: (number | null)[] = [];
+  function Bounded() {
+    const [value, setValue] = useState<number | null>(null);
+    return (
+      <InputNumber value={value} precision={1} max={9.94}
+        onChange={v => { seen.push(v); setValue(v); }} />
+    );
+  }
+  const view = render(<Bounded />);
+  const el = field(view);
+  const win = el.ownerDocument.defaultView as Window & typeof globalThis;
+  const setValue = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')!.set!;
+  act(() => {
+    setValue.call(el, '50');
+    el.dispatchEvent(new win.Event('input', { bubbles: true }));
+  });
+  act(() => { // React delegates onBlur from focusout — plain blur does not bubble,
+    // so dispatching it reaches nobody.
+    el.dispatchEvent(new win.FocusEvent('focusout', { bubbles: true })); });
+
+  // Clamped to 9.94, then rounded to one place — and the two agree.
+  assert.equal(el.value, '9.9');
+  assert.equal(seen.at(-1), 9.9);
+  view.unmount();
+});

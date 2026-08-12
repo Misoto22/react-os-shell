@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.36.0] — 2026-08-12
+
+### Fixed
+- **`InputNumber` reports the number it displays.** On blur it rounded for
+  display but handed `onChange` the unrounded parse — and only called
+  `onChange` at all when clamping had changed the value. A `precision={2}`
+  field given `12.345` therefore showed `12.35` and left the consumer holding
+  `12.345`: on a price, an order posted for a different number from the one the
+  user read back before submitting. Rounding now happens before the value is
+  reported, and composes with clamping. A field with no `precision` is
+  untouched — there is no rounding to agree with, and a quantity must not
+  silently become an integer.
+
 ## [4.35.0] — 2026-08-12
 
 ### Fixed

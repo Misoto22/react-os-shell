@@ -120,6 +120,11 @@ const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(function Inpu
       let v = parsed;
       if (min != null && v < min) v = min;
       if (max != null && v > max) v = max;
+      // Round to the field's precision BEFORE reporting it. `format` was
+      // already rounding for display, so a precision-2 field given 12.345
+      // showed "12.35" and left the consumer holding 12.345 — a price field
+      // that posts a different number from the one on screen.
+      if (precision != null) v = Number(v.toFixed(precision));
       setText(format(v, precision));
       if (v !== parsed) onChange(v);
     }
