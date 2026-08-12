@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.29.0] — 2026-08-12
+
+### Fixed
+- **`BreadcrumbItem.onClick` receives the event.** 4.26.0 added `href` so a
+  crumb could be a real link, and said a router could intercept the plain-click
+  case — but the handler took no argument, so it could not call
+  `preventDefault()`. An `href` crumb could therefore only ever do a full page
+  load, which is the thing a single-page app is avoiding, and a routed consumer
+  was back to using a button.
+
+  Widening the parameter is backwards compatible: an existing `() => void`
+  handler ignores it.
+
 ## [4.28.0] — 2026-08-12
 
 ### Fixed

@@ -109,3 +109,25 @@ test('Breadcrumbs: the last crumb is never a link, href or not', () => {
   // One anchor, not two: you are already here.
   assert.equal((markup.match(/<a /g) ?? []).length, 1);
 });
+
+test('Breadcrumbs: onClick receives the event, so a router can take the click', () => {
+  // Without the argument an href crumb could only ever do a full page load,
+  // which is the thing a single-page app is avoiding — so the href would be
+  // unusable and the caller would be back to a button.
+  let prevented = false;
+  const view = render(
+    <Breadcrumbs
+      items={[
+        { label: 'Dashboard', href: '/dashboard', onClick: e => { e.preventDefault(); prevented = true; } },
+        { label: 'Catalogue' },
+      ]}
+    />,
+  );
+  const link = view.container.querySelector('a')!;
+  const event = new (view.container.ownerDocument.defaultView as Window & typeof globalThis).MouseEvent('click', { bubbles: true, cancelable: true });
+  act(() => { link.dispatchEvent(event); });
+
+  assert.equal(prevented, true, 'the handler ran and could cancel');
+  assert.equal(event.defaultPrevented, true, 'and the browser navigation was actually stopped');
+  view.unmount();
+});

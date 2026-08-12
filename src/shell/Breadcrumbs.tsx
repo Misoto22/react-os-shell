@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 /**
  * Generic breadcrumb trail. Self-contained and styled with the same Tailwind
@@ -16,8 +16,16 @@ export interface BreadcrumbItem {
   label: ReactNode;
   /** Optional leading icon (typically a 3.5×3.5 svg). */
   icon?: ReactNode;
-  /** Navigate to this crumb. Omitted on the current (last) crumb. */
-  onClick?: () => void;
+  /**
+   * Navigate to this crumb. Omitted on the current (last) crumb.
+   *
+   * Receives the event, which is what makes `href` usable from a routed app:
+   * the handler calls `preventDefault()` on a plain click and hands the
+   * navigation to its router, while ctrl/middle/right clicks fall through to
+   * the browser untouched. Without the argument an anchor could only ever do a
+   * full page load, which is the thing a single-page app is avoiding.
+   */
+  onClick?: (event: MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => void;
   /**
    * Where this crumb goes, when it is a real destination.
    *
