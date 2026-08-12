@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.43.0] — 2026-08-13
+
+### Added
+- **`toast.warning`.** The kit had `success`, `error` and `info`. A portal
+  reporting a partial outcome — "saved, but the tax rate could not be
+  refreshed" — had to choose between `error`, which says the thing did not
+  happen, and `info`, which says nothing needs attention. Neither is true. It
+  is amber rather than the error red on purpose: painting both the same colour
+  teaches people to stop reading it. It takes part in `dedupe` like the others.
+
 ## [4.42.0] — 2026-08-12
 
 ### Added

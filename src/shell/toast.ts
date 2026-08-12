@@ -84,7 +84,7 @@ const GLASS_COMMON = `
 
 // ── Toast (operation feedback) — top-center, brief ──
 
-function showToast(variant: 'success' | 'error' | 'info', message: string,
+function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: string,
                    opts?: ToastOptions) {
   const opts_ = { ...defaults, ...opts };
   const placement: ToastPlacement = opts_.placement ?? 'top';
@@ -107,10 +107,18 @@ function showToast(variant: 'success' | 'error' | 'info', message: string,
     ? getOrCreate(TOAST_BOTTOM_CONTAINER_ID, 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col-reverse gap-2 items-center pointer-events-none')
     : getOrCreate(TOAST_CONTAINER_ID, 'fixed top-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col gap-2 items-center pointer-events-none');
   const o = getMenuOpacity();
-  const color = variant === 'success' ? '#22c55e' : variant === 'error' ? '#ef4444' : '#3b82f6';
+  const color =
+    variant === 'success' ? '#22c55e' :
+    variant === 'error' ? '#ef4444' :
+    // Amber, and deliberately not the error red: a warning is something the
+    // user should read before continuing, not something that failed. Painting
+    // both red teaches people to ignore the colour.
+    variant === 'warning' ? '#f59e0b' :
+    '#3b82f6';
   const icons = {
     success: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
     error: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>',
+    warning: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>',
     info: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
   };
   const icon = icons[variant];
@@ -217,6 +225,12 @@ function showNotification(message: string, opts?: { duration?: number }) {
 const toast = {
   success: (message: string, opts?: ToastOptions) => showToast('success', message, opts),
   error: (message: string, opts?: ToastOptions) => showToast('error', message, opts),
+  /**
+   * Something the user should read before continuing — a partial success, a
+   * setting that will not apply until they do something else. Distinct from
+   * `error`, which is "this did not happen".
+   */
+  warning: (message: string, opts?: ToastOptions) => showToast('warning', message, opts),
   info: (message: string, opts?: ToastOptions) => showToast('info', message, opts),
   // Persistent top-right notification card (the old toast.info presentation).
   notify: (message: string, opts?: { duration?: number }) => showNotification(message, opts),
