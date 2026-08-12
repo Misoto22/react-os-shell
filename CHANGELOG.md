@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.30.1] — 2026-08-12
+
+### Fixed
+- **`Tooltip`'s Escape reaches the tooltip instead of closing the window.**
+  4.25.0 added Escape-to-dismiss on a plain `document` listener, which loses
+  inside a window: `Modal` listens on `window` in the capture phase and stops
+  propagation when it closes, and capture runs window before document. So
+  Escape closed the whole window and the dismissal never ran — in the three
+  portals that render tooltips inside windows, which is where WCAG 1.4.13
+  actually applies. It now registers on the shell's Escape interceptor seam,
+  the one path that serves both cases: `Modal` consults it before closing, and
+  since 4.27.0 the Set drains itself where no shell is mounted. A tooltip
+  opened inside a dialog takes the first Escape and the dialog the second.
+- **A trigger's own `aria-describedby` survives being wrapped in a `Tooltip`.**
+  The clone assigned over it, so describing a control and then giving it a
+  tooltip dropped the original description — permanently, since the closed
+  state wrote `undefined`. The two are merged now.
+- **A labelled `Divider` is announced with its label.** `separator` takes its
+  name from the author only — it is not a name-from-content role — so the label
+  sitting inside the element was not the separator's accessible name, and
+  4.25.0's `role="separator"` announced an unnamed rule with the text loose
+  beside it. `aria-labelledby` attaches it.
+- **`Checkbox` no longer re-attaches the caller's ref on every render.** The
+  merged ref was a fresh closure each time, and React detaches and reattaches a
+  callback ref whose identity changed — so a form library holding the field was
+  handed `null` and then the node again on renders that had nothing to do with
+  it.
+
 ## [4.30.0] — 2026-08-12
 
 ### Fixed
