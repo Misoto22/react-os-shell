@@ -57,3 +57,11 @@ test('the rest of the layout is unchanged', () => {
   assert.match(markup, /Orders you place appear here\./);
   assert.match(markup, /Browse the catalogue/);
 });
+
+test('a custom icon occupies the same footprint as the placeholder', () => {
+  // Otherwise a caller passing a 20px glyph gets it at half the size the
+  // default draws at, and the heading below shifts depending on which icon was
+  // used.
+  const markup = html(<EmptyState title="No wheels" icon={<svg className="h-5 w-5" />} />);
+  assert.match(markup, /class="mb-3 flex h-10 w-10 items-center justify-center/);
+});
