@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.33.0] — 2026-08-12
+
+### Added
+- **A desktop size ladder for the form controls.** `InputSize` had only `md` on
+  the desktop side, so a consumer wanting a smaller filter row or a larger
+  sign-in field had to reach for `touch` — which is 56px, sized for a finger —
+  or append its own padding through `className`, the exact failure
+  `forms/styles.ts` is shaped to prevent. `sm` and `lg` join it as swapped-in
+  rungs. The `touch` rung is unchanged, and `INPUT_BASE` and the no-argument
+  `inputClasses()` are byte-identical, so no existing caller moves.
+- **`size` on `Select` and `Textarea`.** Both already rendered through
+  `inputClasses`; only the prop was missing, so a form could not be sized
+  consistently — an `Input` beside a `Select` would take the rung and the
+  `Select` would not. On `Select` it shadows the native `size` attribute (the
+  row count of a list box), which is now omitted rather than left to collide,
+  and is kept off the DOM.
+
+### Fixed
+- `forms/styles.ts` pointed at `tests/inputSizes.test.ts` for the `INPUT_BASE`
+  contract pin. That file does not exist; the pin lives in
+  `tests/touchPrimitives.test.tsx`.
+
 ## [4.32.0] — 2026-08-12
 
 ### Added

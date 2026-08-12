@@ -4,18 +4,20 @@
  * `autoGrow`, the field resizes to fit its content as the user types.
  */
 import { forwardRef, useCallback, type FormEvent, type TextareaHTMLAttributes } from 'react';
-import { inputClasses } from './styles';
+import { inputClasses, type InputSize } from './styles';
 
 export interface TextareaProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'className'> {
   /** Error state — red border + ring. */
   invalid?: boolean;
   /** Grow the field to fit its content instead of scrolling. */
   autoGrow?: boolean;
+  /** Desktop rung, or `touch`. Defaults to `md`. */
+  size?: InputSize;
   className?: string;
 }
 
 const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textarea(
-  { invalid, autoGrow, className = '', onInput, rows = 3, ...rest },
+  { invalid, autoGrow, className = '', onInput, rows = 3, size, ...rest },
   ref,
 ) {
   const handleInput = useCallback((e: FormEvent<HTMLTextAreaElement>) => {
@@ -32,7 +34,7 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
       ref={ref}
       rows={rows}
       onInput={handleInput}
-      className={inputClasses({ invalid, className: `${autoGrow ? 'resize-none overflow-hidden' : ''} ${className}`.trim() })}
+      className={inputClasses({ invalid, size, className: `${autoGrow ? 'resize-none overflow-hidden' : ''} ${className}`.trim() })}
       {...rest}
     />
   );

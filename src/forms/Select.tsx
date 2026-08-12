@@ -25,7 +25,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent, type SelectHTMLAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { inputClasses } from './styles';
+import { inputClasses, type InputSize } from './styles';
 import { firstEnabledIndex, lastEnabledIndex, matchTypeahead, nextEnabledIndex } from './selectNav';
 import { glassStyle } from '../utils/glass';
 import { useIsMobile } from '../shell/useIsMobile';
@@ -37,9 +37,18 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'className'> {
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value' | 'className' | 'size'> {
   value: string;
   onChange: (value: string) => void;
+  /**
+   * Desktop rung, or `touch`. Defaults to `md`.
+   *
+   * This shadows the native `size` attribute (the number of rows a select
+   * shows when it is rendered as a list box), which is omitted above rather
+   * than left to collide. Nothing here has ever rendered as a list box — the
+   * kit's Select is a dropdown — so no capability is lost.
+   */
+  size?: InputSize;
   options: SelectOption[];
   /** Shown as a disabled first option when no value is selected. */
   placeholder?: string;
@@ -58,7 +67,7 @@ const MENU_MAX_HEIGHT = 240;
  * real `HTMLSelectElement` (form posts, native attribute spread, focus).
  */
 export const NativeSelect = forwardRef<HTMLSelectElement, SelectProps>(function NativeSelect(
-  { value, onChange, options, placeholder, invalid, className = '', ...rest },
+  { value, onChange, options, placeholder, invalid, className = '', size, ...rest },
   ref,
 ) {
   return (
@@ -66,7 +75,7 @@ export const NativeSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       ref={ref}
       value={value}
       onChange={e => onChange(e.target.value)}
-      className={inputClasses({ invalid, className: `pr-8 ${className}`.trim() })}
+      className={inputClasses({ invalid, size, className: `pr-8 ${className}`.trim() })}
       {...rest}
     >
       {placeholder !== undefined && (
@@ -127,7 +136,7 @@ function useAnchoredPosition(triggerRef: React.RefObject<HTMLElement | null>, op
 /** Desktop custom listbox. Keeps DOM focus on the trigger and tracks the active
  *  option with `aria-activedescendant` (the standard combobox pattern). */
 const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function ListboxSelect(
-  { value, onChange, options, placeholder, invalid, className = '', id, disabled, ...rest },
+  { value, onChange, options, placeholder, invalid, className = '', id, disabled, size, ...rest },
   ref,
 ) {
   const [open, setOpen] = useState(false);
@@ -271,7 +280,7 @@ const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function Listbo
         disabled={disabled}
         onClick={() => (open ? close() : openList())}
         onKeyDown={onKeyDown}
-        className={inputClasses({ invalid, className: `pr-8 text-left ${className}`.trim() })}
+        className={inputClasses({ invalid, size, className: `pr-8 text-left ${className}`.trim() })}
       >
         <span className={`block truncate ${selectedLabel === undefined ? 'text-gray-400' : ''}`}>
           {selectedLabel ?? placeholder ?? ' '}
