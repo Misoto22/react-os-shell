@@ -6,6 +6,7 @@
  */
 import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { glassStyle } from '../utils/glass';
+import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
 export interface TooltipProps {
   content: ReactNode;
@@ -32,14 +33,31 @@ export default function Tooltip({ content, side = 'top', delay = 200, children }
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
   // WCAG 1.4.13 — content shown on hover or focus has to be dismissible
-  // without moving the pointer or the focus. The listener is on the document
-  // rather than this element on purpose: a tooltip opened by HOVER holds no
-  // focus, so a keydown never reaches it.
+  // without moving the pointer or the focus.
+  //
+  // Through the interceptor seam rather than a listener of this component's
+  // own, for two reasons. A tooltip opened by HOVER holds no focus, so a
+  // keydown never reaches the trigger — that rules out an `onKeyDown` here.
+  // And a plain `document` listener loses inside a window: `Modal` listens on
+  // `window` in the CAPTURE phase and calls `stopPropagation()` when it closes,
+  // and capture runs window before document, so Escape closed the whole window
+  // and this never ran. Three portals render tooltips inside windows, which is
+  // where the rule matters most.
+  //
+  // The seam is the one place that gets both: `Modal` consults it before
+  // closing, and since 4.27.0 the Set drains itself when no shell is mounted,
+  // so a till and a routed page are covered by the same registration.
+  //
+  // Registration order is stacking order, walked most-recent-first, so a
+  // tooltip opened inside a dialog consumes the first Escape and the dialog
+  // takes the second — which is the order the user expects.
   useEffect(() => {
     if (!show) return;
-    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      close();
+      return true;
+    });
   }, [show]);
 
   // `aria-describedby` belongs on the TRIGGER, not on this wrapper. A screen
@@ -49,9 +67,18 @@ export default function Tooltip({ content, side = 'top', delay = 200, children }
   // element the caller passed in; a caller who passes a fragment or a string
   // still gets the wrapper form, which at least keeps the association in the
   // accessibility tree.
+  //
+  // Merged with whatever the trigger already had rather than assigned over it:
+  // `cloneElement` overwrites, so a caller who describes their own control
+  // (`<button aria-describedby="password-rules">`) lost that description as
+  // soon as a tooltip was wrapped around it — and lost it permanently, since
+  // the clone writes `undefined` while the bubble is closed.
   const describedBy = show ? id : undefined;
   const trigger = isValidElement<{ 'aria-describedby'?: string }>(children)
-    ? cloneElement(children, { 'aria-describedby': describedBy })
+    ? cloneElement(children, {
+        'aria-describedby':
+          [children.props['aria-describedby'], describedBy].filter(Boolean).join(' ') || undefined,
+      })
     : children;
 
   return (
