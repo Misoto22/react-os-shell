@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.39.0] — 2026-08-12
+
+### Added
+- **`EmptyState` takes an icon, not just a switch.** `icon` was a boolean
+  toggling one hardcoded inbox, so every empty state in every app was an inbox
+  — an empty catalogue, an empty invoice list and an empty message drawer drawn
+  identically, when the icon is the fastest thing on that screen to read. It
+  now also accepts an element. The boolean behaviour is untouched, including
+  `variant="card"` defaulting to no icon.
+
+### Fixed
+- `EmptyState`'s icon is `aria-hidden`. It repeats what the title already says,
+  and announcing it is noise on the one screen whose whole message is that
+  there is nothing to read.
+
 ## [4.38.0] — 2026-08-12
 
 ### Added
