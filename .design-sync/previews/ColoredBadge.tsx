@@ -53,3 +53,15 @@ export function Tones() {
     </div>
   );
 }
+
+export function FilterChips() {
+  // The close control is named after the chip, which only reads as a decision
+  // when several sit in a row.
+  return (
+    <div className="p-5 flex flex-wrap gap-2">
+      <ColoredBadge tone="info" closable onClose={() => {}}>Winter tyres</ColoredBadge>
+      <ColoredBadge tone="info" closable onClose={() => {}}>18 inch</ColoredBadge>
+      <ColoredBadge tone="info" closable onClose={() => {}}>In stock</ColoredBadge>
+    </div>
+  );
+}

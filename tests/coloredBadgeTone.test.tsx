@@ -72,3 +72,45 @@ test('size and capitalize are unchanged', () => {
   assert.match(classOf(html(<ColoredBadge tone="neutral" size="xs">x</ColoredBadge>)), /text-\[10px\]/);
   assert.match(classOf(html(<ColoredBadge tone="neutral" capitalize>in_progress</ColoredBadge>)), /capitalize/);
 });
+
+/**
+ * A filter chip the user can drop.
+ *
+ * The interesting part is the close control's name. A row of filter chips with
+ * five buttons all called "Remove" tells a screen-reader user nothing about
+ * which filter each one drops — so the name is derived from the badge's own
+ * text, and only falls back to the bare word when there is no text to take.
+ */
+
+test('the close control is named after the chip', () => {
+  const markup = html(<ColoredBadge tone="info" closable onClose={() => {}}>Winter tyres</ColoredBadge>);
+  assert.match(markup, /aria-label="Remove Winter tyres"/);
+});
+
+test('a caller can name it themselves', () => {
+  const markup = html(
+    <ColoredBadge tone="info" closable closeLabel="Clear the status filter" onClose={() => {}}>
+      Status: Pending
+    </ColoredBadge>,
+  );
+  assert.match(markup, /aria-label="Clear the status filter"/);
+});
+
+test('non-text children fall back rather than producing nonsense', () => {
+  // There is nothing to derive from — "Remove [object Object]" is worse than
+  // "Remove", and this is the case where closeLabel is really required.
+  const markup = html(<ColoredBadge tone="info" closable onClose={() => {}}><b>7</b></ColoredBadge>);
+  assert.match(markup, /aria-label="Remove"/);
+});
+
+test('a read-only badge has no close control', () => {
+  assert.doesNotMatch(html(<ColoredBadge tone="neutral">Paid</ColoredBadge>), /<button/);
+});
+
+test('the close control is a real button, so it is reachable and pressable', () => {
+  // Not a click handler on the icon: a span with onClick takes no focus and
+  // answers no key.
+  const markup = html(<ColoredBadge tone="info" closable onClose={() => {}}>Winter tyres</ColoredBadge>);
+  assert.match(markup, /<button type="button"/);
+  assert.match(markup, /aria-hidden="true"/, 'and its glyph is decoration');
+});

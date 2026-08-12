@@ -21,6 +21,12 @@ All notable changes to this project will be documented in this file. The format 
   pass them.
 - `GROUP_COLORS` is exported, so a consumer building its own palette map can
   read the table rather than copy it.
+- **A `ColoredBadge` can be closable** — a filter chip the user can drop. The
+  close control's accessible name is derived from the badge's own text
+  ("Remove Winter tyres", not "Remove"), because a row of chips with five
+  identical buttons tells a screen-reader user nothing about which filter each
+  one drops. `closeLabel` overrides it, and is what to reach for when the
+  children are not plain text.
 
 ## [4.40.0] — 2026-08-12
 
