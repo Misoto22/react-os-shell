@@ -96,8 +96,10 @@ test('Tooltip: the description lands on the trigger, not on the wrapper', async 
 });
 
 test('Tooltip: Escape dismisses it', async () => {
-  // The listener is on the document on purpose: a tooltip opened by HOVER
-  // holds no focus, so a keydown never reaches the component.
+  // A tooltip opened by HOVER holds no focus, so a keydown never reaches the
+  // component — the dismissal is registered on the shell's Escape interceptor
+  // seam, which also keeps it from losing to a Modal that would otherwise
+  // close the whole window first. See tooltipSeamAndDividerLabel.test.tsx.
   const view = render(<Tooltip content="Download the CSV" delay={0}><button>Export</button></Tooltip>);
   const wrapper = view.container.firstElementChild!;
 
