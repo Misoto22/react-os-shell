@@ -10,11 +10,12 @@
  * styled checkbox, because that is what the state actually is and it keeps
  * keyboard and screen-reader behaviour without further work.
  */
-import { useId, type ReactNode } from 'react';
+import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 export type SwitchSize = 'sm' | 'md' | 'touch';
 
-export interface SwitchProps {
+export interface SwitchProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'type' | 'className'> {
   checked: boolean;
   onChange: (checked: boolean) => void;
   disabled?: boolean;
@@ -46,15 +47,25 @@ const TRAVEL: Record<SwitchSize, string> = {
   touch: 'translate-x-6',
 };
 
-export default function Switch({
-  checked, onChange, disabled = false, size = 'md', label, hint, id, className = '',
-}: SwitchProps) {
+/**
+ * Forwards its ref, and spreads the rest onto the button.
+ *
+ * A form library hands a field three things: a change handler, a name, and a
+ * ref it uses to move focus to the field when validation fails. The first was
+ * here; the other two had nowhere to go, so this control could not be a form
+ * field at all — which contradicts the kit's own guidance that its controls
+ * drop into react-hook-form.
+ */
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(function Switch({
+  checked, onChange, disabled = false, size = 'md', label, hint, id, className = '', ...rest
+}, ref) {
   const generated = useId();
   const switchId = id ?? generated;
   const hintId = hint ? `${switchId}-hint` : undefined;
 
   const control = (
     <button
+      ref={ref}
       id={switchId}
       type="button"
       role="switch"
@@ -62,6 +73,7 @@ export default function Switch({
       aria-describedby={hintId}
       disabled={disabled}
       onClick={() => onChange(!checked)}
+      {...rest}
       className={[
         'relative inline-flex shrink-0 items-center rounded-full p-0.5 transition-colors',
         'focus:outline-none focus:ring-2 focus:ring-blue-400/40',
@@ -95,4 +107,6 @@ export default function Switch({
       </span>
     </span>
   );
-}
+});
+
+export default Switch;

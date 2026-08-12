@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.28.0] — 2026-08-12
+
+### Fixed
+- **`Switch` forwards its ref and spreads native attributes**, so it can be a
+  form field.
+
+  A form library hands a field three things: a change handler, a name, and a ref
+  it uses to move focus there when validation fails. Only the first had anywhere
+  to go — which contradicts `.design-sync/conventions.md`, where the kit's
+  controls are documented as dropping into `react-hook-form`.
+
+  The ref points at the `<button role="switch">` itself, including in the
+  labelled form where it sits inside a wrapper, because that is where focus
+  should land. Rendered output is otherwise unchanged.
+
+  `Segmented`, `FilePicker` and `DateRangePicker` are still ref-less; nothing
+  needs it from them yet, and each would want its own answer about which element
+  the ref should point at.
+
 ## [4.27.0] — 2026-08-12
 
 ### Fixed
