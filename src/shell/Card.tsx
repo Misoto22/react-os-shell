@@ -3,7 +3,7 @@
  * header and footer rows. StatCard is the dashboard variant (label + big value
  * + optional trend delta). Both are pure presentational components.
  */
-import { type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 /** How much room the card gives its contents. `md` is the desktop default;
  *  `lg` suits a touch layout, where the same density reads as cramped. */
@@ -16,6 +16,31 @@ export interface CardProps {
   /** Row below the body, divided by a hairline. */
   footer?: ReactNode;
   /** Apply default padding to the body. Default true; set false to fill edge-to-edge. */
+  /**
+   * Render the header as a real heading at this level, and the card as a
+   * region named by it.
+   *
+   * A card with a title IS a region of the page — the thing a screen-reader
+   * user jumps between, and the thing a heading list is for. Without this the
+   * title is a bold `<div>`: it looks like a heading to everyone who can see
+   * it and is invisible to everyone navigating by structure.
+   *
+   * The level is the caller's because only the caller knows the page's
+   * outline; a card inside a section that already has an `h2` needs an `h3`,
+   * and guessing produces a jumbled outline rather than no outline.
+   *
+   * Omitted, nothing changes — the header stays a styled `div` and the card a
+   * plain `div`, which is what every card shipping today is.
+   */
+  headingLevel?: 2 | 3 | 4 | 5 | 6;
+  /**
+   * Names the card as a region when there is no header to name it — a card
+   * whose title lives outside it, or which has none.
+   *
+   * Ignored when `headingLevel` is set: the heading is the better name, and
+   * two names on one element is a contradiction rather than a belt and braces.
+   */
+  'aria-label'?: string;
   padded?: boolean;
   /**
    * Padding scale. Takes precedence over `padded`, which remains supported and
@@ -35,16 +60,46 @@ const PADDING: Record<CardPadding, { body: string; edge: string }> = {
   lg: { body: 'p-6', edge: 'px-6 py-4' },
 };
 
-export default function Card({ children, header, footer, padded = true, padding, className = '' }: CardProps) {
+export default function Card({
+  children, header, footer, padded = true, padding, headingLevel,
+  'aria-label': ariaLabel, className = '',
+}: CardProps) {
   const p = PADDING[padding ?? (padded ? 'md' : 'none')];
+  // Called unconditionally — it is a hook — and only used when the heading is.
+  const headingId = useId();
+
+  const titled = headingLevel != null && header != null;
+  const Heading = (`h${headingLevel}` as 'h2');
+  // A <section> is only a landmark once it has a name. Rendering one for every
+  // card would turn a dashboard of twelve into twelve unnamed regions, which
+  // is worse than none — so the element follows the name, not the other way.
+  const named = titled || (ariaLabel != null && ariaLabel !== '');
+  const Root = (named ? 'section' : 'div') as 'div';
+
+  const surface = `rounded-lg border border-gray-200 bg-white shadow-sm ${className}`.trim();
+  const headerCls = `border-b border-gray-100 ${p.edge} text-sm font-semibold text-gray-900`;
+
   return (
-    <div className={`rounded-lg border border-gray-200 bg-white shadow-sm ${className}`.trim()}>
-      {header && (
-        <div className={`border-b border-gray-100 ${p.edge} text-sm font-semibold text-gray-900`}>{header}</div>
+    <Root
+      className={surface}
+      {...(titled
+        ? { 'aria-labelledby': headingId }
+        : named
+          ? { 'aria-label': ariaLabel }
+          : {})}
+    >
+      {header != null && (
+        titled ? (
+          // The heading carries the header row's own styling rather than
+          // nesting a second element, so the title is not two boxes deep.
+          <Heading id={headingId} className={headerCls}>{header}</Heading>
+        ) : (
+          <div className={headerCls}>{header}</div>
+        )
       )}
       <div className={p.body}>{children}</div>
       {footer && <div className={`border-t border-gray-100 ${p.edge}`}>{footer}</div>}
-    </div>
+    </Root>
   );
 }
 

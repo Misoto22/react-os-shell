@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.42.0] — 2026-08-12
+
+### Added
+- **A `Card` can be a labelled region with a real heading.** A card with a
+  title *is* a region of the page — the thing a screen-reader user jumps
+  between, and the thing a heading list is for. It rendered as a `div` whose
+  title was a bold `div`: it looked like a heading to everyone who could see it
+  and was invisible to everyone navigating by structure. `headingLevel` renders
+  the header as that heading and the card as a `<section>` named by it;
+  `aria-label` names a card that has no header to name it.
+
+  The level is the caller's because only the caller knows the page's outline —
+  a card inside a section that already has an `h2` needs an `h3`, and guessing
+  produces a jumbled outline rather than no outline.
+
+  **Both are opt-in and every card shipping today is unchanged.** A `<section>`
+  is only a landmark once it has a name, so an unnamed card stays a `div`: a
+  dashboard of twelve would otherwise become twelve unnamed regions, which is
+  worse for navigation than none.
+
 ## [4.41.0] — 2026-08-12
 
 ### Added
