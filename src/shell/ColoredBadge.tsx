@@ -61,7 +61,7 @@ export default function ColoredBadge({
   const closeName = closeLabel ?? (typeof children === 'string' ? `Remove ${children}` : 'Remove');
   const closeSize = size === 'xs' ? 'h-2.5 w-2.5' : 'h-3 w-3';
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${sizeCls} ${capCls} ${colour} ${className}`.trim()}>
+    <span className={['inline-flex items-center rounded-full font-medium', sizeCls, capCls, colour, className].filter(Boolean).join(' ')}>
       {children}
       {closable && (
         <button
