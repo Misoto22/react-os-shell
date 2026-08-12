@@ -143,3 +143,37 @@ test('a header with no actions is byte-identical to before', () => {
   const markup = html(<Card header="Totals">x</Card>);
   assert.doesNotMatch(markup, /justify-between/);
 });
+
+test('the body takes classes of its own', () => {
+  // The body is a wrapper this component owns, so `className` cannot reach it.
+  // Without this, a card whose contents are a column with a gap has to nest a
+  // div inside the one already there just to say so.
+  const markup = html(<Card bodyClassName="flex flex-col gap-4">rows</Card>);
+  assert.match(markup, /class="p-4 flex flex-col gap-4"/);
+});
+
+test('bodyClassName does not displace the padding', () => {
+  // It is additive. Replacing p.body would make every caller that wants a gap
+  // also responsible for the padding, silently.
+  assert.match(html(<Card padding="lg" bodyClassName="grid">x</Card>), /class="p-6 grid"/);
+  assert.match(html(<Card padded={false} bodyClassName="grid">x</Card>), /class="grid"/);
+});
+
+test('style reaches the surface', () => {
+  // For what cannot be a class: an animation delay computed per item.
+  assert.match(html(<Card style={{ animationDelay: '120ms' }}>x</Card>), /style="animation-delay:120ms"/);
+});
+
+test('style and the region element compose', () => {
+  const view = render(<Card header="Totals" headingLevel={2} style={{ animationDelay: '60ms' }}>x</Card>);
+  const region = view.container.firstElementChild as HTMLElement;
+  assert.equal(region.tagName, 'SECTION');
+  assert.equal(region.style.animationDelay, '60ms');
+  view.unmount();
+});
+
+test('neither prop appears when it is not passed', () => {
+  const markup = html(<Card>x</Card>);
+  assert.doesNotMatch(markup, /style=/);
+  assert.match(markup, /class="p-4"/, 'and the body class is exactly the padding');
+});

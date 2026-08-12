@@ -3,7 +3,7 @@
  * header and footer rows. StatCard is the dashboard variant (label + big value
  * + optional trend delta). Both are pure presentational components.
  */
-import { useId, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 
 /** How much room the card gives its contents. `md` is the desktop default;
  *  `lg` suits a touch layout, where the same density reads as cramped. */
@@ -58,6 +58,19 @@ export interface CardProps {
    */
   padding?: CardPadding;
   className?: string;
+  /**
+   * Classes for the body, beside the padding this component supplies.
+   *
+   * The body is a wrapper this component owns, so `className` cannot reach it
+   * — and a card whose contents are a column with a gap otherwise has to nest
+   * a div inside the one already there just to say so.
+   */
+  bodyClassName?: string;
+  /**
+   * Inline style for the surface. For values that cannot be a class: an
+   * animation delay computed per item, a measured height.
+   */
+  style?: CSSProperties;
 }
 
 // Header/footer padding scales WITH the body. A `p-6` body above a `px-4 py-3`
@@ -72,7 +85,7 @@ const PADDING: Record<CardPadding, { body: string; edge: string }> = {
 
 export default function Card({
   children, header, footer, padded = true, padding, headingLevel, headerActions,
-  'aria-label': ariaLabel, className = '',
+  'aria-label': ariaLabel, className = '', bodyClassName = '', style,
 }: CardProps) {
   const p = PADDING[padding ?? (padded ? 'md' : 'none')];
   // Called unconditionally — it is a hook — and only used when the heading is.
@@ -92,6 +105,7 @@ export default function Card({
   return (
     <Root
       className={surface}
+      style={style}
       {...(titled
         ? { 'aria-labelledby': headingId }
         : named
@@ -115,7 +129,7 @@ export default function Card({
           <div className={headerCls}>{header}</div>
         )
       )}
-      <div className={p.body}>{children}</div>
+      <div className={[p.body, bodyClassName].filter(Boolean).join(' ')}>{children}</div>
       {footer && <div className={`border-t border-gray-100 ${p.edge}`}>{footer}</div>}
     </Root>
   );

@@ -28,6 +28,12 @@ All notable changes to this project will be documented in this file. The format 
   into `header`, a card titled "Team Members" with a "Team active" chip beside
   it announces itself as "Team Members Team active", and that is the string a
   heading list shows and a voice command has to match.
+- **`Card` gains `bodyClassName` and `style`.** The body is a wrapper the
+  component owns, so `className` could not reach it — a card whose contents are
+  a column with a gap had to nest a div inside the one already there just to
+  say so. `bodyClassName` is additive to the padding rather than replacing it.
+  `style` is for what cannot be a class: an animation delay computed per item,
+  a measured height.
 
 ## [4.41.0] — 2026-08-12
 
