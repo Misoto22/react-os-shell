@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.25.0] — 2026-08-12
+
+### Fixed
+- **A failing `Result` announces itself.** It appears without the user moving
+  focus, so a screen reader said nothing at all and the user waited for a page
+  that had already failed. `error` and `500` now carry `role="alert"`
+  (WCAG 4.1.3 Status Messages).
+
+  `success`, `info`, `warning`, `404` and `403` deliberately stay quiet:
+  `alert` is assertive and cuts off whatever is being read, which is right for
+  a failure and wrong for an outcome the user asked for or already knows about.
+
+- **A labelled `Divider` is a separator again.** The plain form is an `<hr>`,
+  which carries the meaning by itself; once there is a label the `<hr>` cannot
+  be used, and losing the element had also lost what it meant. The labelled
+  form now declares `role="separator"` with the label as its accessible name,
+  and the two rules either side are marked decorative.
+
+- **A `Tooltip` describes its trigger, and Escape dismisses it.** Two defects:
+
+  `aria-describedby` sat on the wrapper. A screen reader announces the
+  description of the element that HAS focus, focus lands on the trigger, and an
+  ancestor's `describedby` is not inherited — so the tooltip was being read by
+  nobody. It is now cloned onto the trigger element, falling back to the wrapper
+  when the child is not an element.
+
+  There was no way to dismiss it without moving the pointer or the focus
+  (WCAG 1.4.13 Content on Hover or Focus). Escape now closes it, listened for on
+  the document because a tooltip opened by hover holds no focus and a keydown
+  never reaches the component.
+
+  Found by porting the dealer portal onto this kit: its local versions of all
+  three had these behaviours, so adopting the kit would have been a regression.
+
 ## [4.24.0] — 2026-08-12
 
 ### Added

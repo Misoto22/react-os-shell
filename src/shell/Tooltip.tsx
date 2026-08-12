@@ -4,7 +4,7 @@
  * previews show only the trigger (the bubble appears on interaction), like
  * ShortcutHelp.
  */
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { cloneElement, isValidElement, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { glassStyle } from '../utils/glass';
 
 export interface TooltipProps {
@@ -31,16 +31,39 @@ export default function Tooltip({ content, side = 'top', delay = 200, children }
   // Cancel a pending open if the trigger unmounts mid-delay.
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
+  // WCAG 1.4.13 — content shown on hover or focus has to be dismissible
+  // without moving the pointer or the focus. The listener is on the document
+  // rather than this element on purpose: a tooltip opened by HOVER holds no
+  // focus, so a keydown never reaches it.
+  useEffect(() => {
+    if (!show) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [show]);
+
+  // `aria-describedby` belongs on the TRIGGER, not on this wrapper. A screen
+  // reader announces the description of the element that has focus, and focus
+  // lands on the trigger — a describedby on an ancestor is not inherited, so
+  // the tooltip was being read by nobody. Cloning is the only way to reach an
+  // element the caller passed in; a caller who passes a fragment or a string
+  // still gets the wrapper form, which at least keeps the association in the
+  // accessibility tree.
+  const describedBy = show ? id : undefined;
+  const trigger = isValidElement<{ 'aria-describedby'?: string }>(children)
+    ? cloneElement(children, { 'aria-describedby': describedBy })
+    : children;
+
   return (
     <span
       className="relative inline-flex"
-      aria-describedby={show ? id : undefined}
+      aria-describedby={isValidElement(children) ? undefined : describedBy}
       onMouseEnter={open}
       onMouseLeave={close}
       onFocus={open}
       onBlur={close}
     >
-      {children}
+      {trigger}
       {show && (
         <span
           id={id}

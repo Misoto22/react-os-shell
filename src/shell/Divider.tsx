@@ -48,10 +48,18 @@ export default function Divider({
   const before = align === 'left' ? 'w-4 shrink-0' : 'flex-1';
   const after = align === 'right' ? 'w-4 shrink-0' : 'flex-1';
   return (
-    <div className={`flex items-center gap-3 ${SPACING[spacing]} ${className}`.trim()}>
-      <span className={`${before} border-t border-gray-200`} />
+    // `role="separator"` because the <hr> above cannot be used once there is a
+    // label to place inside the rule — and losing the element must not mean
+    // losing what it meant. The two rules either side are decoration; the
+    // separator is the whole thing, labelled by its own text.
+    <div
+      role="separator"
+      aria-orientation="horizontal"
+      className={`flex items-center gap-3 ${SPACING[spacing]} ${className}`.trim()}
+    >
+      <span aria-hidden="true" className={`${before} border-t border-gray-200`} />
       <span className="shrink-0 text-xs font-medium text-gray-500">{children}</span>
-      <span className={`${after} border-t border-gray-200`} />
+      <span aria-hidden="true" className={`${after} border-t border-gray-200`} />
     </div>
   );
 }
