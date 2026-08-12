@@ -4,6 +4,278 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.30.1] — 2026-08-12
+
+### Fixed
+- **`Tooltip`'s Escape reaches the tooltip instead of closing the window.**
+  4.25.0 added Escape-to-dismiss on a plain `document` listener, which loses
+  inside a window: `Modal` listens on `window` in the capture phase and stops
+  propagation when it closes, and capture runs window before document. So
+  Escape closed the whole window and the dismissal never ran — in the three
+  portals that render tooltips inside windows, which is where WCAG 1.4.13
+  actually applies. It now registers on the shell's Escape interceptor seam,
+  the one path that serves both cases: `Modal` consults it before closing, and
+  since 4.27.0 the Set drains itself where no shell is mounted. A tooltip
+  opened inside a dialog takes the first Escape and the dialog the second.
+- **A trigger's own `aria-describedby` survives being wrapped in a `Tooltip`.**
+  The clone assigned over it, so describing a control and then giving it a
+  tooltip dropped the original description — permanently, since the closed
+  state wrote `undefined`. The two are merged now.
+- **A labelled `Divider` is announced with its label.** `separator` takes its
+  name from the author only — it is not a name-from-content role — so the label
+  sitting inside the element was not the separator's accessible name, and
+  4.25.0's `role="separator"` announced an unnamed rule with the text loose
+  beside it. `aria-labelledby` attaches it.
+- **`Checkbox` no longer re-attaches the caller's ref on every render.** The
+  merged ref was a fresh closure each time, and React detaches and reattaches a
+  callback ref whose identity changed — so a form library holding the field was
+  handed `null` and then the node again on renders that had nothing to do with
+  it.
+
+## [4.30.0] — 2026-08-12
+
+### Fixed
+- **A broken avatar image falls back to its initials.** There was no `onError`,
+  so an avatar whose URL had gone away — a deleted upload, an expired CDN link,
+  a host briefly down — rendered the browser's broken-image glyph and kept it
+  for the rest of the session. The initials fallback existed, but only for the
+  no-`src` case, which is the one that never fails. A new `src` gets its own
+  attempt, so one bad URL no longer poisons the component.
+- **An avatar showing initials is named.** The role and the accessible name now
+  sit on the wrapper rather than on the `<img>`, so an avatar is announced as
+  the person it shows whether or not a photo loaded. Before, the initials form
+  was a bare `<span>` and a screen reader read out the two letters.
+- **A nameless avatar is skipped by assistive technology** instead of being
+  announced as "question mark". The `?` stays on screen — it is doing visual
+  work — but an avatar nobody can name has nothing to say.
+
+## [4.29.0] — 2026-08-12
+
+### Fixed
+- **`BreadcrumbItem.onClick` receives the event.** 4.26.0 added `href` so a
+  crumb could be a real link, and said a router could intercept the plain-click
+  case — but the handler took no argument, so it could not call
+  `preventDefault()`. An `href` crumb could therefore only ever do a full page
+  load, which is the thing a single-page app is avoiding, and a routed consumer
+  was back to using a button.
+
+  Widening the parameter is backwards compatible: an existing `() => void`
+  handler ignores it.
+
+## [4.28.0] — 2026-08-12
+
+### Fixed
+- **`Switch` forwards its ref and spreads native attributes**, so it can be a
+  form field.
+
+  A form library hands a field three things: a change handler, a name, and a ref
+  it uses to move focus there when validation fails. Only the first had anywhere
+  to go — which contradicts `.design-sync/conventions.md`, where the kit's
+  controls are documented as dropping into `react-hook-form`.
+
+  The ref points at the `<button role="switch">` itself, including in the
+  labelled form where it sits inside a wrapper, because that is where focus
+  should land. Rendered output is otherwise unchanged.
+
+  `Segmented`, `FilePicker` and `DateRangePicker` are still ref-less; nothing
+  needs it from them yet, and each would want its own answer about which element
+  the ref should point at.
+
+## [4.27.0] — 2026-08-12
+
+### Fixed
+- **Escape closes a `Dialog` or `Drawer` with no shell mounted.** Both register
+  an Escape interceptor and have no other key handler, and the only caller of
+  `runEscapeInterceptors` is `Modal` — the window manager. So on a till and on a
+  routed portal, the two places these components exist to serve, the Set was
+  never drained and **Escape did nothing at all**. Both were already shipping
+  that way.
+
+  The Set now drains itself: the first registration attaches one document-level
+  capture listener, the last removal takes it away.
+
+  It cannot double-fire where a shell is present. `Modal` listens on `window` in
+  the capture phase, and capture runs window before document — Modal's handler
+  goes first, calls `runEscapeInterceptors`, and stops propagation when one
+  consumes, so this listener never sees the event. Ordering across stacked
+  dialogs is unchanged, because the same reverse walk still decides who
+  consumes; the listener only starts it.
+
+- **`Dialog` and `Drawer` describe themselves with their own body.** Neither
+  set `aria-describedby`, so a screen reader announced "Cancel order, dialog"
+  and left the user to go looking for what cancelling actually does. The body
+  is the description, and now says so. A dialog with no body claims none.
+
+## [4.26.0] — 2026-08-12
+
+### Fixed
+- **`Checkbox` can show a partial selection.** `indeterminate` was reaching the
+  `<input>` through the props spread, which React cannot honour: it is a DOM
+  **property** with no attribute form, so React set a bogus attribute, logged
+  *"Received `true` for a non-boolean attribute"*, and the box rendered as plain
+  unchecked. A select-all control had no way to show a partial state at all.
+
+  It is now a declared prop, applied through a ref. `checked` is in the effect's
+  dependencies as well, because a browser clears `indeterminate` whenever the
+  checked state is assigned and React assigns it on every render — without that
+  the box would go blank on the next unrelated update. A native checkbox in this
+  state reports itself as `mixed` to assistive technology on its own, so no
+  `aria-checked` is written; one would risk contradicting the element.
+
+  The caller's ref still receives the input.
+
+### Added
+- **`BreadcrumbItem.href` — a crumb can be a real link.** The trail was
+  `<button onClick>` only, which is right for the desktop shell (no URLs to
+  point at) and wrong for a routed app: an `<a href>` can be middle-clicked into
+  a new tab, copied, and read off the status bar before committing to it. None
+  of that is available from a button, however well it behaves once pressed.
+
+  Given both, the anchor still calls `onClick`, so a client-side router can
+  intercept the plain-click case and leave the other click kinds to the browser.
+  `onClick` alone renders a button exactly as before, and the last crumb is
+  never a link either way.
+
+  Both forms share one class string, so they cannot drift apart.
+
+  Asked for by the dealer portal, whose breadcrumbs are route destinations.
+
+## [4.25.0] — 2026-08-12
+
+### Fixed
+- **A failing `Result` announces itself.** It appears without the user moving
+  focus, so a screen reader said nothing at all and the user waited for a page
+  that had already failed. `error` and `500` now carry `role="alert"`
+  (WCAG 4.1.3 Status Messages).
+
+  `success`, `info`, `warning`, `404` and `403` deliberately stay quiet:
+  `alert` is assertive and cuts off whatever is being read, which is right for
+  a failure and wrong for an outcome the user asked for or already knows about.
+
+- **A labelled `Divider` is a separator again.** The plain form is an `<hr>`,
+  which carries the meaning by itself; once there is a label the `<hr>` cannot
+  be used, and losing the element had also lost what it meant. The labelled
+  form now declares `role="separator"` with the label as its accessible name,
+  and the two rules either side are marked decorative.
+
+- **A `Tooltip` describes its trigger, and Escape dismisses it.** Two defects:
+
+  `aria-describedby` sat on the wrapper. A screen reader announces the
+  description of the element that HAS focus, focus lands on the trigger, and an
+  ancestor's `describedby` is not inherited — so the tooltip was being read by
+  nobody. It is now cloned onto the trigger element, falling back to the wrapper
+  when the child is not an element.
+
+  There was no way to dismiss it without moving the pointer or the focus
+  (WCAG 1.4.13 Content on Hover or Focus). Escape now closes it, listened for on
+  the document because a tooltip opened by hover holds no focus and a keydown
+  never reaches the component.
+
+  Found by porting the dealer portal onto this kit: its local versions of all
+  three had these behaviours, so adopting the kit would have been a regression.
+
+## [4.24.0] — 2026-08-12
+
+### Added
+- **`PageHeader` gains `icon` and `breadcrumbs`.** Both optional; existing
+  callers render byte-identically, which the first spec in
+  `tests/pageHeader.test.tsx` pins.
+
+  The icon sits **inside** the `<h1>`, muted and at the title's own size: it
+  marks the page, it is not a second headline.
+
+  `breadcrumbs` renders through the kit's own `Breadcrumbs` rather than a
+  second trail implementation inside this file. That is not tidiness — a
+  header trail and a standalone trail collapsing differently, or only one of
+  them marking the current crumb with `aria-current="page"`, is exactly the
+  drift a shared kit exists to prevent. The specs assert on behaviour that can
+  only come from that component, so reimplementing it here would fail them.
+
+  Asked for by the dealer portal, where every page has an icon and a trail —
+  it was the last thing keeping it on a local `PageHeader`.
+
+## [4.23.0] — 2026-08-12
+
+### Changed
+- **`GlobalSearch` no longer reaches for the window manager, and has moved to
+  the `./ui` barrel.**
+
+  It imported `useWindowManager` for exactly one line: opening the chosen
+  result. Nothing about that was a runtime failure — the hook is only a
+  `useContext` and would not have thrown without a provider. But an import is
+  resolved statically, so that one line pulled `WindowManager`, and through it
+  react-query and axios, into the module graph of anything containing the ⌘K
+  overlay. A self-contained search box was unreachable from
+  `react-os-shell/ui` because of it.
+
+  It now takes an optional `onSelect(result)`. `Layout` passes `openEntity`, so
+  **the desktop shell behaves exactly as before and no consumer of `Layout`
+  changes anything** — admin, customer and supplier each pass only
+  `providers`/`typeIcons`/`placeholder`, which are untouched. A routed app
+  passes its own navigation and gets the same overlay without the window
+  manager.
+
+  The alternative was a second, "headless" palette component beside this one.
+  That would have put two components with the same job in one barrel, where a
+  duplicate name loses to the root's explicit export silently — the trap
+  `tests/uiBarrelMatchesRoot.test.ts` exists to catch.
+
+  `GlobalSearch`, `SearchResult`, `SearchProvider` and `SearchConfig` are
+  therefore declared in `src/ui/kit.ts` now and no longer in `src/index.ts`;
+  the root entry still re-exports every one of them through `export * from
+  './ui'`, so **existing imports are unchanged**. `GlobalSearchProps` is newly
+  exported.
+
+## [4.22.0] — 2026-08-12
+
+### Added
+- **`IconButton` — a button that is only an icon.**
+
+  `Button` has carried `leftIcon`/`rightIcon` for a long time but has no
+  icon-only form: it sizes with horizontal padding, so a square button meant a
+  consumer overriding the kit's sizing, and two competing `px-*` utilities in
+  one class attribute resolve by compiled-stylesheet order rather than by the
+  order they were written. That renders one size or the other essentially at
+  random and looks correct in whichever one the reviewer happens to see.
+
+  A separate component rather than a `Button` prop, for a reason that is
+  type-level: an icon-only control has no accessible name unless someone
+  supplies one, and a **required** `aria-label` in the props is the only way to
+  make forgetting it a compile error instead of a screen-reader user's dead
+  end. `Button` cannot require it — most buttons have text, which names them.
+
+  Square at every rung, matching `Button`'s heights exactly, so a row mixing
+  the two lines up. Defaults to `ghost` where `Button` defaults to `primary`:
+  an unlabelled button is nearly always a secondary action, and a grid of solid
+  blue squares is not what an overflow menu wants.
+
+- **`DatePicker` — one calendar date.**
+
+  `DateRangePicker` is the other one: two dates, a rendered calendar, presets
+  and its own placement logic. This is a native `<input type="date">` wearing
+  the kit's field styling, so the browser supplies the calendar, the locale,
+  the keyboard behaviour and the mobile date wheel, and there is nothing here
+  to keep in step with any of them.
+
+  Every date bug this component could have is the same bug:
+  `new Date('2026-08-11')` is UTC midnight, which is the 10th anywhere west of
+  Greenwich, and `toISOString()` on a locally-built Date is the previous day
+  anywhere east of it. So it never crosses that boundary — a bare `YYYY-MM-DD`
+  string is passed through untouched, a `Date` is serialised through the
+  existing `toISODate` (which reads local calendar fields), and the `Date`
+  handed to `onChange` is built from the three integers with the local
+  constructor. `DateRangePicker` learned this the same way, which is why
+  `toISODate` already existed to reuse.
+
+### Changed
+- **`Button`'s internal `BASE`/`VARIANTS` are now `BUTTON_BASE`/`BUTTON_VARIANTS`**,
+  exported from the module so `IconButton` shares them rather than copying —
+  the two can no longer drift apart in colour or focus ring. Deliberately
+  **not** added to `src/ui/kit.ts`: they are package-internal, because a
+  consumer restyling a button is a consumer the theme system cannot reach.
+  `Button`'s rendered output is unchanged, pinned by
+  `tests/iconButtonAndDatePicker.test.tsx`.
+
 ## [4.21.1] — 2026-08-11
 
 ### Fixed

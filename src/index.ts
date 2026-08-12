@@ -43,8 +43,9 @@ export { requestWindowFront } from './shell/Modal';
 export { createWindowTarget, useWindowTarget } from './shell/windowTarget';
 export type { WindowTarget, WindowTargetOptions, StagedTarget } from './shell/windowTarget';
 export { default as WindowErrorBoundary, WindowCrashedFallback } from './shell/WindowErrorBoundary';
-export { default as GlobalSearch } from './shell/GlobalSearch';
-export type { SearchResult, SearchProvider, SearchConfig } from './shell/GlobalSearch';
+// GlobalSearch moved to the kit barrel (src/ui/kit.ts) when its window-manager
+// import was removed. Re-declaring it here would shadow the star export
+// silently — see tests/uiBarrelMatchesRoot.test.ts.
 export { default as ShortcutHelp } from './shell/ShortcutHelp';
 
 // ── Notification system ──

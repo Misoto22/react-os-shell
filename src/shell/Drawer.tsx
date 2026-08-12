@@ -11,7 +11,7 @@
  * Imports nothing but React and its two sibling modules, so it belongs to
  * `react-os-shell/ui` alongside `Dialog`.
  */
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { useFocusTrap, useScrollLock } from './focusTrap';
 import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
@@ -49,6 +49,7 @@ export default function Drawer({
   blocking = false, initialFocus, className = '',
 }: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyId = useId();
 
   useFocusTrap(panelRef, open, initialFocus);
   useScrollLock(open);
@@ -77,6 +78,9 @@ export default function Drawer({
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
+        // Same reasoning as Dialog: the body is the description, and a screen
+        // reader only reads it on open if the panel says so.
+        aria-describedby={children ? bodyId : undefined}
         style={panelStyle}
         className={[
           'fixed flex flex-col bg-white shadow-xl',
@@ -104,7 +108,7 @@ export default function Drawer({
         )}
         {/* Only the body scrolls, so the header and actions stay reachable in a
             long form — the thing a drawer is usually chosen for. */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        <div id={bodyId} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
         {footer && (
           <div className="flex shrink-0 justify-end gap-3 border-t border-gray-100 px-4 py-3">{footer}</div>
         )}

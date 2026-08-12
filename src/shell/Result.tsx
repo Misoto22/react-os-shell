@@ -65,8 +65,18 @@ export default function Result({
   status = 'info', title, subTitle, extra, icon, children, className = '',
 }: ResultProps) {
   const tone = STATUS_TONE[status];
+  // WCAG 4.1.3. A Result that reports a failure is a status message: it appears
+  // without the user moving focus, so a screen-reader user is told nothing
+  // unless it announces itself. `alert` is assertive, which is right for a
+  // failure and wrong for everything else — an outcome someone asked for
+  // (a completed checkout) or a neutral one (an empty cart) would interrupt
+  // whatever they were reading to say something they already expected.
+  const announces = tone === 'error';
   return (
-    <div className={`flex flex-col items-center justify-center px-6 py-12 text-center ${className}`.trim()}>
+    <div
+      role={announces ? 'alert' : undefined}
+      className={`flex flex-col items-center justify-center px-6 py-12 text-center ${className}`.trim()}
+    >
       <div className={`flex h-14 w-14 items-center justify-center rounded-full ${TONE_CLASS[tone]}`}>
         {icon ?? <StatusIcon tone={tone} />}
       </div>

@@ -31,7 +31,7 @@
  *
  * ── What is deliberately NOT here ──
  * The window manager and everything that needs it: `Modal` and its family,
- * `Layout`, `Desktop`, `StartMenu`, `WindowManagerProvider`, `GlobalSearch`,
+ * `Layout`, `Desktop`, `StartMenu`, `WindowManagerProvider`,
  * the settings panels and the bundled apps. Also the components that reach an
  * optional peer for their own reasons — `EntityList`, `ResizableTable` and the
  * react-query data hooks (react-query + axios), `FilterBar`, `UndoControls`,
@@ -45,6 +45,8 @@
 // ── Form controls ──
 export { default as Button } from '../forms/Button';
 export type { ButtonProps, ButtonVariant, ButtonSize } from '../forms/Button';
+export { default as IconButton } from '../forms/IconButton';
+export type { IconButtonProps } from '../forms/IconButton';
 export { default as Input } from '../forms/Input';
 export type { InputProps } from '../forms/Input';
 export { default as Textarea } from '../forms/Textarea';
@@ -65,6 +67,8 @@ export { default as MediaUploadGrid } from '../forms/MediaUploadGrid';
 export type { MediaUploadGridProps, MediaUploadGridItem } from '../forms/MediaUploadGrid';
 export { default as DateRangePicker, toISODate } from '../forms/DateRangePicker';
 export type { DateRangePickerProps } from '../forms/DateRangePicker';
+export { default as DatePicker } from '../forms/DatePicker';
+export type { DatePickerProps } from '../forms/DatePicker';
 export { INPUT_BASE, INPUT_SIZES, inputClasses } from '../forms/styles';
 export type { InputSize } from '../forms/styles';
 
@@ -164,6 +168,8 @@ export { default as Drawer } from '../shell/Drawer';
 export type { DrawerProps, DrawerSide, DrawerSize } from '../shell/Drawer';
 export { useFocusTrap, useScrollLock } from '../shell/focusTrap';
 export { ConfirmProvider, useConfirm, confirm, confirmDestructive, prompt } from '../shell/ConfirmDialog';
+export { default as GlobalSearch } from '../shell/GlobalSearch';
+export type { GlobalSearchProps, SearchResult, SearchProvider, SearchConfig } from '../shell/GlobalSearch';
 
 // ── Data primitives (pageless — no react-query, no axios) ──
 export { default as EditableGrid } from '../shell/EditableGrid';

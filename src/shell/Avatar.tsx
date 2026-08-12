@@ -4,7 +4,7 @@
  * chip. Sizes are applied via inline `style` (fixed px) so they don't depend
  * on arbitrary Tailwind classes.
  */
-import { Children, type ReactNode } from 'react';
+import { Children, useEffect, useState, type ReactNode } from 'react';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg';
 export type AvatarStatus = 'online' | 'offline' | 'busy' | 'away';
@@ -19,7 +19,14 @@ const STATUS_COLOR: Record<AvatarStatus, string> = {
 
 export interface AvatarProps {
   src?: string;
-  /** Used for the initials fallback and the image alt text. */
+  /**
+   * Who this is. It names the avatar to assistive technology and supplies the
+   * initials when there is no usable image.
+   *
+   * Without it the avatar is hidden from assistive technology rather than
+   * announced as "question mark" — an avatar nobody can name carries nothing
+   * a screen-reader user needs.
+   */
   name?: string;
   size?: AvatarSize;
   status?: AvatarStatus;
@@ -38,10 +45,31 @@ function initials(name?: string): string {
 export default function Avatar({ src, name, size = 'md', status, className = '' }: AvatarProps) {
   const px = SIZE_PX[size];
   const dot = Math.max(8, Math.round(px * 0.28));
+
+  // An avatar URL is the least reliable thing on the page — an upload that was
+  // deleted, a CDN link that expired, a host that is briefly down. Without this
+  // the browser renders its broken-image glyph and keeps it there for the rest
+  // of the session; the initials are the whole point of having a fallback.
+  const [broken, setBroken] = useState(false);
+  useEffect(() => { setBroken(false); }, [src]);
+  const showImage = Boolean(src) && !broken;
+
   return (
-    <span className={`relative inline-flex shrink-0 ${className}`.trim()} style={{ width: px, height: px }}>
-      {src ? (
-        <img src={src} alt={name ?? ''} className="h-full w-full rounded-full object-cover" />
+    // The role and the name live on the wrapper rather than on the <img>, so
+    // that an avatar showing initials is announced the same way as one showing
+    // a photo. The inner image is then decoration and takes an empty alt.
+    <span
+      className={`relative inline-flex shrink-0 ${className}`.trim()}
+      style={{ width: px, height: px }}
+      {...(name ? { role: 'img', 'aria-label': name } : { 'aria-hidden': true })}
+    >
+      {showImage ? (
+        <img
+          src={src}
+          alt=""
+          onError={() => setBroken(true)}
+          className="h-full w-full rounded-full object-cover"
+        />
       ) : (
         <span
           className="flex h-full w-full items-center justify-center rounded-full bg-gray-100 font-medium text-gray-600"
