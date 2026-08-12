@@ -41,17 +41,62 @@
  * them can consume, so the order they are offered the event in cannot change
  * which one takes it.
  *
- * With no Modal mounted nothing drains this Set, and that is correct rather
- * than merely harmless: a registered interceptor simply never runs, and the
- * component's own `onKeyDown` handles Escape — which is what `Select` already
- * documents and does on a plain page.
+ * ── Draining the Set with no shell present ────────────────────────────────
+ * This used to say that nothing draining the Set was fine, because a component
+ * would handle Escape itself. That holds for `Select`, which has its own
+ * `onKeyDown`. It did NOT hold for `Dialog`, which registers here and has no
+ * other handler — so on a till or a routed portal, the two places `Dialog`
+ * exists to serve, Escape did nothing at all.
+ *
+ * So the Set drains itself. The first registration attaches one document-level
+ * capture listener; the last removal takes it away.
+ *
+ * It cannot double-fire when a shell IS present. `Modal` listens on `window`
+ * in the capture phase, and capture runs window before document: Modal's
+ * handler goes first, calls `runEscapeInterceptors`, and stops propagation when
+ * one consumes — so this listener never sees the event. When Modal declines
+ * (it is not the topmost window), this runs and the dialog floating above it
+ * still gets its Escape, which is the right outcome anyway.
+ *
+ * Ordering across stacked dialogs is unchanged, because it is still the same
+ * reverse walk deciding who consumes — not the listener that started it.
  */
 const escapeInterceptors = new Set<(e: KeyboardEvent) => boolean>();
+
+/**
+ * The self-drain listener, attached while at least one interceptor is
+ * registered. Kept in module scope rather than per-registration so N dialogs
+ * share one listener and the reverse walk stays the only thing deciding who
+ * consumes.
+ */
+let detachDrain: (() => void) | null = null;
+
+function attachDrain(): void {
+  // `document` is absent when this module is imported on a server; there is no
+  // Escape to handle there, and registration still works for when it hydrates.
+  if (detachDrain || typeof document === 'undefined') return;
+  const onKeyDown = (e: KeyboardEvent): void => {
+    if (e.key !== 'Escape') return;
+    if (runEscapeInterceptors(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+  document.addEventListener('keydown', onKeyDown, true);
+  detachDrain = () => document.removeEventListener('keydown', onKeyDown, true);
+}
 
 /** Register an Escape interceptor; returns an unregister function. */
 export function registerModalEscapeInterceptor(fn: (e: KeyboardEvent) => boolean): () => void {
   escapeInterceptors.add(fn);
-  return () => { escapeInterceptors.delete(fn); };
+  attachDrain();
+  return () => {
+    escapeInterceptors.delete(fn);
+    if (escapeInterceptors.size === 0 && detachDrain) {
+      detachDrain();
+      detachDrain = null;
+    }
+  };
 }
 
 /** Run the registered interceptors, most recent first; true if one consumed

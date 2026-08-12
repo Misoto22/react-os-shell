@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.27.0] — 2026-08-12
+
+### Fixed
+- **Escape closes a `Dialog` or `Drawer` with no shell mounted.** Both register
+  an Escape interceptor and have no other key handler, and the only caller of
+  `runEscapeInterceptors` is `Modal` — the window manager. So on a till and on a
+  routed portal, the two places these components exist to serve, the Set was
+  never drained and **Escape did nothing at all**. Both were already shipping
+  that way.
+
+  The Set now drains itself: the first registration attaches one document-level
+  capture listener, the last removal takes it away.
+
+  It cannot double-fire where a shell is present. `Modal` listens on `window` in
+  the capture phase, and capture runs window before document — Modal's handler
+  goes first, calls `runEscapeInterceptors`, and stops propagation when one
+  consumes, so this listener never sees the event. Ordering across stacked
+  dialogs is unchanged, because the same reverse walk still decides who
+  consumes; the listener only starts it.
+
+- **`Dialog` and `Drawer` describe themselves with their own body.** Neither
+  set `aria-describedby`, so a screen reader announced "Cancel order, dialog"
+  and left the user to go looking for what cancelling actually does. The body
+  is the description, and now says so. A dialog with no body claims none.
+
 ## [4.26.0] — 2026-08-12
 
 ### Fixed

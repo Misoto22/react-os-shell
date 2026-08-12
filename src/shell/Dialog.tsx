@@ -12,7 +12,7 @@
  * on Headless UI and Heroicons. Focus containment and scroll locking come from
  * `./focusTrap` rather than a library.
  */
-import { useEffect, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
 import { useFocusTrap, useScrollLock } from './focusTrap';
 import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
@@ -53,6 +53,7 @@ export default function Dialog({
   open, onClose, title, children, footer, blocking = false, size = 'md', initialFocus, className = '',
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyId = useId();
 
   useFocusTrap(panelRef, open, initialFocus);
   useScrollLock(open);
@@ -87,10 +88,15 @@ export default function Dialog({
           role="dialog"
           aria-modal="true"
           aria-label={typeof title === 'string' ? title : undefined}
+          // The body is the dialog's description, and saying so is what makes a
+          // screen reader read the question along with the title when focus
+          // lands here. Without it the user hears "Cancel order, dialog" and
+          // has to go looking for what cancelling actually does.
+          aria-describedby={children ? bodyId : undefined}
           className={`relative w-full ${SIZES[size]} rounded-lg bg-white p-6 shadow-xl ${className}`.trim()}
         >
           {title && <h2 className="text-base font-semibold text-gray-900">{title}</h2>}
-          {children && <div className="mt-2 text-sm text-gray-600">{children}</div>}
+          {children && <div id={bodyId} className="mt-2 text-sm text-gray-600">{children}</div>}
           {footer && <div className="mt-6 flex justify-end gap-3">{footer}</div>}
         </div>
       </div>
