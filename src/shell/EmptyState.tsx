@@ -15,8 +15,16 @@ export interface EmptyStateProps {
   variant?: 'dashed' | 'card' | 'none';
   /** @deprecated set `variant="none"` instead. */
   frameless?: boolean;
-  /** Show the placeholder icon. Defaults to true (false for `variant="card"`). */
-  icon?: boolean;
+  /**
+   * `true`/omitted shows the placeholder inbox, `false` shows nothing, and an
+   * element shows that instead.
+   *
+   * The boolean alone meant every empty state in every app was an inbox — an
+   * empty catalogue, an empty invoice list and an empty inbox drawn
+   * identically, when the icon is the fastest thing on the screen to read.
+   * Defaults to the placeholder (to nothing for `variant="card"`).
+   */
+  icon?: boolean | ReactNode;
   /** Action(s) rendered under the text. */
   children?: ReactNode;
 }
@@ -30,7 +38,11 @@ export default function EmptyState({
   title, message, description, hint, variant, frameless, icon, children,
 }: EmptyStateProps) {
   const v = frameless ? 'none' : (variant ?? 'dashed');
-  const showIcon = icon ?? (v !== 'card');
+  // A boolean picks the placeholder; anything else IS the icon. Checked by
+  // type rather than truthiness, so `icon={0}` or an empty fragment renders
+  // what was passed instead of silently falling back to the inbox.
+  const custom = typeof icon !== 'boolean' && icon != null ? icon : null;
+  const showIcon = custom ? false : ((icon as boolean | undefined) ?? (v !== 'card'));
   const primary = message ?? (title ? undefined : 'Nothing here yet.');
   const secondary = description ?? hint;
   const frame =
@@ -39,8 +51,17 @@ export default function EmptyState({
                    'rounded-lg border-2 border-dashed border-gray-300 px-6 py-12';
   return (
     <div className={`flex flex-col items-center justify-center text-center ${frame}`}>
+      {/* The same 40px footprint the placeholder occupies, so a caller passing
+          a 20px glyph gets it centred in that box rather than rendered at half
+          the size the default draws at — and the heading below does not shift
+          depending on which icon was used. */}
+      {custom && (
+        <div className="mb-3 flex h-10 w-10 items-center justify-center text-gray-300" aria-hidden="true">
+          {custom}
+        </div>
+      )}
       {showIcon && (
-        <svg className="h-10 w-10 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+        <svg className="h-10 w-10 text-gray-300 mb-3" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
       )}

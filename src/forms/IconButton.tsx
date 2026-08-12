@@ -38,7 +38,12 @@ export interface IconButtonProps
    * affordance, a close — and a grid of solid blue squares is not what any of
    * those want. Ask for `primary` on the rare icon-only main action.
    */
-  variant?: ButtonVariant;
+  /**
+   * `link` is excluded: it exists to shed the box, and a square icon button is
+   * nothing but the box. Asking for it would produce a bare coloured glyph
+   * with a 40px hit area it no longer draws.
+   */
+  variant?: Exclude<ButtonVariant, 'link'>;
   size?: ButtonSize;
   className?: string;
 }
@@ -55,6 +60,7 @@ export interface IconButtonProps
 const SQUARE: Record<ButtonSize, string> = {
   sm: 'h-6 w-6',
   md: 'h-8 w-8',
+  lg: 'h-10 w-10',
   'touch-sm': 'h-11 w-11',
   'touch': 'h-14 w-14',
   'touch-lg': 'h-16 w-16',

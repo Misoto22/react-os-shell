@@ -17,9 +17,9 @@ import { forwardRef, useId, type ButtonHTMLAttributes, type ReactNode } from 're
  * it lets someone tell what the button costs WITHOUT reading it, which under
  * time pressure is what actually happens.
  */
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger' | 'link';
 /**
- * `sm`/`md` are the desktop scale. The `touch-*` rungs are for a finger on
+ * `sm`/`md`/`lg` are the desktop scale. The `touch-*` rungs are for a finger on
  * glass — a till, a warehouse tablet — and are a SEPARATE ladder on purpose:
  * a till's idea of "medium" is 56px, and naming it `md` would have made the
  * same word mean two sizes depending on which app you were reading.
@@ -27,7 +27,7 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' |
  * Nothing picks a touch size automatically. An app that wants them asks for
  * them, so a desktop portal cannot grow finger-sized buttons by accident.
  */
-export type ButtonSize = 'sm' | 'md' | 'touch-sm' | 'touch' | 'touch-lg' | 'touch-xl';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'touch-sm' | 'touch' | 'touch-lg' | 'touch-xl';
 
 export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> {
   variant?: ButtonVariant;
@@ -73,12 +73,27 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-blue-400/30',
   'ghost-danger': 'text-red-600 hover:bg-red-50 focus:ring-red-400/30',
   danger: 'bg-red-600 text-white shadow-sm hover:bg-red-700 focus:ring-red-400/40',
+  /**
+   * A button that reads as a link: no box, no padding, underlined on hover.
+   * For an action that belongs in running text or beside a field — "Forgot
+   * your password?", "Use a different address" — where a boxed button would
+   * claim more of the page than the action deserves.
+   *
+   * It is still a <button>. Anything that NAVIGATES should be an anchor, so it
+   * can be middle-clicked and read off the status bar; this is for actions
+   * that merely look quiet.
+   */
+  link: 'text-blue-600 underline-offset-4 hover:underline focus:ring-blue-400/30',
 };
 
 // A Record keyed by the union, not a ternary chain: adding a member without a
 // size here is then a compile error rather than a silent fall-through to the
-// default branch. The desktop two are byte-for-byte what they have always been,
-// and `tests/buttonSizes.test.tsx` pins them against a captured literal.
+// default branch. `sm`/`md` are byte-for-byte what they have always been, and
+// `tests/touchPrimitives.test.tsx` pins them against a captured literal.
+//
+// Every rung is also asserted to be the same height as the IconButton rung of
+// the same name (`tests/buttonLinkAndLarge.test.tsx`) — pinning the two sides
+// separately is how `lg` first shipped 4px short of its square twin.
 //
 // The touch rungs carry an explicit `h-*` where the desktop pair uses `py-*`.
 // That is deliberate: a hit target has to be a guaranteed height, not a height
@@ -88,6 +103,11 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 const SIZES: Record<ButtonSize, string> = {
   sm: 'gap-1 px-2.5 py-1 text-xs',
   md: 'gap-1.5 px-3 py-1.5 text-sm',
+  // `py-2.5`, not `py-2`: this rung has to come out 40px to match IconButton's
+  // `h-10`, which is the promise IconButton's docblock makes for every rung.
+  // `py-2` gives 36px (20px line box + 8px twice) and puts a 4px step between a
+  // Button and an IconButton sitting in the same row.
+  lg: 'gap-2 px-4 py-2.5 text-sm',
   // 44px is the WCAG 2.5.5 floor, and a floor is not a comfortable size. Use it
   // ONLY for chrome that sits outside the task — switching screens, ending a
   // shift — and never on the path someone is actually working through. It
@@ -97,6 +117,25 @@ const SIZES: Record<ButtonSize, string> = {
   'touch': 'gap-2 h-14 px-5 text-base',      // 56px — the comfortable default
   'touch-lg': 'gap-2 h-16 px-6 text-lg',     // 64px — primary action on a page
   'touch-xl': 'gap-3 h-20 px-8 text-2xl',    // 80px — keypad keys, tender
+};
+
+// Everything BUTTON_BASE has except the box: no rounding (there is nothing to
+// round) and no `justify-center` (a link sits in a line of text, it does not
+// centre itself in a shape).
+const LINK_BASE =
+  'inline-flex items-center font-medium transition-colors ' +
+  'focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60';
+
+// Only the gap and the text size survive from each rung — the padding is what
+// the link variant exists to shed.
+const LINK_SIZES: Record<ButtonSize, string> = {
+  sm: 'gap-1 text-xs',
+  md: 'gap-1.5 text-sm',
+  lg: 'gap-2 text-sm',
+  'touch-sm': 'gap-1.5 text-base',
+  'touch': 'gap-2 text-base',
+  'touch-lg': 'gap-2 text-lg',
+  'touch-xl': 'gap-3 text-2xl',
 };
 
 function Spinner() {
@@ -127,7 +166,18 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       disabled={isDisabled}
       aria-busy={loading || undefined}
       aria-describedby={reasonId}
-      className={[BUTTON_BASE, BUTTON_VARIANTS[variant], SIZES[size], block ? 'w-full' : '', className].filter(Boolean).join(' ')}
+      className={[
+        // `link` takes the base WITHOUT the box: no rounding, no padding from
+        // the size table. It cannot cancel those by overriding — two padding
+        // utilities in one class attribute resolve by compiled-stylesheet
+        // order, not by the order they were written — so it never receives
+        // them, and keeps only the size's gap and text size.
+        variant === 'link' ? LINK_BASE : BUTTON_BASE,
+        BUTTON_VARIANTS[variant],
+        variant === 'link' ? LINK_SIZES[size] : SIZES[size],
+        block ? 'w-full' : '',
+        className,
+      ].filter(Boolean).join(' ')}
       {...rest}
     >
       {loading ? <Spinner /> : leftIcon}

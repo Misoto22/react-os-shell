@@ -4,6 +4,183 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.41.0] — 2026-08-12
+
+### Added
+- **`ColoredBadge` takes a `tone`.** The kit had two badges and no way to ask
+  for a colour by name: `StatusBadge` maps a domain status *string* through a
+  consumer-supplied provider, and `ColoredBadge` took raw Tailwind classes. A
+  consumer that already knew it wanted "success" — a plain label, not an entity
+  status — had to hardcode `bg-green-100 text-green-800` at the call site,
+  which is the thing `StatusBadge`'s own docblock exists to prevent. `tone`
+  reads the **same table** `StatusBadge` does, so the two can never disagree
+  about what success looks like. `colorClass` is now optional and still wins
+  when both are given; neither renders neutral.
+- **`ColoredBadge` accepts `className`.** A badge in a table cell needs
+  alignment and tabular numerals from the call site, and there was no way to
+  pass them.
+- `GROUP_COLORS` is exported, so a consumer building its own palette map can
+  read the table rather than copy it.
+- **A `ColoredBadge` can be closable** — a filter chip the user can drop. The
+  close control's accessible name is derived from the badge's own text
+  ("Remove Winter tyres", not "Remove"), because a row of chips with five
+  identical buttons tells a screen-reader user nothing about which filter each
+  one drops. `closeLabel` overrides it, and is what to reach for when the
+  children are not plain text.
+
+## [4.40.0] — 2026-08-12
+
+### Changed
+- **`DescriptionList` shows an em dash where a value is absent**, rather than an
+  empty cell. A blank answers nothing, and inside `bordered` — where the cell
+  has an outline of its own — it reads as a rendering fault rather than as
+  "there is no tracking number". Only `null`, `undefined` and `''` are
+  replaced: `0` and `false` are answers, and reporting a zero balance as "we do
+  not know" would be a different and worse statement. `emptyText` overrides the
+  dash, and `emptyText={null}` restores the previous rendering.
+
+  **This changes what existing consumers render** wherever a value was empty.
+
+## [4.39.0] — 2026-08-12
+
+### Added
+- **`EmptyState` takes an icon, not just a switch.** `icon` was a boolean
+  toggling one hardcoded inbox, so every empty state in every app was an inbox
+  — an empty catalogue, an empty invoice list and an empty message drawer drawn
+  identically, when the icon is the fastest thing on that screen to read. It
+  now also accepts an element. The boolean behaviour is untouched, including
+  `variant="card"` defaulting to no icon.
+
+### Fixed
+- `EmptyState`'s icon is `aria-hidden`. It repeats what the title already says,
+  and announcing it is noise on the one screen whose whole message is that
+  there is nothing to read.
+
+## [4.38.0] — 2026-08-12
+
+### Added
+- **`Tabs` can be wired to its panels.** The strip is only ever the strip — the
+  consumer renders the body — so ARIA's tab/panel pair had no way to be
+  completed: `role="tab"` carried no `aria-controls`, the buttons had no ids for
+  a panel to name itself with, and nothing a consumer could pass supplied
+  either. Passing `idPrefix` now gives each tab a stable id and an
+  `aria-controls`; the consumer builds the matching panel id with the exported
+  `tabPanelId` and names it with `tabButtonId`. Both halves come from one prop
+  through two exported helpers, because the panel lives on the consumer's side
+  and agreeing on an id by convention is how these drift. Omitted, nothing is
+  emitted — a strip used as a filter has no panel, and pointing at an id that
+  does not exist is a dangling reference rather than a helpful one.
+- **`Tabs` accepts `aria-label` / `aria-labelledby`.** There was no way to name
+  the strip at all, so a page with two of them — order sections above, media
+  types below — gave a screen-reader user two unnamed "tab list"s with nothing
+  to tell them apart.
+- **A tab's icon is decoration.** `TabItem` requires a label, so its icon is
+  always supplementary — but it was exposed to assistive technology, so a text
+  or emoji icon was read as part of the tab's name ("# Lines" rather than
+  "Lines"). It is now `aria-hidden`.
+
+## [4.37.0] — 2026-08-12
+
+### Fixed
+- **`InputNumber` reports the number it displays.** On blur it rounded for
+  display but handed `onChange` the unrounded parse — and only called
+  `onChange` at all when clamping had changed the value. A `precision={2}`
+  field given `12.345` therefore showed `12.35` and left the consumer holding
+  `12.345`: on a price, an order posted for a different number from the one the
+  user read back before submitting. Rounding now happens before the value is
+  reported, and composes with clamping. A field with no `precision` is
+  untouched — there is no rounding to agree with, and a quantity must not
+  silently become an integer.
+
+## [4.36.0] — 2026-08-12
+
+### Fixed
+- **`InputNumber` steps with the arrow keys again, and announces its range.**
+  Rendering `type="text"` with a numeric `inputMode` was the right call — a
+  number input discards non-numeric text so the buffer could never hold "1.",
+  scrolls the value on a stray wheel event, and draws spinners with a 12px hit
+  target — but it silently took two things the browser had been giving for
+  free. Arrow keys step by `step`, PageUp/PageDown by ten of them, and both
+  stop at `min`/`max` instead of passing them; a sub-unit step rounds to the
+  field's precision, so three 0.1 steps land on 0.30 rather than
+  0.30000000000000004. The field now carries `role="spinbutton"` with
+  `aria-valuenow`/`valuemin`/`valuemax`, plus an `aria-valuetext` that matches
+  the formatting on screen. The role is claimed only because the keys behind it
+  are implemented.
+
+## [4.35.0] — 2026-08-12
+
+### Fixed
+- **An invalid form control says so.** `invalid` painted the control red and
+  told assistive technology nothing on four of the six controls — `Input`,
+  `Textarea`, `DatePicker` and the native `Select` — while `InputNumber` and
+  the listbox `Select` trigger already set `aria-invalid`. A sighted user saw a
+  red border; a screen-reader user was told the field was fine (WCAG 3.3.1).
+  All six now set it, and a valid control still claims nothing rather than
+  asserting `aria-invalid="false"`.
+- **`Select` describes and names its trigger.** `aria-describedby`,
+  `aria-label` and `aria-labelledby` reached only the `sr-only` `<select>`
+  behind the trigger, through the props spread. Focus lands on the trigger, so
+  the error message they pointed at was announced to nobody. They now go to the
+  combobox button; the hidden select keeps the native form attributes that are
+  its job.
+
+## [4.34.0] — 2026-08-12
+
+### Added
+- **A desktop size ladder for the form controls.** `InputSize` had only `md` on
+  the desktop side, so a consumer wanting a smaller filter row or a larger
+  sign-in field had to reach for `touch` — which is 56px, sized for a finger —
+  or append its own padding through `className`, the exact failure
+  `forms/styles.ts` is shaped to prevent. `sm` and `lg` join it as swapped-in
+  rungs. The `touch` rung is unchanged, and `INPUT_BASE` and the no-argument
+  `inputClasses()` are byte-identical, so no existing caller moves.
+- **`size` on `Select` and `Textarea`.** Both already rendered through
+  `inputClasses`; only the prop was missing, so a form could not be sized
+  consistently — an `Input` beside a `Select` would take the rung and the
+  `Select` would not. On `Select` it shadows the native `size` attribute (the
+  row count of a list box), which is now omitted rather than left to collide,
+  and is kept off the DOM.
+
+### Fixed
+- `forms/styles.ts` pointed at `tests/inputSizes.test.ts` for the `INPUT_BASE`
+  contract pin. That file does not exist; the pin lives in
+  `tests/touchPrimitives.test.tsx`.
+
+## [4.33.0] — 2026-08-12
+
+### Added
+- **`Button` size `lg`** — a third rung on the DESKTOP ladder, between `md` and
+  the touch rungs. `sm`/`md` alone left nothing for a page's primary action to
+  reach for without borrowing a 44px hit target. The touch ladder is unchanged
+  and still has to be asked for by name. `IconButton` gains the matching square
+  rung, so the two stay rung for rung.
+- **`Button` variant `link`** — an action that belongs in running text or
+  beside a field, where a boxed button would claim more of the page than the
+  action deserves. It sheds the box rather than overriding it: the padding from
+  the size table is never applied, because `px-0` in a variant string does not
+  reliably beat `px-3` from a size string — two padding utilities in one class
+  attribute resolve by compiled-stylesheet order. It keeps the text size of
+  whichever rung was asked for. `IconButton` excludes it at the type level: the
+  variant exists to shed the box, and a square icon button is nothing but the
+  box.
+
+## [4.32.0] — 2026-08-12
+
+### Fixed
+- **The tab strip can be operated by keyboard.** `Tabs` carried
+  `tabIndex={active ? 0 : -1}` — the roving-tabindex half of the ARIA tablist
+  pattern, which deliberately makes the whole strip a single tab stop — but
+  nothing did the roving. Tab therefore skipped every inactive tab and the
+  arrow keys did nothing, so a keyboard user who reached the strip could not
+  switch tabs by any means (WCAG 2.1.1). The arrow keys now move between tabs,
+  Home and End jump to the ends, disabled tabs are skipped, and the ends wrap.
+  Selection follows focus, and keys the strip does not use are left for the app.
+
+### Changed
+- `Tabs` renders one strip for both variants rather than two near-identical
+  branches. The class strings are unchanged.
+
 ## [4.31.0] — 2026-08-12
 
 ### Fixed

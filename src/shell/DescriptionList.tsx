@@ -29,6 +29,15 @@ export interface DescriptionListProps {
   /** Hairline-separated rows in a bordered panel. */
   bordered?: boolean;
   size?: 'sm' | 'md';
+  /**
+   * Shown in place of a value that is `null`, `undefined` or `''`. Defaults to
+   * an em dash.
+   *
+   * A blank cell answers nothing — and inside `bordered`, where the cell has
+   * an outline of its own, it reads as a rendering fault rather than as "there
+   * is no tracking number". Pass `emptyText={null}` for the old behaviour.
+   */
+  emptyText?: ReactNode;
   title?: ReactNode;
   className?: string;
 }
@@ -42,6 +51,7 @@ const SPAN: Record<DescriptionColumns, string> = { 1: 'col-span-1', 2: 'col-span
 
 export default function DescriptionList({
   items, columns = 1, bordered = false, size = 'md', title, className = '',
+  emptyText: empty = '—',
 }: DescriptionListProps) {
   const resolved = typeof columns === 'number' ? { base: columns } : columns;
   const base = resolved.base ?? 1;
@@ -78,7 +88,11 @@ export default function DescriptionList({
             <dt className={`${text} text-gray-500`}>{item.label}</dt>
             {/* min-w-0 so a long unbroken value (a tracking number) wraps
                 inside its cell instead of widening the whole grid. */}
-            <dd className={`mt-0.5 min-w-0 break-words ${text} text-gray-900`}>{item.value}</dd>
+            <dd className={`mt-0.5 min-w-0 break-words ${text} text-gray-900`}>
+              {item.value === null || item.value === undefined || item.value === ''
+                ? empty
+                : item.value}
+            </dd>
           </div>
         ))}
       </dl>

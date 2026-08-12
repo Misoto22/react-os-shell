@@ -117,6 +117,7 @@ export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarStatus } from '..
 export { default as Banner } from '../shell/Banner';
 export type { BannerProps, BannerTone, BannerEmphasis } from '../shell/Banner';
 export { default as Tabs } from '../shell/Tabs';
+export { tabButtonId, tabPanelId } from '../shell/Tabs';
 export type { TabsProps, TabItem } from '../shell/Tabs';
 export { default as Accordion } from '../shell/Accordion';
 export type { AccordionProps, AccordionItem } from '../shell/Accordion';
@@ -126,6 +127,7 @@ export { default as ColoredBadge } from '../shell/ColoredBadge';
 export type { ColoredBadgeProps } from '../shell/ColoredBadge';
 export { default as StatusBadge, StatusBadgeProvider } from '../shell/StatusBadge';
 export type { SemanticGroup } from '../shell/StatusBadge';
+export { GROUP_COLORS } from '../shell/StatusBadge';
 export { default as EmptyState } from '../shell/EmptyState';
 export type { EmptyStateProps } from '../shell/EmptyState';
 export { default as PageHeader } from '../shell/PageHeader';

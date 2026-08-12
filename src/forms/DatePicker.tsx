@@ -79,6 +79,8 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function DatePi
     <input
       ref={ref}
       type="date"
+
+      aria-invalid={invalid || undefined}
       value={toInputValue(value)}
       min={toInputValue(min) || undefined}
       max={toInputValue(max) || undefined}

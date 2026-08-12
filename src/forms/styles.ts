@@ -22,19 +22,25 @@
  *
  * Composed below in the original order, so `INPUT_BASE` is byte-identical to
  * what it has always been — it and `inputClasses` are public exports, so their
- * exact values are contract. `tests/inputSizes.test.ts` pins that.
+ * exact values are contract. `tests/touchPrimitives.test.tsx` pins that.
  */
 const INPUT_SHAPE_PRE = 'block w-full rounded-md border border-gray-300 bg-white';
 const INPUT_SHAPE_POST =
   'text-gray-800 placeholder:text-gray-400 shadow-sm ' +
   'focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/30';
 
-/** `md` is the desktop control; `touch` is a finger on glass. See ButtonSize
- *  for why the touch scale is a separate ladder rather than a bigger `lg`. */
-export type InputSize = 'md' | 'touch';
+/** `sm`/`md`/`lg` are the desktop ladder; `touch` is a finger on glass. See
+ *  ButtonSize for why touch is a separate rung rather than the top of this
+ *  ladder — a till's idea of "large" is 56px, and one word cannot mean both. */
+export type InputSize = 'sm' | 'md' | 'lg' | 'touch';
 
 export const INPUT_SIZES: Record<InputSize, string> = {
+  // The desktop rungs carry no explicit height: a text control's height should
+  // follow its own font, or a long label wraps out of a box that was pinned.
+  // The touch rung does carry one, for the same reason Button's does.
+  sm: 'px-2.5 py-1 text-xs',
   md: 'px-3 py-1.5 text-sm',
+  lg: 'px-3.5 py-2 text-base',
   // 56px, matching Button's `touch`. `text-base` is 16px BY AGREEMENT with the
   // rule in ui.css that forces `font-size: 16px !important` on every form
   // control under `(pointer: coarse)` — the rule that stops iOS zooming the
@@ -54,8 +60,9 @@ export const INPUT_INVALID =
 /** Disabled affordance — opacity-based so it stays correct in every theme. */
 export const INPUT_DISABLED = 'disabled:cursor-not-allowed disabled:opacity-60';
 
-/** Compose the input classes for a control. Omitting `size` yields exactly
- *  `INPUT_BASE`, so every existing caller is unaffected. */
+/** Compose the input classes for a control. Omitting `size` — or passing the
+ *  default `md` — yields exactly `INPUT_BASE`, so every existing caller is
+ *  unaffected. */
 export function inputClasses(opts?: { invalid?: boolean; size?: InputSize; className?: string }): string {
   const shape = opts?.size && opts.size !== 'md'
     ? `${INPUT_SHAPE_PRE} ${INPUT_SIZES[opts.size]} ${INPUT_SHAPE_POST}`

@@ -22,7 +22,13 @@ export type SemanticGroup =
   | 'draft'     // draft (slightly more visible than neutral)
   | 'neutral';  // cancelled, inactive, rejected
 
-const GROUP_COLORS: Record<SemanticGroup, string> = {
+/**
+ * The one table. `ColoredBadge` reads it too, through its `tone` prop, so a
+ * badge given a tone directly and a badge given a status string that maps to
+ * that tone are the same colour — which is the promise this component's
+ * docblock makes and could not keep for anything that was not a status.
+ */
+export const GROUP_COLORS: Record<SemanticGroup, string> = {
   success: 'bg-green-100 text-green-800',
   active:  'bg-blue-100 text-blue-800',
   queued:  'bg-indigo-100 text-indigo-800',

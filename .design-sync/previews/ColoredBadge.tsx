@@ -40,3 +40,28 @@ export function FromRawStatus() {
     </div>
   );
 }
+
+export function Tones() {
+  // The named vocabulary. Each of these is the same colour StatusBadge gives a
+  // status that maps to it — that agreement is the reason `tone` exists.
+  const TONES = ['success', 'active', 'queued', 'info', 'pending', 'warning', 'danger', 'draft', 'neutral'] as const;
+  return (
+    <div className="p-5 flex flex-wrap gap-2">
+      {TONES.map(t => (
+        <ColoredBadge key={t} tone={t} capitalize>{t}</ColoredBadge>
+      ))}
+    </div>
+  );
+}
+
+export function FilterChips() {
+  // The close control is named after the chip, which only reads as a decision
+  // when several sit in a row.
+  return (
+    <div className="p-5 flex flex-wrap gap-2">
+      <ColoredBadge tone="info" closable onClose={() => {}}>Winter tyres</ColoredBadge>
+      <ColoredBadge tone="info" closable onClose={() => {}}>18 inch</ColoredBadge>
+      <ColoredBadge tone="info" closable onClose={() => {}}>In stock</ColoredBadge>
+    </div>
+  );
+}
