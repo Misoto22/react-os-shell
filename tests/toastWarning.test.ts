@@ -79,3 +79,51 @@ test('and two different warnings still both appear', () => {
   toast.warning('Dedupe probe C', { dedupe: true });
   assert.equal(document.getElementById('toast-container')!.children.length, 2);
 });
+
+/**
+ * A toast appears without the user moving focus, so without a live region it
+ * is announced to nobody — the same criterion (WCAG 4.1.3) that `Result` was
+ * fixed against in 4.25.0. Every toast in every portal was silent.
+ */
+
+test('a toast announces itself', () => {
+  toast.success('Order placed');
+  const el = document.getElementById('toast-container')!.firstElementChild!;
+  assert.equal(el.getAttribute('role'), 'status');
+  assert.equal(el.getAttribute('aria-atomic'), 'true');
+});
+
+test('a failure interrupts; a confirmation does not', () => {
+  // `alert` is assertive and cuts off whatever is being read. Right for
+  // something that did not happen, wrong for one the user just asked for.
+  toast.error('Could not place the order');
+  assert.equal(document.getElementById('toast-container')!.firstElementChild!.getAttribute('role'), 'alert');
+  document.getElementById('toast-container')?.remove();
+
+  for (const kind of ['success', 'warning', 'info'] as const) {
+    toast[kind](`a ${kind} that should not interrupt`);
+    assert.equal(
+      document.getElementById('toast-container')!.firstElementChild!.getAttribute('role'),
+      'status',
+      kind,
+    );
+    document.getElementById('toast-container')?.remove();
+  }
+});
+
+test('the timer holds while the pointer rests on it', async () => {
+  // Three seconds is enough to read a confirmation and not enough to read an
+  // address someone leaned in for — and a toast that vanishes as you reach for
+  // it cannot be re-read, because there is no history to open.
+  toast.success('Saved to 13900 Valley Blvd, La Puente', { duration: 30 });
+  const el = document.getElementById('toast-container')!.firstElementChild as HTMLElement;
+  const win = el.ownerDocument.defaultView as Window & typeof globalThis;
+
+  el.dispatchEvent(new win.MouseEvent('mouseenter'));
+  await new Promise(r => setTimeout(r, 60));
+  assert.equal(el.isConnected, true, 'it must still be there after its duration passed');
+
+  el.dispatchEvent(new win.MouseEvent('mouseleave'));
+  await new Promise(r => setTimeout(r, 80));
+  assert.equal(el.style.opacity, '0', 'and it leaves once the pointer does');
+});

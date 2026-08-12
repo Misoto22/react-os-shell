@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.44.0] — 2026-08-13
+
+### Fixed
+- **A toast is announced.** It carried no `role` and no live region at all, so
+  a message that appears without the user moving focus reached a screen-reader
+  user not at all — the same criterion `Result` was fixed against in 4.25.0
+  (WCAG 4.1.3), on the one component whose entire job is a status message.
+  Every toast in every portal was silent. A failure is `alert`, which
+  interrupts; everything else is `status`, which waits. `aria-atomic` reads the
+  whole toast rather than the word that changed.
+- **A toast waits while you read it.** The dismiss timer now holds while the
+  pointer rests on it. Three seconds is enough for a confirmation and not
+  enough for an address someone leaned in for, and a toast that vanishes as you
+  reach for it cannot be re-read — there is no history to open.
+
 ## [4.43.0] — 2026-08-13
 
 ### Added

@@ -138,6 +138,15 @@ function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: s
     font-size: 13px; font-weight: 500; color: rgb(55,65,81);
     max-width: min(90vw, 460px);
   `;
+  // A toast IS a status message, and it appears without the user moving focus
+  // — so without a live region it is announced to nobody. `alert` is
+  // assertive and interrupts whatever is being read, which is right for a
+  // failure and wrong for a confirmation the user already expected.
+  el.setAttribute('role', variant === 'error' ? 'alert' : 'status');
+  // Read the whole toast, not the word that changed. Without it a repeat that
+  // only alters a number announces the number alone.
+  el.setAttribute('aria-atomic', 'true');
+
   el.innerHTML = icon;
   const span = document.createElement('span');
   span.textContent = message;
@@ -166,6 +175,13 @@ function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: s
     if (!sticky) timer = setTimeout(dismiss, duration);
   };
   restart();
+
+  // Hold the timer while the pointer rests on it. Three seconds is enough to
+  // read a confirmation and not enough to read an address someone leaned in
+  // for — and a toast that vanishes as you reach for it cannot be re-read at
+  // all, since there is no history to open.
+  el.addEventListener('mouseenter', () => { if (timer) clearTimeout(timer); });
+  el.addEventListener('mouseleave', () => { if (!gone) restart(); });
 
   // Tap anywhere on the toast to dismiss it. A toast has no other click
   // affordance, and a sticky one has no other exit at all — `notify` has
