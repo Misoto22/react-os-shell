@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.47.0] — 2026-08-13
+
+### Added
+- **`DataTableColumn.numeric`** — the column holds a figure or a code (money, a
+  quantity, a part or order number). It renders monospaced and right-aligns by
+  default. The table already sets `tabular-nums`, so digits line up down every
+  column without this; what `numeric` adds is a fixed advance for *every*
+  character, which is what lets `00620L6N25KMFCBTDTM2QND` be compared against
+  its neighbour by shape. An explicit `align` still wins — a part number is a
+  code that reads left-to-right like a word.
+
 ## [4.46.0] — 2026-08-13
 
 ### Fixed

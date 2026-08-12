@@ -30,6 +30,17 @@ export interface DataTableColumn<T> {
   dataIndex?: keyof T & string;
   render?: (row: T, index: number) => ReactNode;
   align?: 'left' | 'right' | 'center';
+  /**
+   * The column holds a figure or a code — money, a quantity, a part or order
+   * number.
+   *
+   * Renders it monospaced and right-aligns it by default. The table already
+   * sets `tabular-nums`, so the digits line up down the column either way;
+   * what this adds is a fixed advance for EVERY character, which is what lets
+   * `00620L6N25KMFCBTDTM2QND` be compared against its neighbour by shape, and
+   * a decimal point be found at the right edge without reading the number.
+   */
+  numeric?: boolean;
   /** Px. Also feeds the table's minimum width — see `minWidth`. */
   width?: number;
   /** Single-line with an ellipsis. */
@@ -154,7 +165,10 @@ export default function DataTable<T>({
             <tr className="border-b border-gray-200 bg-gray-50">
               {columns.map((col, ci) => {
                 const dir = directionFor(col);
-                const align = ALIGN[col.align ?? 'left'];
+                // A figures column right-aligns unless the caller says
+                // otherwise: the decimal point is the thing being compared,
+                // and it only lines up at the right edge.
+                const align = ALIGN[col.align ?? (col.numeric ? 'right' : 'left')];
                 const pinned = col.fixed === 'left';
                 return (
                   <th
@@ -218,7 +232,8 @@ export default function DataTable<T>({
                           key={col.key}
                           style={pinned ? { left: offsets[ci] ?? 0 } : undefined}
                           className={[
-                            cellBase, ALIGN[col.align ?? 'left'], 'text-gray-900',
+                            cellBase, ALIGN[col.align ?? (col.numeric ? 'right' : 'left')],
+                            col.numeric ? 'font-mono' : '', 'text-gray-900',
                             col.ellipsis ? 'max-w-0 truncate' : '',
                             // A pinned cell needs its own background or the
                             // scrolling columns show through it.
