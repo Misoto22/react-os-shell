@@ -31,12 +31,24 @@ export default function FormField({
       {label && (
         <label id={labelId} htmlFor={htmlFor} className="mb-1 block text-xs font-medium text-gray-600">
           {label}
-          {required && <span className="ml-0.5 text-red-500">*</span>}
+          {/* Decoration. `required` on the control is what assistive
+              technology reads; exposed here it becomes part of the label —
+              "Company name star" — on every required field of every form. */}
+          {required && <span aria-hidden="true" className="ml-0.5 text-red-500">*</span>}
         </label>
       )}
       {children}
       {error ? (
-        <p id={htmlFor ? `${htmlFor}-error` : undefined} className="mt-1 text-[11px] text-red-600">{error}</p>
+        // A validation message appears after the user submits, without focus
+        // moving to it. Without a live region it reaches nobody — and this is
+        // the one status message a form cannot afford to lose.
+        <p
+          id={htmlFor ? `${htmlFor}-error` : undefined}
+          role="alert"
+          className="mt-1 text-[11px] text-red-600"
+        >
+          {error}
+        </p>
       ) : hint ? (
         <p id={htmlFor ? `${htmlFor}-hint` : undefined} className="mt-1 text-[11px] text-gray-400">{hint}</p>
       ) : null}

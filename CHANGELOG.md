@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.46.0] — 2026-08-13
+
+### Fixed
+- **A `FormField` error announces itself.** A validation message appears after
+  the user submits, without focus moving to it, so without a live region it
+  reached nobody — and of everything a form says, this is the one it cannot
+  afford to lose (WCAG 4.1.3). It is now `role="alert"`. A hint is not: it was
+  there before anything went wrong, and announcing it assertively would cut
+  across whatever the user was reading.
+- **The required marker is decoration.** The `*` was exposed, so it became part
+  of the label on every required field of every form — "Company name star".
+  `required` on the control is what assistive technology should read.
+
 ## [4.45.0] — 2026-08-13
 
 ### Fixed
