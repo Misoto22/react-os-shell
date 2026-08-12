@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.45.0] — 2026-08-13
+
+### Fixed
+- **`ErrorPage` no longer draws two buttons that do nothing.** It rendered "Go
+  back" and "Take me home" with no handlers on either. They looked like the way
+  out of a dead end and did nothing, which is worse than offering nothing —
+  the user spends a click and a moment of trust finding out. The way out now
+  comes from the consumer through `actions`, because the kit has no router and
+  cannot know the destination. Omitted, no control is drawn.
+
+  **This changes what existing consumers render**: the two buttons disappear.
+  They were inert, so nothing that worked stops working — but a page that
+  looked like it offered a way home now visibly does not until `actions` is
+  passed.
+
 ## [4.44.0] — 2026-08-13
 
 ### Fixed
