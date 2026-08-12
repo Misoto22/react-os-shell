@@ -233,3 +233,16 @@ test('the strip can be named', () => {
   assert.equal(list.getAttribute('aria-label'), null, 'and only the one that was passed');
   view.unmount();
 });
+
+test('an icon does not become part of the tab name', () => {
+  // A TabItem must have a label, so its icon is always supplementary. Left
+  // exposed, a text or emoji icon is read as part of the name — "# Lines"
+  // rather than "Lines" — and a screen-reader user hunting for "Lines" by
+  // voice or by first letter does not find it.
+  const items = [{ id: 'lines', label: 'Lines', icon: <span>#</span> }];
+  const view = render(<Harness items={items} initial="lines" />);
+  const [tab] = tabs(view);
+  assert.equal(tab.querySelector('[aria-hidden="true"]')?.textContent, '#');
+  assert.match(tab.textContent ?? '', /Lines/);
+  view.unmount();
+});

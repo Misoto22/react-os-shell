@@ -22,6 +22,10 @@ All notable changes to this project will be documented in this file. The format 
   the strip at all, so a page with two of them — order sections above, media
   types below — gave a screen-reader user two unnamed "tab list"s with nothing
   to tell them apart.
+- **A tab's icon is decoration.** `TabItem` requires a label, so its icon is
+  always supplementary — but it was exposed to assistive technology, so a text
+  or emoji icon was read as part of the tab's name ("# Lines" rather than
+  "Lines"). It is now `aria-hidden`.
 
 ## [4.37.0] — 2026-08-12
 

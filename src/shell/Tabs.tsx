@@ -147,7 +147,11 @@ export default function Tabs({
             onClick={() => onChange(t.id)}
             className={tabClass(variant, active)}
           >
-            {t.icon}
+            {/* Decoration, and hidden from assistive technology on purpose: a
+                TabItem must have a label, so the icon is always supplementary.
+                Left exposed, a text or emoji icon is read as part of the tab's
+                name — "# Lines" rather than "Lines". */}
+            {t.icon && <span aria-hidden="true" className="inline-flex shrink-0">{t.icon}</span>}
             {t.label}
           </button>
         );
