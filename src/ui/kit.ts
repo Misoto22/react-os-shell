@@ -117,6 +117,7 @@ export type { AvatarProps, AvatarGroupProps, AvatarSize, AvatarStatus } from '..
 export { default as Banner } from '../shell/Banner';
 export type { BannerProps, BannerTone, BannerEmphasis } from '../shell/Banner';
 export { default as Tabs } from '../shell/Tabs';
+export { tabButtonId, tabPanelId } from '../shell/Tabs';
 export type { TabsProps, TabItem } from '../shell/Tabs';
 export { default as Accordion } from '../shell/Accordion';
 export type { AccordionProps, AccordionItem } from '../shell/Accordion';

@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.38.0] — 2026-08-12
+
+### Added
+- **`Tabs` can be wired to its panels.** The strip is only ever the strip — the
+  consumer renders the body — so ARIA's tab/panel pair had no way to be
+  completed: `role="tab"` carried no `aria-controls`, the buttons had no ids for
+  a panel to name itself with, and nothing a consumer could pass supplied
+  either. Passing `idPrefix` now gives each tab a stable id and an
+  `aria-controls`; the consumer builds the matching panel id with the exported
+  `tabPanelId` and names it with `tabButtonId`. Both halves come from one prop
+  through two exported helpers, because the panel lives on the consumer's side
+  and agreeing on an id by convention is how these drift. Omitted, nothing is
+  emitted — a strip used as a filter has no panel, and pointing at an id that
+  does not exist is a dangling reference rather than a helpful one.
+
 ## [4.37.0] — 2026-08-12
 
 ### Fixed

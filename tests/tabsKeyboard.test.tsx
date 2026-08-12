@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { useState } from 'react';
 import { render, act } from './dom';
-import Tabs from '../src/shell/Tabs';
+import Tabs, { tabButtonId, tabPanelId } from '../src/shell/Tabs';
 
 /**
  * The tab strip could not be operated by keyboard at all.
@@ -161,5 +161,60 @@ test('the strip is still one tab stop', () => {
   const view = render(<Harness items={ITEMS} initial="lines" />);
   const order = tabs(view).map(t => t.tabIndex);
   assert.deepEqual(order, [-1, 0, -1]);
+  view.unmount();
+});
+
+/**
+ * The panel association.
+ *
+ * The strip is only ever the strip — the consumer renders the body — so ARIA's
+ * tab/panel pair had no way to be completed: `role="tab"` carried no
+ * `aria-controls`, the buttons had no ids for a panel to name itself with, and
+ * nothing the consumer could pass would supply either. A screen-reader user
+ * moving through the tabs was told nothing about what each one governs.
+ *
+ * One prop supplies both halves, through two exported helpers, so the two
+ * strings cannot drift: the panel is rendered by the consumer, and agreeing on
+ * an id by convention in a comment is exactly how that goes wrong.
+ */
+
+test('a tab points at its panel, and carries the id the panel names itself with', () => {
+  const view = render(<Harness items={ITEMS} initial="summary" />);
+  view.rerender(<Tabs items={ITEMS} value="summary" onChange={() => {}} idPrefix="order" />);
+
+  const [first] = tabs(view);
+  assert.equal(first.id, tabButtonId('order', 'summary'));
+  assert.equal(first.getAttribute('aria-controls'), tabPanelId('order', 'summary'));
+  view.unmount();
+});
+
+test('the two helpers never collide', () => {
+  // They are used on the same page, on two elements, from the same inputs.
+  assert.notEqual(tabButtonId('order', 'lines'), tabPanelId('order', 'lines'));
+  assert.equal(tabButtonId('order', 'lines'), 'order-tab-lines');
+  assert.equal(tabPanelId('order', 'lines'), 'order-panel-lines');
+});
+
+test('without idPrefix nothing is claimed', () => {
+  // A strip used as a filter has no panel. Pointing aria-controls at an id
+  // that does not exist is a dangling reference, not a helpful one — and the
+  // strips already shipping are all in that shape.
+  const view = render(<Harness items={ITEMS} initial="summary" />);
+  for (const tab of tabs(view)) {
+    assert.equal(tab.getAttribute('aria-controls'), null);
+    assert.equal(tab.id, '');
+  }
+  view.unmount();
+});
+
+test('every tab is wired, not only the selected one', () => {
+  // A screen reader reads the association while walking the strip, which
+  // happens before anything is selected.
+  const view = render(<Harness items={ITEMS} initial="summary" />);
+  view.rerender(<Tabs items={ITEMS} value="summary" onChange={() => {}} idPrefix="order" />);
+  assert.deepEqual(
+    tabs(view).map(t => t.getAttribute('aria-controls')),
+    ITEMS.map(i => tabPanelId('order', i.id)),
+  );
   view.unmount();
 });
