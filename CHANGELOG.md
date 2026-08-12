@@ -23,6 +23,11 @@ All notable changes to this project will be documented in this file. The format 
   is only a landmark once it has a name, so an unnamed card stays a `div`: a
   dashboard of twelve would otherwise become twelve unnamed regions, which is
   worse for navigation than none.
+- **`Card` gains `headerActions`** — a count, a filter or a "View all" opposite
+  the title. A separate slot because it has to stay OUT of the heading: folded
+  into `header`, a card titled "Team Members" with a "Team active" chip beside
+  it announces itself as "Team Members Team active", and that is the string a
+  heading list shows and a voice command has to match.
 
 ## [4.41.0] — 2026-08-12
 

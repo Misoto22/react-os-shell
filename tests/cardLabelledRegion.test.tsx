@@ -97,3 +97,49 @@ test('headingLevel without a header claims nothing', () => {
   assert.equal(view.container.firstElementChild!.tagName, 'DIV');
   view.unmount();
 });
+
+/**
+ * A card header is usually a title AND something opposite it — a count, a
+ * filter, a "View all". The header was a single slot, so the only way to place
+ * both was to fold them into one node — which puts the second one inside the
+ * heading.
+ */
+
+test('actions stay out of the heading', () => {
+  // The whole reason for a second slot. Folded in, a card titled "Team
+  // Members" with a "Team active" chip announces itself as "Team Members Team
+  // active" — the string a heading list shows and a voice command must match.
+  const view = render(
+    <Card header="Team Members" headingLevel={2} headerActions={<span>Team active</span>}>
+      rows
+    </Card>,
+  );
+  const heading = view.container.querySelector('h2')!;
+  assert.equal(heading.textContent, 'Team Members');
+  assert.match(view.container.textContent ?? '', /Team active/, 'and it is still on screen');
+  view.unmount();
+});
+
+test('the region is still named by the title alone', () => {
+  const view = render(
+    <Card header="Team Members" headingLevel={2} headerActions={<span>Team active</span>}>rows</Card>,
+  );
+  const region = view.container.firstElementChild!;
+  const heading = view.container.querySelector('h2')!;
+  assert.equal(region.getAttribute('aria-labelledby'), heading.id);
+  view.unmount();
+});
+
+test('actions work without a heading level too', () => {
+  const markup = html(<Card header="Recent orders" headerActions={<a href="/orders">View all</a>}>rows</Card>);
+  assert.match(markup, /Recent orders/);
+  assert.match(markup, /View all/);
+  assert.doesNotMatch(markup, /<h[2-6]/, 'no heading was asked for');
+});
+
+test('a header with no actions is byte-identical to before', () => {
+  // The flex row must not appear for the plain form, which is every card
+  // shipping today.
+  const markup = html(<Card header="Totals">x</Card>);
+  assert.doesNotMatch(markup, /justify-between/);
+});

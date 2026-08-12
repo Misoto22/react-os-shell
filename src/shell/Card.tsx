@@ -34,6 +34,16 @@ export interface CardProps {
    */
   headingLevel?: 2 | 3 | 4 | 5 | 6;
   /**
+   * Rendered at the far end of the header row, opposite the title — a count, a
+   * filter, a "View all" link.
+   *
+   * It is a separate slot because it must stay OUT of the heading. Folded into
+   * `header`, a card titled "Team Members" with a "Team active" chip beside it
+   * announces itself as "Team Members Team active", and that is the string a
+   * heading list shows and a voice command has to match.
+   */
+  headerActions?: ReactNode;
+  /**
    * Names the card as a region when there is no header to name it — a card
    * whose title lives outside it, or which has none.
    *
@@ -61,7 +71,7 @@ const PADDING: Record<CardPadding, { body: string; edge: string }> = {
 };
 
 export default function Card({
-  children, header, footer, padded = true, padding, headingLevel,
+  children, header, footer, padded = true, padding, headingLevel, headerActions,
   'aria-label': ariaLabel, className = '',
 }: CardProps) {
   const p = PADDING[padding ?? (padded ? 'md' : 'none')];
@@ -89,8 +99,16 @@ export default function Card({
           : {})}
     >
       {header != null && (
-        titled ? (
-          // The heading carries the header row's own styling rather than
+        headerActions != null ? (
+          // With actions the row has to be a flex container, so the heading is
+          // nested rather than being the row itself — and only the title is
+          // inside it.
+          <div className={`${headerCls} flex items-center justify-between gap-3`}>
+            {titled ? <Heading id={headingId}>{header}</Heading> : <span>{header}</span>}
+            {headerActions}
+          </div>
+        ) : titled ? (
+          // Without them the heading carries the row's own styling rather than
           // nesting a second element, so the title is not two boxes deep.
           <Heading id={headingId} className={headerCls}>{header}</Heading>
         ) : (
