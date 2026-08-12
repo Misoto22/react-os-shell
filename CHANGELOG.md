@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.23.0] — 2026-08-12
+
+### Changed
+- **`GlobalSearch` no longer reaches for the window manager, and has moved to
+  the `./ui` barrel.**
+
+  It imported `useWindowManager` for exactly one line: opening the chosen
+  result. Nothing about that was a runtime failure — the hook is only a
+  `useContext` and would not have thrown without a provider. But an import is
+  resolved statically, so that one line pulled `WindowManager`, and through it
+  react-query and axios, into the module graph of anything containing the ⌘K
+  overlay. A self-contained search box was unreachable from
+  `react-os-shell/ui` because of it.
+
+  It now takes an optional `onSelect(result)`. `Layout` passes `openEntity`, so
+  **the desktop shell behaves exactly as before and no consumer of `Layout`
+  changes anything** — admin, customer and supplier each pass only
+  `providers`/`typeIcons`/`placeholder`, which are untouched. A routed app
+  passes its own navigation and gets the same overlay without the window
+  manager.
+
+  The alternative was a second, "headless" palette component beside this one.
+  That would have put two components with the same job in one barrel, where a
+  duplicate name loses to the root's explicit export silently — the trap
+  `tests/uiBarrelMatchesRoot.test.ts` exists to catch.
+
+  `GlobalSearch`, `SearchResult`, `SearchProvider` and `SearchConfig` are
+  therefore declared in `src/ui/kit.ts` now and no longer in `src/index.ts`;
+  the root entry still re-exports every one of them through `export * from
+  './ui'`, so **existing imports are unchanged**. `GlobalSearchProps` is newly
+  exported.
+
 ## [4.22.0] — 2026-08-12
 
 ### Added

@@ -1141,7 +1141,13 @@ export default function Layout({
         />
       )}
 
-      <GlobalSearch {...search} />
+      {/* GlobalSearch no longer reaches for the window manager itself — that
+          one import was what kept it out of `react-os-shell/ui`. Passing it in
+          here keeps the desktop behaviour identical. */}
+      <GlobalSearch
+        {...search}
+        onSelect={result => openEntity(result.entity_type, result.entity_id, null, result.label)}
+      />
       <ShortcutHelp />
     </div>
   );

@@ -1,5 +1,22 @@
+/**
+ * GlobalSearch — the ⌘K overlay: one input, every provider queried in
+ * parallel, arrow keys and Enter over the merged results.
+ *
+ * ── Why it takes `onSelect` instead of calling openEntity itself ──
+ * It used to `import { useWindowManager }` for exactly one line: opening the
+ * chosen result in a window. The hook is only a `useContext` and would not have
+ * thrown without a provider — but an import is resolved statically, so that one
+ * line pulled `WindowManager` and therefore react-query and axios into the
+ * module graph of anything containing this overlay. That is what kept a
+ * self-contained search box out of `react-os-shell/ui`.
+ *
+ * `Layout` passes `openEntity` in, so the desktop shell behaves exactly as
+ * before; a routed app passes its own navigation and gets the same overlay
+ * without the window manager. The alternative — a second, "headless" palette
+ * component beside this one — would have put two components with the same job
+ * in one barrel, where `export *` loses to an explicit export silently.
+ */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useWindowManager } from './WindowManager';
 import { glassStyle as getGlassStyle } from '../utils/glass';
 
 export interface SearchResult {
@@ -27,18 +44,27 @@ export interface SearchConfig {
   placeholder?: string;
 }
 
-interface GlobalSearchProps extends Partial<SearchConfig> {}
+export interface GlobalSearchProps extends Partial<SearchConfig> {
+  /**
+   * What to do with the chosen result. Called after the overlay closes.
+   *
+   * Supplied by whoever renders the overlay, not by the consumer's
+   * `SearchConfig`: inside the desktop shell `Layout` passes `openEntity`, and
+   * a routed app passes its own navigation. Omitted, selecting a result just
+   * closes the overlay — which is what a search with nowhere to go should do.
+   */
+  onSelect?: (result: SearchResult) => void;
+}
 
 const DEFAULT_MAGNIFIER = 'M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z';
 
-export default function GlobalSearch({ providers, typeIcons, placeholder = 'Search...' }: GlobalSearchProps = {}) {
+export default function GlobalSearch({ providers, typeIcons, placeholder = 'Search...', onSelect }: GlobalSearchProps = {}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { openEntity } = useWindowManager();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Hotkey: Cmd+K / Ctrl+K
@@ -84,8 +110,8 @@ export default function GlobalSearch({ providers, typeIcons, placeholder = 'Sear
 
   const handleSelect = useCallback((result: SearchResult) => {
     setOpen(false);
-    openEntity(result.entity_type, result.entity_id, null, result.label);
-  }, [openEntity]);
+    onSelect?.(result);
+  }, [onSelect]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, results.length - 1)); }

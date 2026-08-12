@@ -31,7 +31,7 @@
  *
  * ── What is deliberately NOT here ──
  * The window manager and everything that needs it: `Modal` and its family,
- * `Layout`, `Desktop`, `StartMenu`, `WindowManagerProvider`, `GlobalSearch`,
+ * `Layout`, `Desktop`, `StartMenu`, `WindowManagerProvider`,
  * the settings panels and the bundled apps. Also the components that reach an
  * optional peer for their own reasons — `EntityList`, `ResizableTable` and the
  * react-query data hooks (react-query + axios), `FilterBar`, `UndoControls`,
@@ -168,6 +168,8 @@ export { default as Drawer } from '../shell/Drawer';
 export type { DrawerProps, DrawerSide, DrawerSize } from '../shell/Drawer';
 export { useFocusTrap, useScrollLock } from '../shell/focusTrap';
 export { ConfirmProvider, useConfirm, confirm, confirmDestructive, prompt } from '../shell/ConfirmDialog';
+export { default as GlobalSearch } from '../shell/GlobalSearch';
+export type { GlobalSearchProps, SearchResult, SearchProvider, SearchConfig } from '../shell/GlobalSearch';
 
 // ── Data primitives (pageless — no react-query, no axios) ──
 export { default as EditableGrid } from '../shell/EditableGrid';
