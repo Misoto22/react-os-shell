@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
-## [4.33.0] — 2026-08-12
+## [4.34.0] — 2026-08-12
 
 ### Added
 - **A desktop size ladder for the form controls.** `InputSize` had only `md` on
@@ -26,7 +26,7 @@ All notable changes to this project will be documented in this file. The format 
   contract pin. That file does not exist; the pin lives in
   `tests/touchPrimitives.test.tsx`.
 
-## [4.32.0] — 2026-08-12
+## [4.33.0] — 2026-08-12
 
 ### Added
 - **`Button` size `lg`** — a third rung on the DESKTOP ladder, between `md` and
@@ -44,7 +44,7 @@ All notable changes to this project will be documented in this file. The format 
   variant exists to shed the box, and a square icon button is nothing but the
   box.
 
-## [4.31.0] — 2026-08-12
+## [4.32.0] — 2026-08-12
 
 ### Fixed
 - **The tab strip can be operated by keyboard.** `Tabs` carried
@@ -59,6 +59,70 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 - `Tabs` renders one strip for both variants rather than two near-identical
   branches. The class strings are unchanged.
+
+## [4.31.0] — 2026-08-12
+
+### Fixed
+- **Cmd+S and Alt+Shift+D no longer fire in every open window.** `Modal`
+  restricted the *dispatch* to the frontmost window, then sent an identity-free
+  `CustomEvent` to `document` — and every consuming form subscribed
+  unconditionally, so a single keystroke ran the save (or duplicate) callback of
+  every window that was open. Depending on each form's mode that PATCHed a
+  background record or created a brand new one, each with its own success toast,
+  so nothing looked broken: the user simply could not tell which window had
+  written.
+
+  `modal-save` and `modal-duplicate` now carry `detail.modalId`, and the
+  receiving hooks match on it.
+
+  The guard is deliberately NOT `useModalActive`. That answers "is the frontmost
+  modal mine", and every nested dialog a form opens pushes itself onto the
+  activation order — so a form with a child dialog open would read as inactive
+  and Cmd+S would silently do nothing where it used to save. Matching the
+  originating id asks the right question and is immune to nesting.
+
+### Added
+- `useModalSave` and `useModalDuplicate` are **exported**. They existed here
+  unexported, which is why each portal kept its own unguarded copy; the scoping
+  rule has to live beside the dispatch that supplies the id, so the canonical
+  implementation is now the shared one. A consuming portal should delete its
+  local copy and import these instead.
+- `useEnclosingModalId()` — the id of the `<Modal>` a component is rendered
+  inside, or `''` outside one. Reads the same context `useWindowMenuItem` and
+  `useWidgetSettings` already use.
+
+### Compatibility
+- An event carrying no `detail.modalId` is still answered, so an app on 4.31.0
+  running against an older shell keeps a working Cmd+S rather than losing the
+  shortcut. The two halves can land in either order.
+
+## [4.30.1] — 2026-08-12
+
+### Fixed
+- **`Tooltip`'s Escape reaches the tooltip instead of closing the window.**
+  4.25.0 added Escape-to-dismiss on a plain `document` listener, which loses
+  inside a window: `Modal` listens on `window` in the capture phase and stops
+  propagation when it closes, and capture runs window before document. So
+  Escape closed the whole window and the dismissal never ran — in the three
+  portals that render tooltips inside windows, which is where WCAG 1.4.13
+  actually applies. It now registers on the shell's Escape interceptor seam,
+  the one path that serves both cases: `Modal` consults it before closing, and
+  since 4.27.0 the Set drains itself where no shell is mounted. A tooltip
+  opened inside a dialog takes the first Escape and the dialog the second.
+- **A trigger's own `aria-describedby` survives being wrapped in a `Tooltip`.**
+  The clone assigned over it, so describing a control and then giving it a
+  tooltip dropped the original description — permanently, since the closed
+  state wrote `undefined`. The two are merged now.
+- **A labelled `Divider` is announced with its label.** `separator` takes its
+  name from the author only — it is not a name-from-content role — so the label
+  sitting inside the element was not the separator's accessible name, and
+  4.25.0's `role="separator"` announced an unnamed rule with the text loose
+  beside it. `aria-labelledby` attaches it.
+- **`Checkbox` no longer re-attaches the caller's ref on every render.** The
+  merged ref was a fresh closure each time, and React detaches and reattaches a
+  callback ref whose identity changed — so a form library holding the field was
+  handed `null` and then the node again on renders that had nothing to do with
+  it.
 
 ## [4.30.0] — 2026-08-12
 
