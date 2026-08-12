@@ -6,7 +6,7 @@
  * Uses `accent-blue-600`, which the theme system points at the active accent,
  * so the check fill follows the user's accent in both light and dark mode.
  */
-import { forwardRef, useEffect, useRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import { forwardRef, useCallback, useEffect, useRef, type InputHTMLAttributes, type ReactNode } from 'react';
 
 export interface CheckboxProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'onChange' | 'checked' | 'className'> {
@@ -50,11 +50,17 @@ const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
 
   // The caller's ref still has to work — it is how a form library focuses the
   // field — so both are set.
-  const attachRef = (node: HTMLInputElement | null) => {
+  //
+  // Memoised on `ref`: React detaches and reattaches a callback ref whenever
+  // its identity changes, so a fresh closure each render meant the caller's ref
+  // was handed `null` and then the node again on EVERY render, unrelated to
+  // anything it cares about. Stable identity means it is called when the
+  // element actually changes and not otherwise.
+  const attachRef = useCallback((node: HTMLInputElement | null) => {
     inner.current = node;
     if (typeof ref === 'function') ref(node);
     else if (ref) ref.current = node;
-  };
+  }, [ref]);
 
   const input = (extra = '') => (
     <input
