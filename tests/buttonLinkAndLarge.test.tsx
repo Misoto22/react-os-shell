@@ -28,7 +28,9 @@ test('lg sits between md and the touch rungs', () => {
   const lg = classOf(html(<Button size="lg">Save</Button>));
   assert.notEqual(md, lg, 'a new rung has to actually differ');
   assert.match(lg, /px-4/);
-  assert.match(lg, /py-2/);
+  // Anchored: `/py-2/` also matches `py-2.5`, so the loose form could not tell
+  // the 36px rung from the 40px one.
+  assert.match(lg, /\bpy-2\.5\b/);
   // And it is a DESKTOP rung: no explicit height, which is what separates the
   // two ladders. A hit target gets a guaranteed height; a desktop button's
   // height follows its text.
@@ -77,9 +79,54 @@ test('a link button is still a button', () => {
 });
 
 test('IconButton gained the matching square rung', () => {
-  // The Record is keyed by the union, so this is really asserting the two
-  // ladders stayed rung-for-rung rather than that one entry exists.
   assert.match(classOf(html(<IconButton aria-label="Close" size="lg">×</IconButton>)), /h-10 w-10/);
+});
+
+/**
+ * The rung-for-rung promise, asserted as a RELATIONSHIP.
+ *
+ * `IconButton`'s docblock says "The rungs here match `Button`'s heights exactly
+ * (`md` is 32px in both), so a row mixing the two lines up." Every spec above
+ * pins the two sides separately — `py-2.5` here, `h-10` seventy lines away —
+ * which is exactly how `lg` shipped at 36px against IconButton's 40px with the
+ * suite green. Two independent assertions cannot catch a mismatch BETWEEN
+ * them; only comparing the computed heights can.
+ */
+
+/** Tailwind's spacing scale is 4px per unit, so `h-10`/`py-2.5` are 40/10px. */
+const px = (n: string) => Number(n) * 4;
+/** The line box each text rung contributes, in px. */
+const LEADING: Record<string, number> = {
+  xs: 16, sm: 20, base: 24, lg: 28, xl: 28, '2xl': 32,
+};
+
+/** A control's height from its classes: an explicit `h-*` wins, else padding + line box. */
+function heightOf(cls: string): number {
+  const explicit = /\bh-([\d.]+)\b/.exec(cls);
+  if (explicit) return px(explicit[1]);
+  const py = /\bpy-([\d.]+)\b/.exec(cls);
+  const text = /\btext-(xs|sm|base|lg|xl|2xl)\b/.exec(cls);
+  assert.ok(py && text, `a desktop rung needs py-* and text-*, got: ${cls}`);
+  return LEADING[text![1]] + 2 * px(py![1]);
+}
+
+const SIZES = ['sm', 'md', 'lg', 'touch-sm', 'touch', 'touch-lg', 'touch-xl'] as const;
+
+test('every Button rung is the same height as the IconButton rung of that name', () => {
+  for (const size of SIZES) {
+    const button = heightOf(classOf(html(<Button size={size}>Save</Button>)));
+    const icon = heightOf(classOf(html(<IconButton aria-label="Close" size={size}>×</IconButton>)));
+    assert.equal(button, icon, `${size}: Button is ${button}px, IconButton is ${icon}px`);
+  }
+});
+
+test('the desktop rungs climb, and stop below the touch floor', () => {
+  // Ordering is the other half of "a ladder": lg has to sit above md and below
+  // the 44px hit-target floor, or it is not a rung between them.
+  const h = (size: (typeof SIZES)[number]) => heightOf(classOf(html(<Button size={size}>Save</Button>)));
+  assert.ok(h('sm') < h('md'), `sm ${h('sm')} should be under md ${h('md')}`);
+  assert.ok(h('md') < h('lg'), `md ${h('md')} should be under lg ${h('lg')}`);
+  assert.ok(h('lg') < h('touch-sm'), `lg ${h('lg')} should stay under the 44px floor`);
 });
 
 test('a disabled link is still marked disabled', () => {

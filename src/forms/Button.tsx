@@ -88,8 +88,12 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 
 // A Record keyed by the union, not a ternary chain: adding a member without a
 // size here is then a compile error rather than a silent fall-through to the
-// default branch. The desktop two are byte-for-byte what they have always been,
-// and `tests/buttonSizes.test.tsx` pins them against a captured literal.
+// default branch. `sm`/`md` are byte-for-byte what they have always been, and
+// `tests/touchPrimitives.test.tsx` pins them against a captured literal.
+//
+// Every rung is also asserted to be the same height as the IconButton rung of
+// the same name (`tests/buttonLinkAndLarge.test.tsx`) — pinning the two sides
+// separately is how `lg` first shipped 4px short of its square twin.
 //
 // The touch rungs carry an explicit `h-*` where the desktop pair uses `py-*`.
 // That is deliberate: a hit target has to be a guaranteed height, not a height
@@ -99,7 +103,11 @@ export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
 const SIZES: Record<ButtonSize, string> = {
   sm: 'gap-1 px-2.5 py-1 text-xs',
   md: 'gap-1.5 px-3 py-1.5 text-sm',
-  lg: 'gap-2 px-4 py-2 text-sm',
+  // `py-2.5`, not `py-2`: this rung has to come out 40px to match IconButton's
+  // `h-10`, which is the promise IconButton's docblock makes for every rung.
+  // `py-2` gives 36px (20px line box + 8px twice) and puts a 4px step between a
+  // Button and an IconButton sitting in the same row.
+  lg: 'gap-2 px-4 py-2.5 text-sm',
   // 44px is the WCAG 2.5.5 floor, and a floor is not a comfortable size. Use it
   // ONLY for chrome that sits outside the task — switching screens, ending a
   // shift — and never on the path someone is actually working through. It
