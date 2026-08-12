@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.35.0] — 2026-08-12
+
+### Fixed
+- **`InputNumber` steps with the arrow keys again, and announces its range.**
+  Rendering `type="text"` with a numeric `inputMode` was the right call — a
+  number input discards non-numeric text so the buffer could never hold "1.",
+  scrolls the value on a stray wheel event, and draws spinners with a 12px hit
+  target — but it silently took two things the browser had been giving for
+  free. Arrow keys step by `step`, PageUp/PageDown by ten of them, and both
+  stop at `min`/`max` instead of passing them; a sub-unit step rounds to the
+  field's precision, so three 0.1 steps land on 0.30 rather than
+  0.30000000000000004. The field now carries `role="spinbutton"` with
+  `aria-valuenow`/`valuemin`/`valuemax`, plus an `aria-valuetext` that matches
+  the formatting on screen. The role is claimed only because the keys behind it
+  are implemented.
+
 ## [4.34.0] — 2026-08-12
 
 ### Fixed

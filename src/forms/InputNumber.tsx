@@ -21,7 +21,7 @@
  * someone entering 25 into a field with `min={10}` gets their "2" rewritten to
  * "10" before they can press "5".
  */
-import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { inputClasses, type InputSize } from './styles';
 
 export interface InputNumberProps {
@@ -80,6 +80,37 @@ const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(function Inpu
     onChange(parse(next));
   };
 
+  // A `type="number"` field gets arrow-key stepping from the browser. This one
+  // does not, and dropping to `type="text"` must not cost the user a way to
+  // adjust a quantity without reaching for the keyboard's digits. PageUp and
+  // PageDown move by ten steps, which is the native behaviour too.
+  const bump = (by: number) => {
+    const from = parse(textRef.current) ?? 0;
+    let next = from + by;
+    if (min != null && next < min) next = min;
+    if (max != null && next > max) next = max;
+    // Round to the precision so repeated 0.1 steps do not accumulate float
+    // noise into 0.30000000000000004.
+    const places = precision ?? String(step ?? 1).split('.')[1]?.length ?? 0;
+    next = Number(next.toFixed(places));
+    setText(format(next, precision));
+    onChange(next);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    const unit = step ?? 1;
+    const by = event.key === 'ArrowUp' ? unit
+      : event.key === 'ArrowDown' ? -unit
+      : event.key === 'PageUp' ? unit * 10
+      : event.key === 'PageDown' ? -unit * 10
+      : null;
+    if (by === null || disabled) return;
+    // The browser would otherwise scroll the page on PageUp/PageDown and move
+    // the caret on the arrows.
+    event.preventDefault();
+    bump(by);
+  };
+
   const handleBlur = () => {
     const parsed = parse(text);
     if (parsed == null) {
@@ -110,8 +141,20 @@ const InputNumber = forwardRef<HTMLInputElement, InputNumberProps>(function Inpu
       disabled={disabled}
       placeholder={placeholder}
       step={step}
+      // The role is claimed only because the keys behind it are implemented —
+      // an element that says spinbutton and ignores the arrows is worse than
+      // one that says textbox and does the same.
+      role="spinbutton"
+      aria-valuenow={value ?? undefined}
+      aria-valuemin={min}
+      aria-valuemax={max}
+      // A spinbutton's value is announced from aria-valuenow, which is a bare
+      // number. This carries the formatting the user can see — "1,250.00" and
+      // the currency the prefix is showing — so the two agree.
+      aria-valuetext={value == null ? undefined : format(value, precision)}
       aria-invalid={invalid || undefined}
       onChange={e => handleChange(e.target.value)}
+      onKeyDown={handleKeyDown}
       onBlur={handleBlur}
       className={inputClasses({
         invalid,
