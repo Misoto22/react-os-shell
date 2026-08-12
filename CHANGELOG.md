@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.31.0] — 2026-08-12
+
+### Fixed
+- **The tab strip can be operated by keyboard.** `Tabs` carried
+  `tabIndex={active ? 0 : -1}` — the roving-tabindex half of the ARIA tablist
+  pattern, which deliberately makes the whole strip a single tab stop — but
+  nothing did the roving. Tab therefore skipped every inactive tab and the
+  arrow keys did nothing, so a keyboard user who reached the strip could not
+  switch tabs by any means (WCAG 2.1.1). The arrow keys now move between tabs,
+  Home and End jump to the ends, disabled tabs are skipped, and the ends wrap.
+  Selection follows focus, and keys the strip does not use are left for the app.
+
+### Changed
+- `Tabs` renders one strip for both variants rather than two near-identical
+  branches. The class strings are unchanged.
+
 ## [4.30.0] — 2026-08-12
 
 ### Fixed
