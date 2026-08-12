@@ -37,6 +37,8 @@ const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     // keyboard off the screen while its own keypad drives the field.
     <input
       ref={ref}
+
+      aria-invalid={invalid || undefined}
       className={inputClasses({ invalid, size, className: [pad, className].filter(Boolean).join(' ') })}
       {...rest}
     />

@@ -75,6 +75,7 @@ export const NativeSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
       ref={ref}
       value={value}
       onChange={e => onChange(e.target.value)}
+      aria-invalid={invalid || undefined}
       className={inputClasses({ invalid, size, className: `pr-8 ${className}`.trim() })}
       {...rest}
     >
@@ -136,7 +137,8 @@ function useAnchoredPosition(triggerRef: React.RefObject<HTMLElement | null>, op
 /** Desktop custom listbox. Keeps DOM focus on the trigger and tracks the active
  *  option with `aria-activedescendant` (the standard combobox pattern). */
 const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function ListboxSelect(
-  { value, onChange, options, placeholder, invalid, className = '', id, disabled, size, ...rest },
+  { value, onChange, options, placeholder, invalid, className = '', id, disabled, size,
+    'aria-describedby': describedBy, 'aria-label': ariaLabel, 'aria-labelledby': labelledBy, ...rest },
   ref,
 ) {
   const [open, setOpen] = useState(false);
@@ -277,6 +279,13 @@ const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function Listbo
         aria-controls={open ? listboxId : undefined}
         aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
         aria-invalid={invalid || undefined}
+        // These describe the CONTROL, and the control the user focuses is this
+        // button — not the sr-only <select> behind it, which is where the
+        // spread was putting them. An error message pointed at by a hidden
+        // element is announced to nobody.
+        aria-describedby={describedBy}
+        aria-label={ariaLabel}
+        aria-labelledby={labelledBy}
         disabled={disabled}
         onClick={() => (open ? close() : openList())}
         onKeyDown={onKeyDown}

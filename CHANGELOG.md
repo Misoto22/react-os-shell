@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.34.0] — 2026-08-12
+
+### Fixed
+- **An invalid form control says so.** `invalid` painted the control red and
+  told assistive technology nothing on four of the six controls — `Input`,
+  `Textarea`, `DatePicker` and the native `Select` — while `InputNumber` and
+  the listbox `Select` trigger already set `aria-invalid`. A sighted user saw a
+  red border; a screen-reader user was told the field was fine (WCAG 3.3.1).
+  All six now set it, and a valid control still claims nothing rather than
+  asserting `aria-invalid="false"`.
+- **`Select` describes and names its trigger.** `aria-describedby`,
+  `aria-label` and `aria-labelledby` reached only the `sr-only` `<select>`
+  behind the trigger, through the props spread. Focus lands on the trigger, so
+  the error message they pointed at was announced to nobody. They now go to the
+  combobox button; the hidden select keeps the native form attributes that are
+  its job.
+
 ## [4.33.0] — 2026-08-12
 
 ### Added

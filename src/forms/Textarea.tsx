@@ -32,6 +32,8 @@ const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function Textare
   return (
     <textarea
       ref={ref}
+
+      aria-invalid={invalid || undefined}
       rows={rows}
       onInput={handleInput}
       className={inputClasses({ invalid, size, className: `${autoGrow ? 'resize-none overflow-hidden' : ''} ${className}`.trim() })}
