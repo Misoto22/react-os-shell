@@ -18,6 +18,16 @@ export interface BreadcrumbItem {
   icon?: ReactNode;
   /** Navigate to this crumb. Omitted on the current (last) crumb. */
   onClick?: () => void;
+  /**
+   * Where this crumb goes, when it is a real destination.
+   *
+   * A routed app needs this rather than `onClick` alone: an `<a href>` can be
+   * middle-clicked into a new tab, copied, and read off the status bar before
+   * committing to it — none of which a button offers, however well it behaves
+   * once pressed. Given both, the anchor still calls `onClick`, so a client-side
+   * router can intercept the plain-click case and leave the rest to the browser.
+   */
+  href?: string;
 }
 
 export interface BreadcrumbsProps {
@@ -39,6 +49,11 @@ const DEFAULT_SEPARATOR = (
     />
   </svg>
 );
+
+/** Shared by the anchor and the button forms so the two cannot drift apart. */
+const CRUMB_LINK =
+  'inline-flex min-w-0 items-center gap-1 truncate rounded px-1 -mx-1 text-gray-500 ' +
+  'transition-colors hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400';
 
 type Crumb = { kind: 'item'; item: BreadcrumbItem; isLast: boolean } | { kind: 'ellipsis' };
 
@@ -69,7 +84,7 @@ export default function Breadcrumbs({ items, separator, maxItems = 0, className 
             <li className="flex min-w-0 items-center">
               {crumb.kind === 'ellipsis' ? (
                 <span className="px-0.5 text-gray-400 select-none" aria-label="Hidden crumbs">…</span>
-              ) : crumb.isLast || !crumb.item.onClick ? (
+              ) : crumb.isLast || !(crumb.item.href || crumb.item.onClick) ? (
                 <span
                   aria-current={crumb.isLast ? 'page' : undefined}
                   className={`inline-flex min-w-0 items-center gap-1 truncate ${
@@ -79,11 +94,20 @@ export default function Breadcrumbs({ items, separator, maxItems = 0, className 
                   {crumb.item.icon}
                   <span className="truncate">{crumb.item.label}</span>
                 </span>
+              ) : crumb.item.href ? (
+                <a
+                  href={crumb.item.href}
+                  onClick={crumb.item.onClick}
+                  className={CRUMB_LINK}
+                >
+                  {crumb.item.icon}
+                  <span className="truncate">{crumb.item.label}</span>
+                </a>
               ) : (
                 <button
                   type="button"
                   onClick={crumb.item.onClick}
-                  className="inline-flex min-w-0 items-center gap-1 truncate rounded px-1 -mx-1 text-gray-500 transition-colors hover:text-gray-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                  className={CRUMB_LINK}
                 >
                   {crumb.item.icon}
                   <span className="truncate">{crumb.item.label}</span>

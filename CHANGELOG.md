@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.26.0] — 2026-08-12
+
+### Fixed
+- **`Checkbox` can show a partial selection.** `indeterminate` was reaching the
+  `<input>` through the props spread, which React cannot honour: it is a DOM
+  **property** with no attribute form, so React set a bogus attribute, logged
+  *"Received `true` for a non-boolean attribute"*, and the box rendered as plain
+  unchecked. A select-all control had no way to show a partial state at all.
+
+  It is now a declared prop, applied through a ref. `checked` is in the effect's
+  dependencies as well, because a browser clears `indeterminate` whenever the
+  checked state is assigned and React assigns it on every render — without that
+  the box would go blank on the next unrelated update. A native checkbox in this
+  state reports itself as `mixed` to assistive technology on its own, so no
+  `aria-checked` is written; one would risk contradicting the element.
+
+  The caller's ref still receives the input.
+
+### Added
+- **`BreadcrumbItem.href` — a crumb can be a real link.** The trail was
+  `<button onClick>` only, which is right for the desktop shell (no URLs to
+  point at) and wrong for a routed app: an `<a href>` can be middle-clicked into
+  a new tab, copied, and read off the status bar before committing to it. None
+  of that is available from a button, however well it behaves once pressed.
+
+  Given both, the anchor still calls `onClick`, so a client-side router can
+  intercept the plain-click case and leave the other click kinds to the browser.
+  `onClick` alone renders a button exactly as before, and the last crumb is
+  never a link either way.
+
+  Both forms share one class string, so they cannot drift apart.
+
+  Asked for by the dealer portal, whose breadcrumbs are route destinations.
+
 ## [4.25.0] — 2026-08-12
 
 ### Fixed
