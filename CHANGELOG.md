@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.30.0] — 2026-08-12
+
+### Fixed
+- **A broken avatar image falls back to its initials.** There was no `onError`,
+  so an avatar whose URL had gone away — a deleted upload, an expired CDN link,
+  a host briefly down — rendered the browser's broken-image glyph and kept it
+  for the rest of the session. The initials fallback existed, but only for the
+  no-`src` case, which is the one that never fails. A new `src` gets its own
+  attempt, so one bad URL no longer poisons the component.
+- **An avatar showing initials is named.** The role and the accessible name now
+  sit on the wrapper rather than on the `<img>`, so an avatar is announced as
+  the person it shows whether or not a photo loaded. Before, the initials form
+  was a bare `<span>` and a screen reader read out the two letters.
+- **A nameless avatar is skipped by assistive technology** instead of being
+  announced as "question mark". The `?` stays on screen — it is doing visual
+  work — but an avatar nobody can name has nothing to say.
+
 ## [4.29.0] — 2026-08-12
 
 ### Fixed
