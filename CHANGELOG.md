@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.40.0] — 2026-08-12
+
+### Changed
+- **`DescriptionList` shows an em dash where a value is absent**, rather than an
+  empty cell. A blank answers nothing, and inside `bordered` — where the cell
+  has an outline of its own — it reads as a rendering fault rather than as
+  "there is no tracking number". Only `null`, `undefined` and `''` are
+  replaced: `0` and `false` are answers, and reporting a zero balance as "we do
+  not know" would be a different and worse statement. `emptyText` overrides the
+  dash, and `emptyText={null}` restores the previous rendering.
+
+  **This changes what existing consumers render** wherever a value was empty.
+
 ## [4.39.0] — 2026-08-12
 
 ### Added
