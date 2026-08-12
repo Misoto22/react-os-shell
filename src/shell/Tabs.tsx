@@ -54,6 +54,13 @@ export interface TabsProps {
    * exist, which is a dangling reference rather than a helpful one.
    */
   idPrefix?: string;
+  /**
+   * Names the strip. A page with more than one — order sections above, media
+   * types below — gives a screen-reader user two "tab list"s with nothing to
+   * tell them apart, and there was no way to pass a name at all.
+   */
+  'aria-label'?: string;
+  'aria-labelledby'?: string;
   className?: string;
 }
 
@@ -75,7 +82,10 @@ function tabClass(variant: 'underline' | 'pill', active: boolean): string {
   }`;
 }
 
-export default function Tabs({ items, value, onChange, variant = 'underline', idPrefix, className = '' }: TabsProps) {
+export default function Tabs({
+  items, value, onChange, variant = 'underline', idPrefix, className = '',
+  'aria-label': ariaLabel, 'aria-labelledby': ariaLabelledBy,
+}: TabsProps) {
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
 
   // Walks in `step` direction from `from`, wrapping, until it finds a tab that
@@ -114,7 +124,13 @@ export default function Tabs({ items, value, onChange, variant = 'underline', id
   };
 
   return (
-    <div role="tablist" onKeyDown={onKeyDown} className={`${LIST_CLASS[variant]} ${className}`.trim()}>
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
+      onKeyDown={onKeyDown}
+      className={`${LIST_CLASS[variant]} ${className}`.trim()}
+    >
       {items.map((t, i) => {
         const active = t.id === value;
         return (

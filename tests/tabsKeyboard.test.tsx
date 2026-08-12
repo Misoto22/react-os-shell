@@ -218,3 +218,18 @@ test('every tab is wired, not only the selected one', () => {
   );
   view.unmount();
 });
+
+test('the strip can be named', () => {
+  // A page with two — order sections above, media types below — otherwise
+  // gives a screen-reader user two "tab list"s with nothing to tell them
+  // apart, and there was no way to pass a name at all.
+  const view = render(<Harness items={ITEMS} initial="summary" />);
+  view.rerender(<Tabs items={ITEMS} value="summary" onChange={() => {}} aria-label="Order sections" />);
+  assert.equal(view.container.querySelector('[role="tablist"]')!.getAttribute('aria-label'), 'Order sections');
+
+  view.rerender(<Tabs items={ITEMS} value="summary" onChange={() => {}} aria-labelledby="sections-heading" />);
+  const list = view.container.querySelector('[role="tablist"]')!;
+  assert.equal(list.getAttribute('aria-labelledby'), 'sections-heading');
+  assert.equal(list.getAttribute('aria-label'), null, 'and only the one that was passed');
+  view.unmount();
+});

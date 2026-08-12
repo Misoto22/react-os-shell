@@ -18,6 +18,10 @@ All notable changes to this project will be documented in this file. The format 
   and agreeing on an id by convention is how these drift. Omitted, nothing is
   emitted — a strip used as a filter has no panel, and pointing at an id that
   does not exist is a dangling reference rather than a helpful one.
+- **`Tabs` accepts `aria-label` / `aria-labelledby`.** There was no way to name
+  the strip at all, so a page with two of them — order sections above, media
+  types below — gave a screen-reader user two unnamed "tab list"s with nothing
+  to tell them apart.
 
 ## [4.37.0] — 2026-08-12
 
