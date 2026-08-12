@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.41.0] — 2026-08-12
+
+### Added
+- **`ColoredBadge` takes a `tone`.** The kit had two badges and no way to ask
+  for a colour by name: `StatusBadge` maps a domain status *string* through a
+  consumer-supplied provider, and `ColoredBadge` took raw Tailwind classes. A
+  consumer that already knew it wanted "success" — a plain label, not an entity
+  status — had to hardcode `bg-green-100 text-green-800` at the call site,
+  which is the thing `StatusBadge`'s own docblock exists to prevent. `tone`
+  reads the **same table** `StatusBadge` does, so the two can never disagree
+  about what success looks like. `colorClass` is now optional and still wins
+  when both are given; neither renders neutral.
+- **`ColoredBadge` accepts `className`.** A badge in a table cell needs
+  alignment and tabular numerals from the call site, and there was no way to
+  pass them.
+- `GROUP_COLORS` is exported, so a consumer building its own palette map can
+  read the table rather than copy it.
+
 ## [4.40.0] — 2026-08-12
 
 ### Changed

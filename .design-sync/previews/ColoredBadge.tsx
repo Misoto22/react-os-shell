@@ -40,3 +40,16 @@ export function FromRawStatus() {
     </div>
   );
 }
+
+export function Tones() {
+  // The named vocabulary. Each of these is the same colour StatusBadge gives a
+  // status that maps to it — that agreement is the reason `tone` exists.
+  const TONES = ['success', 'active', 'queued', 'info', 'pending', 'warning', 'danger', 'draft', 'neutral'] as const;
+  return (
+    <div className="p-5 flex flex-wrap gap-2">
+      {TONES.map(t => (
+        <ColoredBadge key={t} tone={t} capitalize>{t}</ColoredBadge>
+      ))}
+    </div>
+  );
+}

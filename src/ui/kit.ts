@@ -127,6 +127,7 @@ export { default as ColoredBadge } from '../shell/ColoredBadge';
 export type { ColoredBadgeProps } from '../shell/ColoredBadge';
 export { default as StatusBadge, StatusBadgeProvider } from '../shell/StatusBadge';
 export type { SemanticGroup } from '../shell/StatusBadge';
+export { GROUP_COLORS } from '../shell/StatusBadge';
 export { default as EmptyState } from '../shell/EmptyState';
 export type { EmptyStateProps } from '../shell/EmptyState';
 export { default as PageHeader } from '../shell/PageHeader';
