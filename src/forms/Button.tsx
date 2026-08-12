@@ -52,11 +52,22 @@ export interface ButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement
   disabledReason?: ReactNode;
 }
 
-const BASE =
+/**
+ * Shared with `IconButton`, which composes its own class string rather than
+ * passing a square size through this component's `className` — two competing
+ * padding utilities in one attribute resolve by compiled-stylesheet order, not
+ * by the order they were written (the reasoning in forms/styles.ts applies
+ * here identically).
+ *
+ * Package-internal on purpose: exported from the module so IconButton can share
+ * it, deliberately absent from `src/ui/kit.ts` so it is not public API. A
+ * consumer restyling a button is a consumer the theme system cannot reach.
+ */
+export const BUTTON_BASE =
   'inline-flex items-center justify-center rounded-md font-medium transition-colors ' +
   'focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60';
 
-const VARIANTS: Record<ButtonVariant, string> = {
+export const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-blue-600 text-white shadow-sm hover:bg-blue-700 focus:ring-blue-400/40',
   secondary: 'border border-gray-300 bg-white text-gray-700 shadow-sm hover:bg-gray-50 focus:ring-blue-400/30',
   ghost: 'text-gray-700 hover:bg-gray-100 focus:ring-blue-400/30',
@@ -116,7 +127,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       disabled={isDisabled}
       aria-busy={loading || undefined}
       aria-describedby={reasonId}
-      className={[BASE, VARIANTS[variant], SIZES[size], block ? 'w-full' : '', className].filter(Boolean).join(' ')}
+      className={[BUTTON_BASE, BUTTON_VARIANTS[variant], SIZES[size], block ? 'w-full' : '', className].filter(Boolean).join(' ')}
       {...rest}
     >
       {loading ? <Spinner /> : leftIcon}

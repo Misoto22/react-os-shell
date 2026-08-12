@@ -4,6 +4,56 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.22.0] — 2026-08-12
+
+### Added
+- **`IconButton` — a button that is only an icon.**
+
+  `Button` has carried `leftIcon`/`rightIcon` for a long time but has no
+  icon-only form: it sizes with horizontal padding, so a square button meant a
+  consumer overriding the kit's sizing, and two competing `px-*` utilities in
+  one class attribute resolve by compiled-stylesheet order rather than by the
+  order they were written. That renders one size or the other essentially at
+  random and looks correct in whichever one the reviewer happens to see.
+
+  A separate component rather than a `Button` prop, for a reason that is
+  type-level: an icon-only control has no accessible name unless someone
+  supplies one, and a **required** `aria-label` in the props is the only way to
+  make forgetting it a compile error instead of a screen-reader user's dead
+  end. `Button` cannot require it — most buttons have text, which names them.
+
+  Square at every rung, matching `Button`'s heights exactly, so a row mixing
+  the two lines up. Defaults to `ghost` where `Button` defaults to `primary`:
+  an unlabelled button is nearly always a secondary action, and a grid of solid
+  blue squares is not what an overflow menu wants.
+
+- **`DatePicker` — one calendar date.**
+
+  `DateRangePicker` is the other one: two dates, a rendered calendar, presets
+  and its own placement logic. This is a native `<input type="date">` wearing
+  the kit's field styling, so the browser supplies the calendar, the locale,
+  the keyboard behaviour and the mobile date wheel, and there is nothing here
+  to keep in step with any of them.
+
+  Every date bug this component could have is the same bug:
+  `new Date('2026-08-11')` is UTC midnight, which is the 10th anywhere west of
+  Greenwich, and `toISOString()` on a locally-built Date is the previous day
+  anywhere east of it. So it never crosses that boundary — a bare `YYYY-MM-DD`
+  string is passed through untouched, a `Date` is serialised through the
+  existing `toISODate` (which reads local calendar fields), and the `Date`
+  handed to `onChange` is built from the three integers with the local
+  constructor. `DateRangePicker` learned this the same way, which is why
+  `toISODate` already existed to reuse.
+
+### Changed
+- **`Button`'s internal `BASE`/`VARIANTS` are now `BUTTON_BASE`/`BUTTON_VARIANTS`**,
+  exported from the module so `IconButton` shares them rather than copying —
+  the two can no longer drift apart in colour or focus ring. Deliberately
+  **not** added to `src/ui/kit.ts`: they are package-internal, because a
+  consumer restyling a button is a consumer the theme system cannot reach.
+  `Button`'s rendered output is unchanged, pinned by
+  `tests/iconButtonAndDatePicker.test.tsx`.
+
 ## [4.21.1] — 2026-08-11
 
 ### Fixed
