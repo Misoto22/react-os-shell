@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.24.0] — 2026-08-12
+
+### Added
+- **`PageHeader` gains `icon` and `breadcrumbs`.** Both optional; existing
+  callers render byte-identically, which the first spec in
+  `tests/pageHeader.test.tsx` pins.
+
+  The icon sits **inside** the `<h1>`, muted and at the title's own size: it
+  marks the page, it is not a second headline.
+
+  `breadcrumbs` renders through the kit's own `Breadcrumbs` rather than a
+  second trail implementation inside this file. That is not tidiness — a
+  header trail and a standalone trail collapsing differently, or only one of
+  them marking the current crumb with `aria-current="page"`, is exactly the
+  drift a shared kit exists to prevent. The specs assert on behaviour that can
+  only come from that component, so reimplementing it here would fail them.
+
+  Asked for by the dealer portal, where every page has an icon and a trail —
+  it was the last thing keeping it on a local `PageHeader`.
+
 ## [4.23.0] — 2026-08-12
 
 ### Changed
