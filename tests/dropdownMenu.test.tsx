@@ -150,14 +150,19 @@ test('Escape closes it and gives focus back', () => {
   view.unmount();
 });
 
-test('Tab leaves, and does not leave the menu behind', () => {
-  // A dropdown still open after the cursor has moved on is a stray overlay
-  // sitting over whatever the user went to next.
+test('Tab leaves, without leaving the menu behind or focus nowhere', () => {
+  // Two claims, and the second is the one a first draft of this spec missed.
+  // The menu must go — one left open behind the cursor is a stray overlay over
+  // whatever the user went to next. And focus must land on the TRIGGER, so the
+  // browser's own Tab continues from there: closing without it unmounts the
+  // focused item, focus falls to <body>, and the next Tab restarts from the top
+  // of the document.
   const view = render(<DropdownMenu trigger="⋮" items={ITEMS} aria-label="Row actions" />);
   act(() => { trigger(view).click(); });
-  key(open(view)!, 'Tab');
+  assert.equal(key(open(view)!, 'Tab'), true, 'the Tab is consumed, not also acted on');
+
   assert.equal(open(view), null);
-  view.unmount();
+  assert.equal(view.container.ownerDocument.activeElement, trigger(view));
 });
 
 test('a click outside closes it without stealing focus back', () => {

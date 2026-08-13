@@ -104,7 +104,15 @@ export default function DropdownMenu({
     else if (e.key === 'Tab') {
       // Tab leaves the menu rather than moving inside it, and the menu goes
       // with it — a dropdown left open behind the cursor is a stray overlay.
-      close(false);
+      //
+      // Focus goes back to the TRIGGER, and the Tab is consumed rather than
+      // also moving on. Letting it through looks more standard and is not:
+      // the default action picks the next tabbable from whatever has focus
+      // WHEN IT RUNS, which is still a menu item React has not unmounted yet,
+      // so where the user lands depends on render timing. Consuming it costs
+      // one more press and always ends somewhere they can see.
+      e.preventDefault();
+      close(true);
     }
   };
 
