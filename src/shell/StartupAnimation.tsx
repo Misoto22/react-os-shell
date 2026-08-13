@@ -32,6 +32,7 @@ export default function StartupAnimation({ onComplete, ready = false, productNam
 
   return (
     <div
+      data-startup-animation=""
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center transition-opacity duration-500 ${phase === 'fade' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       style={{ background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)' }}
     >
@@ -77,6 +78,18 @@ export default function StartupAnimation({ onComplete, ready = false, productNam
         @keyframes pulse-glow {
           0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.15; }
           50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.25; }
+        }
+        /* Reduced motion: the fades stay, the movement goes. animation:none
+         * (stylesheet !important beats the inline animation shorthands) parks
+         * the spin/bounce/pulse at their base state; restricting transitions
+         * to opacity turns the slide/scale phases into plain cross-fades.
+         * Timings and the ready-gating are untouched — this is about motion,
+         * not about how long the splash holds. */
+        @media (prefers-reduced-motion: reduce) {
+          [data-startup-animation], [data-startup-animation] * {
+            animation: none !important;
+            transition-property: opacity !important;
+          }
         }
       `}</style>
     </div>

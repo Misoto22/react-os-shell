@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.57.0
+
+- **The startup and logout covers respect `prefers-reduced-motion`.** They are
+  the two longest animations in the shell — spin-in, bouncing dots, a pulsing
+  glow, a spin-out — and the two that ignored the setting, while WindowManager
+  and Modal already honour it. Under reduced motion the fades stay and the
+  movement goes: keyframe animations park at their base state and the
+  slide/scale phases become plain cross-fades. Timings, the startup `ready`
+  gating and the logout cover-and-swap are untouched — the preference is about
+  motion, not about how long a splash holds.
+
 ## 4.56.0
 
 - **Keyboard window management.** The title bar is the pointer's drag handle,
