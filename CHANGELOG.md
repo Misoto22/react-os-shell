@@ -4,6 +4,217 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.54.0] — 2026-08-13
+
+### Added
+- **`DropdownMenu`** — a trigger and the menu it opens. `PopupMenu` is a
+  surface: the caller positions it and decides when it exists, which is right
+  for a context menu summoned at a cursor. A dropdown hangs off a control, and
+  everything that makes it usable — where it lands, when it closes, which item
+  the arrows are on, where focus goes afterwards — is the same wherever it
+  appears, so writing it again beside each trigger is how three portals ended
+  up with three of them.
+
+  Arrows move between items, Home and End jump to the ends, disabled items are
+  skipped, the ends wrap, and the menu is one tab stop. Escape closes it and
+  returns focus to the trigger; a click elsewhere closes it and leaves focus
+  where the user put it. Opening with ArrowUp lands on the last item.
+
+  The surface is `PopupMenu`, so a dropdown and a context menu look the same
+  and follow the same `--menu-density`.
+- `PopupMenuItem` accepts `role`, `tabIndex`, `id`, `onMouseEnter` and a `ref`,
+  so a menu can carry its semantics without a second copy of the item styling.
+
+## [4.53.0] — 2026-08-13
+
+### Fixed
+- **A clickable table row can be reached from the keyboard.** `onRow`'s
+  `onClick` was on a `<tr>` with no tab stop and no key handler, so a table
+  whose rows open a record was mouse-only — and there is no other control in
+  the row to tab to instead, because the row *is* the control (WCAG 2.1.1). It
+  is now focusable, Enter and Space open it, and Space does not also scroll the
+  page out from under the row the user was aiming at. A row with no click stays
+  out of the tab order: one stop per row on a 200-row table is an obstacle
+  course, not an affordance.
+- **A sortable column says it is sortable.** `aria-sort` was omitted until a
+  column was actually sorted, so the only columns announcing themselves as
+  sortable were the ones already sorted. Unsorted sortable columns now carry
+  `none`; a column that cannot be sorted still carries nothing, which is what
+  makes `none` mean something.
+
+## [4.52.0] — 2026-08-13
+
+### Added
+- **`DataTable` takes column groups** — a header spanning several columns,
+  rendered as a second header row. A statement puts Debit and Credit over an
+  amount and a balance each, and both amount columns are called "Amount": the
+  group is the only thing telling them apart, for a reader and for a screen
+  reader, which reads a `scope="colgroup"` header as part of each column's
+  context. Flattening is not a workaround for the same reason.
+
+  A leaf beside a group spans both header rows, so its label sits level with
+  the group's children rather than floating above an empty cell. Sorting,
+  pinning and alignment are unchanged and belong to the leaf. A table with no
+  group renders one header row exactly as before, which a spec pins.
+
+## [4.51.0] — 2026-08-13
+
+### Added
+- **`DataTableColumn.sortFirst`** — which way the first click sorts, ascending
+  by default. `desc` is right wherever the interesting end is the top: a price
+  column, a quantity, a date where the newest matters. Making those start
+  ascending costs every user two clicks to reach the thing they opened the
+  column for. The cycle is unchanged either way — first, reverse, then back to
+  the server's own ordering.
+
+## [4.50.0] — 2026-08-13
+
+### Added
+- **`DataTable` takes a `caption`**, rendered as a visually hidden
+  `<caption>`. A table with no name is announced as "table" and nothing else,
+  so a page with two of them — the invoice lines and the payments against it —
+  gave a screen-reader user two identical landmarks and no way to tell which
+  was which. The heading above it does not help: table navigation jumps between
+  tables, not through the prose around them.
+
+## [4.49.0] — 2026-08-13
+
+### Added
+- **The kit declares the radius and type tokens.** It had none, so "inherit the
+  kit's radius" resolved to "inherit Tailwind's default" — there was no opinion
+  here to inherit, and a portal that wanted one declared its own `@theme` and
+  stopped taking anything from this package at all.
+
+  Every value equals Tailwind's own default, so **nothing renders
+  differently**. What changes is where the value comes from: a portal that
+  deletes its own block now takes its shape from here, and one edit moves all
+  of them. A consumer's `@theme` still wins, because Tailwind merges the blocks
+  and the later declaration replaces this one — a portal keeps its own shape by
+  saying so, rather than by this package having no view.
+
+  On type: the token is here, the **typeface** is not. Shipping a face means
+  hosting and licensing it, which is a product decision rather than a packaging
+  one; until it is made, a portal that sets nothing gets the system stack, the
+  same as before.
+
+## [4.48.0] — 2026-08-13
+
+### Added
+- **The dark neutral ramp is twelve variables.** Dark mode is 200 `!important`
+  rules remapping Tailwind utility names, and every neutral in them was a
+  literal — so a consumer wanting a different dark (warmer, higher contrast,
+  its own brand) had to fork the file. The rules now read `--surface`,
+  `--surface-sunken`, `--surface-raised`, `--line-subtle`, `--line`,
+  `--line-strong` and `--ink-faintest` through `--ink-strongest`, declared on
+  `[data-theme="dark"]` with the values they already had.
+
+  **Nothing renders differently.** With the shipped defaults every rule
+  resolves to exactly the value it resolved to before, which a spec asserts by
+  substituting the variables back and comparing all 200 blocks.
+
+  The status hues — red for danger, amber for warning — stay literal on
+  purpose. They mean the same thing in every product, and redefining "danger"
+  is a different conversation from restyling greys.
+
+  The names say what a step *does* rather than which Tailwind number it
+  replaces, because in a light theme the numbers run the other way round while
+  the roles do not.
+
+## [4.47.0] — 2026-08-13
+
+### Added
+- **`DataTableColumn.numeric`** — the column holds a figure or a code (money, a
+  quantity, a part or order number). It renders monospaced and right-aligns by
+  default. The table already sets `tabular-nums`, so digits line up down every
+  column without this; what `numeric` adds is a fixed advance for *every*
+  character, which is what lets `00620L6N25KMFCBTDTM2QND` be compared against
+  its neighbour by shape. An explicit `align` still wins — a part number is a
+  code that reads left-to-right like a word.
+
+## [4.46.0] — 2026-08-13
+
+### Fixed
+- **A `FormField` error announces itself.** A validation message appears after
+  the user submits, without focus moving to it, so without a live region it
+  reached nobody — and of everything a form says, this is the one it cannot
+  afford to lose (WCAG 4.1.3). It is now `role="alert"`. A hint is not: it was
+  there before anything went wrong, and announcing it assertively would cut
+  across whatever the user was reading.
+- **The required marker is decoration.** The `*` was exposed, so it became part
+  of the label on every required field of every form — "Company name star".
+  `required` on the control is what assistive technology should read.
+
+## [4.45.0] — 2026-08-13
+
+### Fixed
+- **`ErrorPage` no longer draws two buttons that do nothing.** It rendered "Go
+  back" and "Take me home" with no handlers on either. They looked like the way
+  out of a dead end and did nothing, which is worse than offering nothing —
+  the user spends a click and a moment of trust finding out. The way out now
+  comes from the consumer through `actions`, because the kit has no router and
+  cannot know the destination. Omitted, no control is drawn.
+
+  **This changes what existing consumers render**: the two buttons disappear.
+  They were inert, so nothing that worked stops working — but a page that
+  looked like it offered a way home now visibly does not until `actions` is
+  passed.
+
+## [4.44.0] — 2026-08-13
+
+### Fixed
+- **A toast is announced.** It carried no `role` and no live region at all, so
+  a message that appears without the user moving focus reached a screen-reader
+  user not at all — the same criterion `Result` was fixed against in 4.25.0
+  (WCAG 4.1.3), on the one component whose entire job is a status message.
+  Every toast in every portal was silent. A failure is `alert`, which
+  interrupts; everything else is `status`, which waits. `aria-atomic` reads the
+  whole toast rather than the word that changed.
+- **A toast waits while you read it.** The dismiss timer now holds while the
+  pointer rests on it. Three seconds is enough for a confirmation and not
+  enough for an address someone leaned in for, and a toast that vanishes as you
+  reach for it cannot be re-read — there is no history to open.
+
+## [4.43.0] — 2026-08-13
+
+### Added
+- **`toast.warning`.** The kit had `success`, `error` and `info`. A portal
+  reporting a partial outcome — "saved, but the tax rate could not be
+  refreshed" — had to choose between `error`, which says the thing did not
+  happen, and `info`, which says nothing needs attention. Neither is true. It
+  is amber rather than the error red on purpose: painting both the same colour
+  teaches people to stop reading it. It takes part in `dedupe` like the others.
+
+## [4.42.0] — 2026-08-12
+
+### Added
+- **A `Card` can be a labelled region with a real heading.** A card with a
+  title *is* a region of the page — the thing a screen-reader user jumps
+  between, and the thing a heading list is for. It rendered as a `div` whose
+  title was a bold `div`: it looked like a heading to everyone who could see it
+  and was invisible to everyone navigating by structure. `headingLevel` renders
+  the header as that heading and the card as a `<section>` named by it;
+  `aria-label` names a card that has no header to name it.
+
+  The level is the caller's because only the caller knows the page's outline —
+  a card inside a section that already has an `h2` needs an `h3`, and guessing
+  produces a jumbled outline rather than no outline.
+
+  **Both are opt-in and every card shipping today is unchanged.** A `<section>`
+  is only a landmark once it has a name, so an unnamed card stays a `div`: a
+  dashboard of twelve would otherwise become twelve unnamed regions, which is
+  worse for navigation than none.
+- **`Card` gains `headerActions`** — a count, a filter or a "View all" opposite
+  the title. A separate slot because it has to stay OUT of the heading: folded
+  into `header`, a card titled "Team Members" with a "Team active" chip beside
+  it announces itself as "Team Members Team active", and that is the string a
+  heading list shows and a voice command has to match.
+- **`Card` gains `bodyClassName` and `style`.** The body is a wrapper the
+  component owns, so `className` could not reach it — a card whose contents are
+  a column with a gap had to nest a div inside the one already there just to
+  say so. `bodyClassName` is additive to the padding rather than replacing it.
+  `style` is for what cannot be a class: an animation delay computed per item,
+  a measured height.
+
 ## [4.41.0] — 2026-08-12
 
 ### Added

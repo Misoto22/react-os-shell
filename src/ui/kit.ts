@@ -157,6 +157,8 @@ export { default as TopNav } from '../shell/TopNav';
 export type { TopNavProps, TopNavItem } from '../shell/TopNav';
 export { default as Breadcrumbs } from '../shell/Breadcrumbs';
 export type { BreadcrumbsProps, BreadcrumbItem } from '../shell/Breadcrumbs';
+export { default as DropdownMenu } from '../shell/DropdownMenu';
+export type { DropdownMenuProps, DropdownMenuItem, DropdownMenuAlign } from '../shell/DropdownMenu';
 export { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from '../shell/PopupMenu';
 
 // ── Feedback ──
@@ -181,7 +183,7 @@ export type { KanbanColumn, KanbanProps } from '../data/Kanban';
 export { default as Pagination } from '../data/Pagination';
 export type { PaginationProps } from '../data/Pagination';
 export { default as DataTable } from '../data/DataTable';
-export type { DataTableProps, DataTableColumn } from '../data/DataTable';
+export type { DataTableProps, DataTableColumn, DataTableColumnGroup, DataTableHeader } from '../data/DataTable';
 export { default as ListFooter } from '../data/ListFooter';
 export { default as ListLoadError } from '../data/ListLoadError';
 export type { ListLoadErrorProps } from '../data/ListLoadError';

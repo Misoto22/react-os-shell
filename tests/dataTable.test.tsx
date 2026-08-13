@@ -70,7 +70,19 @@ test('the third click clears the sort rather than cycling back to ascending', ()
   const desc = render({ sort: { field: 'part_number', direction: 'desc' }, onSortChange: () => {} });
   assert.match(desc, /aria-sort="descending"/);
   const none = render({ sort: null, onSortChange: () => {} });
-  assert.doesNotMatch(none, /aria-sort=/);
+  // `none`, not absent. The attribute going away is how this used to be read,
+  // but a sortable column that says nothing is indistinguishable from one that
+  // cannot be sorted at all — which is the thing a screen-reader user is
+  // trying to find out.
+  assert.match(none, /aria-sort="none"/);
+  assert.doesNotMatch(none, /aria-sort="(ascending|descending)"/);
+});
+
+test('a column that cannot be sorted claims nothing', () => {
+  // The other half of the pair: `none` has to mean "sortable, unsorted", or it
+  // says nothing at all.
+  const out = render({});
+  assert.doesNotMatch(out, /aria-sort=/);
 });
 
 test('sort state is announced, not only drawn', () => {

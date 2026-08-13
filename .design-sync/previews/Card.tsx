@@ -17,3 +17,17 @@ export function Variants() {
     </div>
   );
 }
+
+export function TitledRegion() {
+  // Visually identical to the plain header form — the difference is entirely
+  // in the document outline, which is the point worth reviewing: the title is
+  // a real heading and the card is a region named by it.
+  return (
+    <div className="grid gap-4 p-5 sm:grid-cols-2">
+      <Card header="Plain header">A bold div, and a card that is a div.</Card>
+      <Card header="Titled region" headingLevel={2}>
+        An h2, and a section named by it.
+      </Card>
+    </div>
+  );
+}

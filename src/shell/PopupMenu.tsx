@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type CSSProperties } from 'react';
+import { forwardRef, useEffect, useRef, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { glassStyle, GLASS_DIVIDER } from '../utils/glass';
 
@@ -104,13 +104,39 @@ export function PopupMenu({ children, style, className = '', onClose, minWidth =
 }
 
 /** A clickable menu item */
-export function PopupMenuItem({ onClick, children, className = '', danger, disabled }: {
+export interface PopupMenuItemProps {
   onClick?: () => void;
   children: ReactNode;
   className?: string;
   danger?: boolean;
   disabled?: boolean;
-}) {
+  /**
+   * The menu semantics, when this item is part of one.
+   *
+   * A context menu on the desktop is a list of buttons and needs none of this;
+   * a dropdown attached to a trigger is a `menu` whose items are `menuitem`s
+   * with one tab stop between them. Both draw the same item, so the styling
+   * lives here rather than being copied into whichever one is newer.
+   */
+  role?: 'menuitem';
+  tabIndex?: number;
+  id?: string;
+  onMouseEnter?: () => void;
+}
+
+/**
+ * `forwardRef`, not a `ref` prop.
+ *
+ * Taking `ref` as an ordinary prop is React 19 only. This package's peer range
+ * is `react: ">=18"`, and React 18 strips `ref` from a function component's
+ * props and warns — so on an 18 consumer the ref would silently never attach,
+ * `DropdownMenu`'s `itemRefs` would all be null, and its arrow keys would move
+ * `tabIndex` while DOM focus stayed put. A keyboard-dead menu with no error.
+ */
+export const PopupMenuItem = forwardRef<HTMLButtonElement, PopupMenuItemProps>(function PopupMenuItem({
+  onClick, children, className = '', danger, disabled,
+  role, tabIndex, id, onMouseEnter,
+}, ref) {
   const density = getDensity();
   // Vertical gap between items. `normal` sits a little tighter than the raw
   // size padding; `large` adds a bit more room. Floored at the tight value so
@@ -120,7 +146,12 @@ export function PopupMenuItem({ onClick, children, className = '', danger, disab
     : 'max(0.25rem, calc(var(--menu-padding-y, 0.5rem) - 0.1rem))';
   return (
     <button
+      ref={ref}
+      id={id}
+      role={role}
+      tabIndex={tabIndex}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
       disabled={disabled}
       className={`w-full flex items-center gap-2 text-left transition-colors rounded-lg mx-auto
         ${danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}
@@ -140,7 +171,7 @@ export function PopupMenuItem({ onClick, children, className = '', danger, disab
       {children}
     </button>
   );
-}
+});
 
 /** A divider line between menu items */
 export function PopupMenuDivider() {
