@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.60.0
+
+- **`TagInput`** — SearchableSelect's multi-value sibling. The field holds the
+  chosen values as removable chips with an inline input after them; typing
+  filters the option list in the same portaled frosted dropdown, and picking
+  an option appends it and keeps the list open, because multi-add is the
+  entire point. Assigning several categories, roles or suppliers to a record
+  is this shape, and each portal was one afternoon away from hand-rolling it.
+
+  The contracts: the value array stays duplicate-free by construction (chosen
+  options leave the list, re-adding is a no-op); `allowFreeText` gates
+  unlisted entries (Enter / comma / Tab / clicking away commit, and it is off
+  by default); Backspace in the empty input removes the last chip.
+
+- **The dropdown positioning hook moved to `src/forms/dropdownPosition`** —
+  promoted out of SearchableSelect verbatim when TagInput needed the identical
+  flip/track/clamp behaviour. No behaviour change; SearchableSelect now
+  imports it.
+
+- **Specs can type into portal-rendering components.** The test runner now
+  preloads a DOM (`node --import`) before spec bundles evaluate. esbuild
+  hoists external imports above the bundled modules, so a component that
+  statically imports `react-dom` (Modal, SearchableSelect, TagInput) evaluated
+  it before `tests/dom.ts` could install the globals — react-dom's one-time
+  environment sniff then concluded `input` events are unsupported and routed
+  text-input events through its IE polyfill, where onChange never fires and a
+  keydown throws. Specs in such files could click and press keys on divs, but
+  never type; now they can.
+
 ## 4.59.0
 
 - **`TimePicker` and `DateTimePicker`** — the form kit had `DatePicker` and

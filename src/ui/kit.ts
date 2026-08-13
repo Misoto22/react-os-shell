@@ -92,6 +92,8 @@ export { default as FilePicker } from '../forms/FilePicker';
 export type { FilePickerProps } from '../forms/FilePicker';
 export { default as SearchableSelect } from '../shell/SearchableSelect';
 export type { SearchableOption, SearchableSelectProps } from '../shell/SearchableSelect';
+export { default as TagInput } from '../forms/TagInput';
+export type { TagInputOption, TagInputProps } from '../forms/TagInput';
 
 // ── Display primitives ──
 export { default as Card, StatCard } from '../shell/Card';
