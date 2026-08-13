@@ -157,6 +157,8 @@ export { default as TopNav } from '../shell/TopNav';
 export type { TopNavProps, TopNavItem } from '../shell/TopNav';
 export { default as Breadcrumbs } from '../shell/Breadcrumbs';
 export type { BreadcrumbsProps, BreadcrumbItem } from '../shell/Breadcrumbs';
+export { default as DropdownMenu } from '../shell/DropdownMenu';
+export type { DropdownMenuProps, DropdownMenuItem, DropdownMenuAlign } from '../shell/DropdownMenu';
 export { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from '../shell/PopupMenu';
 
 // ── Feedback ──

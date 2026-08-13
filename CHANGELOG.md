@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.54.0] — 2026-08-13
+
+### Added
+- **`DropdownMenu`** — a trigger and the menu it opens. `PopupMenu` is a
+  surface: the caller positions it and decides when it exists, which is right
+  for a context menu summoned at a cursor. A dropdown hangs off a control, and
+  everything that makes it usable — where it lands, when it closes, which item
+  the arrows are on, where focus goes afterwards — is the same wherever it
+  appears, so writing it again beside each trigger is how three portals ended
+  up with three of them.
+
+  Arrows move between items, Home and End jump to the ends, disabled items are
+  skipped, the ends wrap, and the menu is one tab stop. Escape closes it and
+  returns focus to the trigger; a click elsewhere closes it and leaves focus
+  where the user put it. Opening with ArrowUp lands on the last item.
+
+  The surface is `PopupMenu`, so a dropdown and a context menu look the same
+  and follow the same `--menu-density`.
+- `PopupMenuItem` accepts `role`, `tabIndex`, `id`, `onMouseEnter` and a `ref`,
+  so a menu can carry its semantics without a second copy of the item styling.
+
 ## [4.53.0] — 2026-08-13
 
 ### Fixed
