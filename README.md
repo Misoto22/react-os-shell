@@ -232,6 +232,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | `Avatar`, `AvatarGroup` | User avatar with initials fallback + status dot; overlapping stack with +N overflow. |
 | `Banner` | Static in-flow alert (`tone`: info / success / warning / danger). |
 | `Tabs`, `Accordion`, `Tooltip` | Controlled tab strip, collapsible sections, frosted hover tooltip. |
+| `Stepper` | A linear wizard's progress strip — numbered circles, connectors, `aria-current="step"`. Controlled like Tabs; completed steps are clickable to go back (when `onChange` is wired), upcoming steps never are — moving forward belongs to the wizard's own Continue button, behind its validation. |
 | `Pagination` | Numbered page control (pairs with tables; complements `ListFooter`). |
 | `Sparkline`, `LineChart`, `BarChart`, `DonutChart` | Dependency-free inline-SVG charts (`currentColor`-themed). `LineChart` is the multi-series trend with optional scale, legend, dots and area fill. |
 | `BulkImportGrid` | Paste-or-upload bulk entry with column mapping, duplicate review and optional sum-merge. Hands resolved rows to `onImport`; owns no persistence. |

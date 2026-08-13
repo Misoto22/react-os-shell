@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.62.0
+
+- **`Stepper`** — the progress strip of a linear wizard, Tabs' one-way
+  sibling: the consumer owns the current step and renders the body, the strip
+  draws the numbered circles, connectors and labels. Semantically an `<ol>`
+  with `aria-current="step"` on the current item; the circles are decoration
+  and hidden from assistive technology, the label names the step.
+
+  The one-way rule is the design: completed steps are clickable to go back
+  (when `onChange` is wired — omitted, the strip is a pure indicator with no
+  controls), and upcoming steps never are. Moving forward belongs to the
+  wizard's own Continue button, behind whatever validation the current step
+  demands — a strip that lets the user jump to Payment from Contact has
+  silently promised that nothing in between mattered.
+
 ## 4.61.0
 
 - **`DataTable` takes `virtualized`** — `{ height, rowHeight, overscan? }`.

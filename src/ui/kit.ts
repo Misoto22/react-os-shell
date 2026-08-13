@@ -125,6 +125,8 @@ export type { BannerProps, BannerTone, BannerEmphasis } from '../shell/Banner';
 export { default as Tabs } from '../shell/Tabs';
 export { tabButtonId, tabPanelId } from '../shell/Tabs';
 export type { TabsProps, TabItem } from '../shell/Tabs';
+export { default as Stepper } from '../shell/Stepper';
+export type { StepperProps, StepItem } from '../shell/Stepper';
 export { default as Accordion } from '../shell/Accordion';
 export type { AccordionProps, AccordionItem } from '../shell/Accordion';
 export { default as Tooltip } from '../shell/Tooltip';
