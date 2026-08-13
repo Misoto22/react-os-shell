@@ -28,6 +28,34 @@
 
 @import "./themes.css";
 
+/*
+ * Shape and type, as tokens the consuming app inherits.
+ *
+ * Every value here equals Tailwind's own default, so adding this changes
+ * nothing that renders. What it changes is WHERE the value comes from: a
+ * portal that deletes its own `@theme` block now takes its radius and its
+ * typeface from this package, and one edit here moves all of them.
+ *
+ * A consumer's `@theme` still wins — Tailwind merges the blocks and the later
+ * declaration replaces this one — so a portal that wants its own shape keeps
+ * it by saying so, rather than by this file not having an opinion.
+ *
+ * On type: the token is here, the TYPEFACE is not. Shipping a face means
+ * hosting and licensing it, which is a product decision rather than a
+ * packaging one. Until that is made, a portal that sets nothing gets the
+ * system stack — the same thing it got before this block existed.
+ */
+@theme {
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 /* Tailwind v4 doesn't scan node_modules by default — tell it to scan this
    package's compiled JS so utility classes used in kit components get
    generated when consumers import react-os-shell/ui.css. */

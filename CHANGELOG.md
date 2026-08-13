@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.49.0] — 2026-08-13
+
+### Added
+- **The kit declares the radius and type tokens.** It had none, so "inherit the
+  kit's radius" resolved to "inherit Tailwind's default" — there was no opinion
+  here to inherit, and a portal that wanted one declared its own `@theme` and
+  stopped taking anything from this package at all.
+
+  Every value equals Tailwind's own default, so **nothing renders
+  differently**. What changes is where the value comes from: a portal that
+  deletes its own block now takes its shape from here, and one edit moves all
+  of them. A consumer's `@theme` still wins, because Tailwind merges the blocks
+  and the later declaration replaces this one — a portal keeps its own shape by
+  saying so, rather than by this package having no view.
+
+  On type: the token is here, the **typeface** is not. Shipping a face means
+  hosting and licensing it, which is a product decision rather than a packaging
+  one; until it is made, a portal that sets nothing gets the system stack, the
+  same as before.
+
 ## [4.48.0] — 2026-08-13
 
 ### Added
