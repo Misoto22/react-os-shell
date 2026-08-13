@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.48.0] — 2026-08-13
+
+### Added
+- **The dark neutral ramp is twelve variables.** Dark mode is 200 `!important`
+  rules remapping Tailwind utility names, and every neutral in them was a
+  literal — so a consumer wanting a different dark (warmer, higher contrast,
+  its own brand) had to fork the file. The rules now read `--surface`,
+  `--surface-sunken`, `--surface-raised`, `--line-subtle`, `--line`,
+  `--line-strong` and `--ink-faintest` through `--ink-strongest`, declared on
+  `[data-theme="dark"]` with the values they already had.
+
+  **Nothing renders differently.** With the shipped defaults every rule
+  resolves to exactly the value it resolved to before, which a spec asserts by
+  substituting the variables back and comparing all 200 blocks.
+
+  The status hues — red for danger, amber for warning — stay literal on
+  purpose. They mean the same thing in every product, and redefining "danger"
+  is a different conversation from restyling greys.
+
+  The names say what a step *does* rather than which Tailwind number it
+  replaces, because in a light theme the numbers run the other way round while
+  the roles do not.
+
 ## [4.47.0] — 2026-08-13
 
 ### Added

@@ -73,39 +73,66 @@ html.rosh-reduce-transparency *::after {
    ═══════════════════════════════════════════════════ */
 [data-theme="dark"] {
   color-scheme: dark;
+
+  /*
+   * The neutral ramp, as variables.
+   *
+   * Every rule below reads these rather than a literal, so a consumer that
+   * wants a different dark — warmer, higher contrast, its own brand — sets
+   * twelve values instead of forking 100 rules. The status hues (red for
+   * danger, amber for warning) stay literal on purpose: they mean the same
+   * thing in every product, and a consumer redefining "danger" is a different
+   * conversation from one restyling its greys.
+   *
+   * The names say what a step DOES rather than which Tailwind number it
+   * replaces, because in a light theme the numbers run the other way round
+   * while the roles do not.
+   */
+  --surface: #1e1e2e;
+  --surface-sunken: #181825;
+  --surface-raised: #313244;
+  --line-subtle: #2a2a3c;
+  --line: #313244;
+  --line-strong: #45475a;
+  --ink-faintest: #6c7086;
+  --ink-faint: #7f849c;
+  --ink-muted: #9399b2;
+  --ink: #a6adc8;
+  --ink-strong: #bac2de;
+  --ink-strongest: #cdd6f4;
 }
 
 /* Backgrounds */
-[data-theme="dark"] .bg-white { background-color: #1e1e2e !important; }
-[data-theme="dark"] .bg-gray-50 { background-color: #181825 !important; }
-[data-theme="dark"] .bg-gray-100 { background-color: #1e1e2e !important; }
-[data-theme="dark"] .bg-gray-200 { background-color: #313244 !important; }
+[data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
+[data-theme="dark"] .bg-gray-50 { background-color: var(--surface-sunken) !important; }
+[data-theme="dark"] .bg-gray-100 { background-color: var(--surface) !important; }
+[data-theme="dark"] .bg-gray-200 { background-color: var(--surface-raised) !important; }
 
 /* Text */
-[data-theme="dark"] .text-gray-900 { color: #cdd6f4 !important; }
-[data-theme="dark"] .text-gray-800 { color: #bac2de !important; }
-[data-theme="dark"] .text-gray-700 { color: #a6adc8 !important; }
-[data-theme="dark"] .text-gray-600 { color: #9399b2 !important; }
-[data-theme="dark"] .text-gray-500 { color: #7f849c !important; }
-[data-theme="dark"] .text-gray-400 { color: #6c7086 !important; }
+[data-theme="dark"] .text-gray-900 { color: var(--ink-strongest) !important; }
+[data-theme="dark"] .text-gray-800 { color: var(--ink-strong) !important; }
+[data-theme="dark"] .text-gray-700 { color: var(--ink) !important; }
+[data-theme="dark"] .text-gray-600 { color: var(--ink-muted) !important; }
+[data-theme="dark"] .text-gray-500 { color: var(--ink-faint) !important; }
+[data-theme="dark"] .text-gray-400 { color: var(--ink-faintest) !important; }
 
 /* Borders */
-[data-theme="dark"] .border-gray-200 { border-color: #313244 !important; }
-[data-theme="dark"] .border-gray-300 { border-color: #45475a !important; }
-[data-theme="dark"] .border-gray-100 { border-color: #2a2a3c !important; }
+[data-theme="dark"] .border-gray-200 { border-color: var(--surface-raised) !important; }
+[data-theme="dark"] .border-gray-300 { border-color: var(--line-strong) !important; }
+[data-theme="dark"] .border-gray-100 { border-color: var(--line-subtle) !important; }
 
 /* Cards, shadows, tables */
 [data-theme="dark"] .shadow { --tw-shadow-color: rgba(0,0,0,0.4) !important; }
 [data-theme="dark"] .shadow-lg { --tw-shadow-color: rgba(0,0,0,0.5) !important; }
 [data-theme="dark"] .shadow-xl { --tw-shadow-color: rgba(0,0,0,0.5) !important; }
 [data-theme="dark"] .shadow-2xl { --tw-shadow-color: rgba(0,0,0,0.6) !important; }
-[data-theme="dark"] .divide-gray-200 > :not(:last-child) { border-color: #313244 !important; }
-[data-theme="dark"] .divide-gray-100 > :not(:last-child) { border-color: #2a2a3c !important; }
+[data-theme="dark"] .divide-gray-200 > :not(:last-child) { border-color: var(--surface-raised) !important; }
+[data-theme="dark"] .divide-gray-100 > :not(:last-child) { border-color: var(--line-subtle) !important; }
 
 /* Hover states */
-[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: #2a2a3c !important; }
-[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: #313244 !important; }
-[data-theme="dark"] .hover\:bg-gray-200:hover { background-color: #45475a !important; }
+[data-theme="dark"] .hover\:bg-gray-50:hover { background-color: var(--line-subtle) !important; }
+[data-theme="dark"] .hover\:bg-gray-100:hover { background-color: var(--surface-raised) !important; }
+[data-theme="dark"] .hover\:bg-gray-200:hover { background-color: var(--line-strong) !important; }
 
 /* Blue hover states — used by menu items, profile row, etc.
    In dark mode swap the near-white bg for a dark blue tint and the dark
@@ -131,7 +158,7 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .\!bg-blue-50 { background-color: rgba(59, 130, 246, 0.26) !important; }
 [data-theme="dark"] .\!bg-blue-100 { background-color: rgba(59, 130, 246, 0.22) !important; }
 [data-theme="dark"] .\!bg-blue-200 { background-color: rgba(59, 130, 246, 0.35) !important; }
-[data-theme="dark"] .\!text-gray-700 { color: #a6adc8 !important; }
+[data-theme="dark"] .\!text-gray-700 { color: var(--ink) !important; }
 [data-theme="dark"] .bg-green-100 { background-color: rgba(34, 197, 94, 0.18) !important; }
 [data-theme="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.18) !important; }
 [data-theme="dark"] .bg-sky-100 { background-color: rgba(14, 165, 233, 0.18) !important; }
@@ -152,8 +179,8 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .text-purple-700 { color: #d8b4fe !important; }
 
 /* Brighten taskbar button text so it stays readable on dark glass.
-   The default override (#9399b2) is too dim for short button labels. */
-[data-theme="dark"] .text-gray-600 { color: #a6adc8 !important; }
+   The default override (var(--ink-muted)) is too dim for short button labels. */
+[data-theme="dark"] .text-gray-600 { color: var(--ink) !important; }
 
 /* Translucent button backgrounds — Tailwind generates separate classes for the
    /40 /60 alpha variants (bg-gray-50\/40 etc.) so the bare .bg-gray-50 override
@@ -163,9 +190,9 @@ html.rosh-reduce-transparency *::after {
 /* /50 and /60 are used as in-window PANEL surfaces (sidebars, form sections,
    popup cards) — keep them solid in dark so a bright wallpaper can't bleed
    through the window glass and wash them out. */
-[data-theme="dark"] .bg-gray-50\/50 { background-color: #181825 !important; }
-[data-theme="dark"] .bg-gray-50\/60 { background-color: #181825 !important; }
-[data-theme="dark"] .hover\:bg-gray-50\/50:hover { background-color: #181825 !important; }
+[data-theme="dark"] .bg-gray-50\/50 { background-color: var(--surface-sunken) !important; }
+[data-theme="dark"] .bg-gray-50\/60 { background-color: var(--surface-sunken) !important; }
+[data-theme="dark"] .hover\:bg-gray-50\/50:hover { background-color: var(--surface-sunken) !important; }
 [data-theme="dark"] .bg-gray-100\/40 { background-color: rgba(30, 30, 46, 0.4) !important; }
 [data-theme="dark"] .bg-gray-100\/60 { background-color: rgba(30, 30, 46, 0.6) !important; }
 [data-theme="dark"] .bg-gray-200\/40 { background-color: rgba(49, 50, 68, 0.4) !important; }
@@ -200,9 +227,9 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] input:not(.bg-transparent):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
 [data-theme="dark"] select:not(.bg-transparent),
 [data-theme="dark"] textarea:not(.bg-transparent) {
-  background-color: #181825 !important;
-  border-color: #45475a !important;
-  color: #cdd6f4 !important;
+  background-color: var(--surface-sunken) !important;
+  border-color: var(--line-strong) !important;
+  color: var(--ink-strongest) !important;
 }
 
 /* iOS auto-zooms the viewport when a focused form control's computed
@@ -221,8 +248,8 @@ html.rosh-reduce-transparency *::after {
 }
 
 /* Status badges — tone down brightness in dark mode (matches StatusBadge.tsx semantic groups) */
-[data-theme="dark"] .bg-gray-100.text-gray-800 { background-color: #313244 !important; color: #a6adc8 !important; }
-[data-theme="dark"] .bg-gray-300.text-gray-800 { background-color: #45475a !important; color: #cdd6f4 !important; }
+[data-theme="dark"] .bg-gray-100.text-gray-800 { background-color: var(--surface-raised) !important; color: var(--ink) !important; }
+[data-theme="dark"] .bg-gray-300.text-gray-800 { background-color: var(--line-strong) !important; color: var(--ink-strongest) !important; }
 [data-theme="dark"] .bg-green-100.text-green-800 { background-color: rgba(34, 197, 94, 0.18) !important; color: #86efac !important; }
 [data-theme="dark"] .bg-blue-100.text-blue-800 { background-color: rgba(59, 130, 246, 0.18) !important; color: #93c5fd !important; }
 [data-theme="dark"] .bg-indigo-100.text-indigo-800 { background-color: rgba(99, 102, 241, 0.18) !important; color: #a5b4fc !important; }
@@ -385,30 +412,30 @@ html.rosh-reduce-transparency *::after {
 
 /* Gray interaction-state variants (separate class names from the bare remaps) */
 [data-theme="dark"] .hover\:text-gray-600:hover,
-[data-theme="dark"] .hover\:text-gray-700:hover { color: #a6adc8 !important; }
-[data-theme="dark"] .hover\:text-gray-800:hover { color: #bac2de !important; }
+[data-theme="dark"] .hover\:text-gray-700:hover { color: var(--ink) !important; }
+[data-theme="dark"] .hover\:text-gray-800:hover { color: var(--ink-strong) !important; }
 [data-theme="dark"] .hover\:text-gray-900:hover,
-[data-theme="dark"] .active\:text-gray-900:active { color: #cdd6f4 !important; }
-[data-theme="dark"] .active\:bg-gray-100:active { background-color: #313244 !important; }
-[data-theme="dark"] .active\:bg-gray-200:active { background-color: #45475a !important; }
+[data-theme="dark"] .active\:text-gray-900:active { color: var(--ink-strongest) !important; }
+[data-theme="dark"] .active\:bg-gray-100:active { background-color: var(--surface-raised) !important; }
+[data-theme="dark"] .active\:bg-gray-200:active { background-color: var(--line-strong) !important; }
 [data-theme="dark"] .active\:bg-gray-300:active,
 [data-theme="dark"] .hover\:bg-gray-300:hover { background-color: #585b70 !important; }
-[data-theme="dark"] .disabled\:bg-gray-100:disabled { background-color: #1e1e2e !important; }
-[data-theme="dark"] .disabled\:bg-gray-200:disabled { background-color: #313244 !important; }
+[data-theme="dark"] .disabled\:bg-gray-100:disabled { background-color: var(--surface) !important; }
+[data-theme="dark"] .disabled\:bg-gray-200:disabled { background-color: var(--surface-raised) !important; }
 [data-theme="dark"] .hover\:bg-gray-200\/50:hover { background-color: rgba(69, 71, 90, 0.5) !important; }
 [data-theme="dark"] .even\:bg-gray-50\/50:nth-child(even) { background-color: rgba(24, 24, 37, 0.5) !important; }
 [data-theme="dark"] .border-gray-50,
-[data-theme="dark"] .divide-gray-50 > :not(:last-child) { border-color: #2a2a3c !important; }
+[data-theme="dark"] .divide-gray-50 > :not(:last-child) { border-color: var(--line-subtle) !important; }
 [data-theme="dark"] .border-gray-200\/50 { border-color: rgba(49, 50, 68, 0.6) !important; }
-[data-theme="dark"] .hover\:border-gray-200:hover { border-color: #313244 !important; }
-[data-theme="dark"] .hover\:border-gray-300:hover { border-color: #45475a !important; }
+[data-theme="dark"] .hover\:border-gray-200:hover { border-color: var(--surface-raised) !important; }
+[data-theme="dark"] .hover\:border-gray-300:hover { border-color: var(--line-strong) !important; }
 
 /* White panel surfaces / solid black ink. hover-to-white means "emphasize",
    which on dark glass means a solid panel tint; hover-to-black ink flips to
    brighter, not darker (e.g. the taskbar bell). */
 [data-theme="dark"] .bg-white\/85 { background-color: rgba(30, 30, 46, 0.85) !important; }
-[data-theme="dark"] .hover\:bg-white:hover { background-color: #1e1e2e !important; }
-[data-theme="dark"] .text-black { color: #cdd6f4 !important; }
+[data-theme="dark"] .hover\:bg-white:hover { background-color: var(--surface) !important; }
+[data-theme="dark"] .text-black { color: var(--ink-strongest) !important; }
 [data-theme="dark"] .hover\:text-black:hover { color: #ffffff !important; }
 
 /* Scrollbar */
@@ -420,6 +447,6 @@ html.rosh-reduce-transparency *::after {
 .grid-scroll::-webkit-scrollbar-corner { background: #f1f5f9; }
 
 [data-theme="dark"] ::-webkit-scrollbar { width: 8px; height: 8px; }
-[data-theme="dark"] ::-webkit-scrollbar-track { background: #181825; }
-[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #45475a; border-radius: 4px; }
+[data-theme="dark"] ::-webkit-scrollbar-track { background: var(--surface-sunken); }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #585b70; }
