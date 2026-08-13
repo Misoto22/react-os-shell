@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type CSSProperties, type Ref } from 'react';
+import { forwardRef, useEffect, useRef, type ReactNode, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { glassStyle, GLASS_DIVIDER } from '../utils/glass';
 
@@ -122,13 +122,21 @@ export interface PopupMenuItemProps {
   tabIndex?: number;
   id?: string;
   onMouseEnter?: () => void;
-  ref?: Ref<HTMLButtonElement>;
 }
 
-export function PopupMenuItem({
+/**
+ * `forwardRef`, not a `ref` prop.
+ *
+ * Taking `ref` as an ordinary prop is React 19 only. This package's peer range
+ * is `react: ">=18"`, and React 18 strips `ref` from a function component's
+ * props and warns — so on an 18 consumer the ref would silently never attach,
+ * `DropdownMenu`'s `itemRefs` would all be null, and its arrow keys would move
+ * `tabIndex` while DOM focus stayed put. A keyboard-dead menu with no error.
+ */
+export const PopupMenuItem = forwardRef<HTMLButtonElement, PopupMenuItemProps>(function PopupMenuItem({
   onClick, children, className = '', danger, disabled,
-  role, tabIndex, id, onMouseEnter, ref,
-}: PopupMenuItemProps) {
+  role, tabIndex, id, onMouseEnter,
+}, ref) {
   const density = getDensity();
   // Vertical gap between items. `normal` sits a little tighter than the raw
   // size padding; `large` adds a bit more room. Floored at the tight value so
@@ -163,7 +171,7 @@ export function PopupMenuItem({
       {children}
     </button>
   );
-}
+});
 
 /** A divider line between menu items */
 export function PopupMenuDivider() {

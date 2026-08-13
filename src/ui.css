@@ -40,6 +40,12 @@
  * declaration replaces this one — so a portal that wants its own shape keeps
  * it by saying so, rather than by this file not having an opinion.
  *
+ * "Later" is a REQUIREMENT, not an observation: import this file ABOVE your own
+ * `@theme`. A portal that declares `--font-sans` and then imports the kit below
+ * it has its typeface silently reset to the system stack, with nothing in the
+ * diff to explain it. All five consuming portals import the kit near the top of
+ * `index.css` and declare after it, which is why this reads as a no-op today.
+ *
  * On type: the token is here, the TYPEFACE is not. Shipping a face means
  * hosting and licensing it, which is a product decision rather than a
  * packaging one. Until that is made, a portal that sets nothing gets the
@@ -158,7 +164,7 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .text-gray-400 { color: var(--ink-faintest) !important; }
 
 /* Borders */
-[data-theme="dark"] .border-gray-200 { border-color: var(--surface-raised) !important; }
+[data-theme="dark"] .border-gray-200 { border-color: var(--line) !important; }
 [data-theme="dark"] .border-gray-300 { border-color: var(--line-strong) !important; }
 [data-theme="dark"] .border-gray-100 { border-color: var(--line-subtle) !important; }
 
@@ -167,7 +173,7 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .shadow-lg { --tw-shadow-color: rgba(0,0,0,0.5) !important; }
 [data-theme="dark"] .shadow-xl { --tw-shadow-color: rgba(0,0,0,0.5) !important; }
 [data-theme="dark"] .shadow-2xl { --tw-shadow-color: rgba(0,0,0,0.6) !important; }
-[data-theme="dark"] .divide-gray-200 > :not(:last-child) { border-color: var(--surface-raised) !important; }
+[data-theme="dark"] .divide-gray-200 > :not(:last-child) { border-color: var(--line) !important; }
 [data-theme="dark"] .divide-gray-100 > :not(:last-child) { border-color: var(--line-subtle) !important; }
 
 /* Hover states */

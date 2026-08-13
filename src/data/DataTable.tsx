@@ -321,6 +321,13 @@ export default function DataTable<T>({
                       ? {
                           tabIndex: 0,
                           onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => {
+                            // Only the row's OWN key presses. A keydown from a
+                            // control inside a cell bubbles up here, so without
+                            // this an Edit button answered with Enter fired the
+                            // button AND opened the row — and the
+                            // preventDefault below ate the space bar of any
+                            // text input in the table.
+                            if (e.target !== e.currentTarget) return;
                             if (e.key !== 'Enter' && e.key !== ' ') return;
                             // Space scrolls the page otherwise, and the row the
                             // user was aiming at leaves the screen.

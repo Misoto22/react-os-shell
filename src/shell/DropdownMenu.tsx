@@ -13,6 +13,7 @@
  */
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { PopupMenu, PopupMenuItem } from './PopupMenu';
+import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
 export type DropdownMenuAlign = 'start' | 'end';
 
@@ -79,6 +80,24 @@ export default function DropdownMenu({
     if (open) itemRefs.current[active]?.focus();
   }, [open, active]);
 
+  // Escape, through the shell's interceptor seam rather than an onKeyDown here.
+  //
+  // A bubble-phase handler cannot win: `Modal` listens for Escape on `window`
+  // in the CAPTURE phase and calls stopPropagation() when it closes, and
+  // capture runs window before the target — so inside any shell window,
+  // Escape closed the whole window and this menu went down with it. The seam
+  // is the one place Modal consults BEFORE closing, and since 4.27.0 it drains
+  // itself where no shell is mounted, so a till and a routed page are covered
+  // by the same registration. Same fix `Tooltip` took in 4.30.1.
+  useEffect(() => {
+    if (!open) return;
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      close(true);
+      return true;
+    });
+  }, [open, close]);
+
   const openAt = (index: number) => {
     setActive(index);
     setOpen(true);
@@ -100,7 +119,9 @@ export default function DropdownMenu({
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive(enabledFrom(active - 1, -1)); }
     else if (e.key === 'Home') { e.preventDefault(); setActive(enabledFrom(0, 1)); }
     else if (e.key === 'End') { e.preventDefault(); setActive(enabledFrom(items.length - 1, -1)); }
-    else if (e.key === 'Escape') { e.preventDefault(); close(true); }
+    // Escape is deliberately absent: it is registered on the interceptor seam
+    // above, because a bubble-phase handler here loses to Modal's window-level
+    // capture listener and the whole window would close instead of the menu.
     else if (e.key === 'Tab') {
       // Tab leaves the menu rather than moving inside it, and the menu goes
       // with it — a dropdown left open behind the cursor is a stray overlay.
