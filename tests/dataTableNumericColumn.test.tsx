@@ -1,7 +1,9 @@
 import { flush } from './dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { render, act } from './dom';
 import DataTable from '../src/data/DataTable';
 
 /**
@@ -102,4 +104,65 @@ test('no caption, no element', () => {
     <DataTable rowKey="id" data={ROWS} columns={[{ key: 'part', title: 'Part', dataIndex: 'part' }]} />,
   );
   assert.doesNotMatch(markup, /<caption/);
+});
+
+/**
+ * Which way the first click sorts is the column's to say.
+ *
+ * A price column, a quantity, a date where the newest matters — the
+ * interesting end is the top. Making those start ascending costs every user
+ * two clicks to reach the thing they opened the column for, every time.
+ */
+
+test('a column can start descending', () => {
+  const seen: unknown[] = [];
+  const view = render(
+    <DataTable
+      rowKey="id"
+      data={ROWS}
+      onSortChange={s => seen.push(s)}
+      columns={[{ key: 'total', title: 'Total', dataIndex: 'total', sortable: true, sortFirst: 'desc' }]}
+    />,
+  );
+  const header = view.container.querySelector('th button') as HTMLElement;
+  act(() => { header.click(); });
+  assert.deepEqual(seen.at(-1), { field: 'total', direction: 'desc' });
+  view.unmount();
+});
+
+test('the second click reverses, the third clears — whichever way it started', () => {
+  // The three states are the point; only their order changes.
+  for (const first of ['asc', 'desc'] as const) {
+    const seen: unknown[] = [];
+    function Harness() {
+      const [sort, setSort] = useState<{ field: string; direction: 'asc' | 'desc' } | null>(null);
+      return (
+        <DataTable
+          rowKey="id" data={ROWS} sort={sort}
+          onSortChange={s => { seen.push(s); setSort(s); }}
+          columns={[{ key: 'total', title: 'Total', dataIndex: 'total', sortable: true, sortFirst: first }]}
+        />
+      );
+    }
+    const view = render(<Harness />);
+    const click = () => act(() => { (view.container.querySelector('th button') as HTMLElement).click(); });
+    click(); click(); click();
+    assert.deepEqual(seen, [
+      { field: 'total', direction: first },
+      { field: 'total', direction: first === 'asc' ? 'desc' : 'asc' },
+      null,
+    ], first);
+    view.unmount();
+  }
+});
+
+test('omitting it is ascending, exactly as before', () => {
+  const seen: unknown[] = [];
+  const view = render(
+    <DataTable rowKey="id" data={ROWS} onSortChange={s => seen.push(s)}
+      columns={[{ key: 'total', title: 'Total', dataIndex: 'total', sortable: true }]} />,
+  );
+  act(() => { (view.container.querySelector('th button') as HTMLElement).click(); });
+  assert.deepEqual(seen.at(-1), { field: 'total', direction: 'asc' });
+  view.unmount();
 });

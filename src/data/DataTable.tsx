@@ -57,6 +57,17 @@ export interface DataTableColumn<T> {
    * caller mapping names at the call site.
    */
   sortable?: boolean;
+  /**
+   * Which way the FIRST click sorts. Defaults to ascending.
+   *
+   * `desc` is right wherever the interesting end is the top: a price column,
+   * a quantity, a date where the newest matters. Making those start ascending
+   * costs every user two clicks to see the thing they opened the column for.
+   *
+   * The cycle is unchanged either way — first click, second click, then back
+   * to the server's own ordering.
+   */
+  sortFirst?: 'asc' | 'desc';
   sortField?: string;
   headerClassName?: string;
 }
@@ -141,10 +152,13 @@ export default function DataTable<T>({
     if (!onSortChange) return;
     const field = fieldOf(col);
     const current = directionFor(col);
-    // asc → desc → unsorted. The third state matters: without it there is no
-    // way back to the server's own default ordering once a column is clicked.
-    if (current === null) onSortChange({ field, direction: 'asc' });
-    else if (current === 'asc') onSortChange({ field, direction: 'desc' });
+    // First → second → unsorted. The third state matters: without it there is
+    // no way back to the server's own default ordering once a column is
+    // clicked. Which way "first" goes is the column's to say — see sortFirst.
+    const first = col.sortFirst ?? 'asc';
+    const second = first === 'asc' ? 'desc' : 'asc';
+    if (current === null) onSortChange({ field, direction: first });
+    else if (current === first) onSortChange({ field, direction: second });
     else onSortChange(null);
   };
 

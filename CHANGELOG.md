@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.51.0] — 2026-08-13
+
+### Added
+- **`DataTableColumn.sortFirst`** — which way the first click sorts, ascending
+  by default. `desc` is right wherever the interesting end is the top: a price
+  column, a quantity, a date where the newest matters. Making those start
+  ascending costs every user two clicks to reach the thing they opened the
+  column for. The cycle is unchanged either way — first, reverse, then back to
+  the server's own ordering.
+
 ## [4.50.0] — 2026-08-13
 
 ### Added
