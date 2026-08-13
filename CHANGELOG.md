@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.61.0
+
+- **`DataTable` takes `virtualized`** — `{ height, rowHeight, overscan? }`.
+  Pagination and infinite scroll bound what is *fetched*; nothing bounded what
+  is *rendered*, so a few thousand loaded rows all got DOM and every sort or
+  filter re-laid-out the lot. With the prop, the wrapper becomes a vertical
+  scroll container, only the rows near the viewport exist (two spacer rows
+  keep the scrollbar honest about the rest), and the header pins to the top —
+  including the corner cell of a pinned column, which stays put in both axes,
+  and a grouped header's second row, which pins below the first at a measured
+  offset.
+
+  Rows keep their ABSOLUTE index: `render`, `rowClassName` and `rowKey` never
+  see window-relative positions, so striping and identity survive scrolling.
+  `rowHeight` is a promise, not a measurement — every row renders at exactly
+  that height, so `ellipsis` long columns rather than letting them wrap.
+  Off-screen rows are absent for assistive technology too, the trade every
+  windowed list makes. A table without the prop renders exactly as before,
+  which a spec pins.
+
 ## 4.60.0
 
 - **`TagInput`** — SearchableSelect's multi-value sibling. The field holds the
