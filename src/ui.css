@@ -96,6 +96,19 @@ html.rosh-reduce-transparency *::after {
   --line-strong: #45475a;
   --ink-faintest: #6c7086;
   --ink-faint: #7f849c;
+  /*
+   * Currently unreachable, and worth knowing before you set it.
+   *
+   * Its only consumer is `.text-gray-600` below, which a later rule overrides
+   * to `--ink` so short taskbar-button labels stay readable on dark glass.
+   * That override is global by design — shell.css's docblock spells out why a
+   * bare utility selector cannot live there — so `text-gray-600` renders
+   * `--ink` everywhere and this step renders nowhere.
+   *
+   * Left declared rather than deleted: it names a real rung, and a consumer
+   * scoping its own `.text-gray-600` rule can reach it. Deleting it would be a
+   * rendering change, which this release deliberately is not.
+   */
   --ink-muted: #9399b2;
   --ink: #a6adc8;
   --ink-strong: #bac2de;
