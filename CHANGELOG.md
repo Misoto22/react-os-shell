@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.53.0] — 2026-08-13
+
+### Fixed
+- **A clickable table row can be reached from the keyboard.** `onRow`'s
+  `onClick` was on a `<tr>` with no tab stop and no key handler, so a table
+  whose rows open a record was mouse-only — and there is no other control in
+  the row to tab to instead, because the row *is* the control (WCAG 2.1.1). It
+  is now focusable, Enter and Space open it, and Space does not also scroll the
+  page out from under the row the user was aiming at. A row with no click stays
+  out of the tab order: one stop per row on a 200-row table is an obstacle
+  course, not an affordance.
+- **A sortable column says it is sortable.** `aria-sort` was omitted until a
+  column was actually sorted, so the only columns announcing themselves as
+  sortable were the ones already sorted. Unsorted sortable columns now carry
+  `none`; a column that cannot be sorted still carries nothing, which is what
+  makes `none` mean something.
+
 ## [4.52.0] — 2026-08-13
 
 ### Added

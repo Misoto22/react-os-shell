@@ -95,3 +95,59 @@ test('a grouped column still sorts', () => {
   assert.deepEqual(seen.at(-1), { field: 'debit', direction: 'asc' });
   view.unmount();
 });
+
+/**
+ * A clickable row that only answers a mouse is unreachable for everyone else.
+ * There is no other control in it to tab to — the row IS the control — so
+ * without a tab stop and a key handler the whole table is mouse-only.
+ */
+
+test('a clickable row is a tab stop', () => {
+  const view = render(
+    <DataTable rowKey="id" data={ROWS} onRow={() => ({ onClick: () => {} })}
+      columns={[{ key: 'date', title: 'Date', dataIndex: 'date' }]} />,
+  );
+  assert.equal((view.container.querySelector('tbody tr') as HTMLElement).tabIndex, 0);
+  view.unmount();
+});
+
+test('Enter and Space open it, and Space does not scroll the page away', () => {
+  const opened: number[] = [];
+  const view = render(
+    <DataTable rowKey="id" data={ROWS} onRow={(_r, i) => ({ onClick: () => opened.push(i) })}
+      columns={[{ key: 'date', title: 'Date', dataIndex: 'date' }]} />,
+  );
+  const row = view.container.querySelector('tbody tr')!;
+  const win = row.ownerDocument.defaultView as Window & typeof globalThis;
+
+  for (const key of ['Enter', ' ']) {
+    const e = new win.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+    row.dispatchEvent(e);
+    assert.equal(e.defaultPrevented, true, `${key} must not also scroll or submit`);
+  }
+  assert.deepEqual(opened, [0, 0]);
+  view.unmount();
+});
+
+test('a row with no click is not a tab stop', () => {
+  // Every read-only table is in this shape; a tab stop per row would make one
+  // of 200 rows an obstacle course.
+  const view = render(
+    <DataTable rowKey="id" data={ROWS} columns={[{ key: 'date', title: 'Date', dataIndex: 'date' }]} />,
+  );
+  assert.equal((view.container.querySelector('tbody tr') as HTMLElement).tabIndex, -1);
+  view.unmount();
+});
+
+test('an unrelated key is left for the app', () => {
+  const view = render(
+    <DataTable rowKey="id" data={ROWS} onRow={() => ({ onClick: () => {} })}
+      columns={[{ key: 'date', title: 'Date', dataIndex: 'date' }]} />,
+  );
+  const row = view.container.querySelector('tbody tr')!;
+  const win = row.ownerDocument.defaultView as Window & typeof globalThis;
+  const e = new win.KeyboardEvent('keydown', { key: 'k', bubbles: true, cancelable: true });
+  row.dispatchEvent(e);
+  assert.equal(e.defaultPrevented, false);
+  view.unmount();
+});

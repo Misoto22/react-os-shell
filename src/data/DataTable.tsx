@@ -19,7 +19,7 @@
  * so `DataTable`, `useSort` and `ResizableTable` all speak the same language and
  * a caller can move between them without a translation layer.
  */
-import { type ReactNode } from 'react';
+import { type KeyboardEvent, type ReactNode } from 'react';
 import Pagination from './Pagination';
 import type { SortState } from './types';
 
@@ -209,7 +209,15 @@ export default function DataTable<T>({
         rowSpan={rowSpan > 1 ? rowSpan : undefined}
         // aria-sort is what a screen reader announces; the arrows are
         // decorative and marked so.
-        aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
+        // `none` rather than nothing on a sortable column: it is how a screen
+        // reader knows the column CAN be sorted. Omitted, the only columns
+        // that announce themselves as sortable are the ones already sorted.
+        aria-sort={
+          dir === 'asc' ? 'ascending'
+          : dir === 'desc' ? 'descending'
+          : col.sortable && onSortChange ? 'none'
+          : undefined
+        }
         style={{ width: col.width, ...(pinned ? { left: offsets[ci] ?? 0 } : {}) }}
         className={[
           cellBase, align,
@@ -305,9 +313,27 @@ export default function DataTable<T>({
                   <tr
                     key={keyOf(row, i)}
                     onClick={rowProps?.onClick}
+                    // A clickable row that only answers a mouse is unreachable
+                    // for everyone else — there is no other control in it to
+                    // tab to. Focusable, and Enter or Space opens it, which is
+                    // what the pointer does.
+                    {...(rowProps?.onClick
+                      ? {
+                          tabIndex: 0,
+                          onKeyDown: (e: KeyboardEvent<HTMLTableRowElement>) => {
+                            if (e.key !== 'Enter' && e.key !== ' ') return;
+                            // Space scrolls the page otherwise, and the row the
+                            // user was aiming at leaves the screen.
+                            e.preventDefault();
+                            rowProps.onClick?.();
+                          },
+                        }
+                      : {})}
                     className={[
                       'border-b border-gray-100 last:border-b-0',
-                      rowProps?.onClick ? 'cursor-pointer hover:bg-gray-50' : '',
+                      rowProps?.onClick
+                        ? 'cursor-pointer hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-400'
+                        : '',
                       rowClassName?.(row, i) ?? '',
                       rowProps?.className ?? '',
                     ].filter(Boolean).join(' ')}
