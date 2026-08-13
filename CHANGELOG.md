@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.52.0] — 2026-08-13
+
+### Added
+- **`DataTable` takes column groups** — a header spanning several columns,
+  rendered as a second header row. A statement puts Debit and Credit over an
+  amount and a balance each, and both amount columns are called "Amount": the
+  group is the only thing telling them apart, for a reader and for a screen
+  reader, which reads a `scope="colgroup"` header as part of each column's
+  context. Flattening is not a workaround for the same reason.
+
+  A leaf beside a group spans both header rows, so its label sits level with
+  the group's children rather than floating above an empty cell. Sorting,
+  pinning and alignment are unchanged and belong to the leaf. A table with no
+  group renders one header row exactly as before, which a spec pins.
+
 ## [4.51.0] — 2026-08-13
 
 ### Added

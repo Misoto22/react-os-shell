@@ -181,7 +181,7 @@ export type { KanbanColumn, KanbanProps } from '../data/Kanban';
 export { default as Pagination } from '../data/Pagination';
 export type { PaginationProps } from '../data/Pagination';
 export { default as DataTable } from '../data/DataTable';
-export type { DataTableProps, DataTableColumn } from '../data/DataTable';
+export type { DataTableProps, DataTableColumn, DataTableColumnGroup, DataTableHeader } from '../data/DataTable';
 export { default as ListFooter } from '../data/ListFooter';
 export { default as ListLoadError } from '../data/ListLoadError';
 export type { ListLoadErrorProps } from '../data/ListLoadError';

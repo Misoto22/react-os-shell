@@ -72,8 +72,29 @@ export interface DataTableColumn<T> {
   headerClassName?: string;
 }
 
-export interface DataTableProps<T> {
+/**
+ * A header spanning several columns — "Debit" over an amount and a balance.
+ *
+ * The group is not decoration: where two children are both called "Amount",
+ * it is the only thing telling them apart, and a screen reader reads it as
+ * part of each cell's column context.
+ */
+export interface DataTableColumnGroup<T> {
+  title: ReactNode;
   columns: DataTableColumn<T>[];
+  /** Distinct among its siblings. Defaults to the group's index. */
+  key?: string;
+  headerClassName?: string;
+}
+
+/** A leaf column, or a group of them. */
+export type DataTableHeader<T> = DataTableColumn<T> | DataTableColumnGroup<T>;
+
+const isGroup = <T,>(h: DataTableHeader<T>): h is DataTableColumnGroup<T> =>
+  Array.isArray((h as DataTableColumnGroup<T>).columns);
+
+export interface DataTableProps<T> {
+  columns: DataTableHeader<T>[];
   data: T[];
   /** Stable identity per row. A string names a field; a function computes it. */
   rowKey: (keyof T & string) | ((row: T, index: number) => string);
@@ -162,11 +183,59 @@ export default function DataTable<T>({
     else onSortChange(null);
   };
 
+  // Every rendering below the header row works on the LEAVES: a group has no
+  // cells of its own, only a span over its children's.
+  const leaves: DataTableColumn<T>[] = columns.flatMap(h => (isGroup(h) ? h.columns : [h]));
+  const grouped = columns.some(isGroup);
+
   const cellBase = `${PAD[size]} ${size === 'sm' ? 'text-xs' : 'text-sm'}`;
+
+  /**
+   * One header cell. Shared by both header rows so a grouped table's leaves
+   * are drawn by the same code as an ungrouped table's — the sort button, the
+   * aria-sort, the pinning and the alignment are not worth having twice.
+   */
+  const headerCell = (col: DataTableColumn<T>, ci: number, rowSpan: number) => {
+    const dir = directionFor(col);
+    // A figures column right-aligns unless the caller says otherwise: the
+    // decimal point is the thing being compared, and it only lines up at the
+    // right edge.
+    const align = ALIGN[col.align ?? (col.numeric ? 'right' : 'left')];
+    const pinned = col.fixed === 'left';
+    return (
+      <th
+        key={col.key}
+        scope="col"
+        rowSpan={rowSpan > 1 ? rowSpan : undefined}
+        // aria-sort is what a screen reader announces; the arrows are
+        // decorative and marked so.
+        aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
+        style={{ width: col.width, ...(pinned ? { left: offsets[ci] ?? 0 } : {}) }}
+        className={[
+          cellBase, align,
+          'font-semibold uppercase tracking-wide text-gray-500',
+          size === 'sm' ? 'text-[10px]' : 'text-xs',
+          pinned ? 'sticky z-10 bg-gray-50' : '',
+          col.headerClassName ?? '',
+        ].filter(Boolean).join(' ')}
+      >
+        {col.sortable && onSortChange ? (
+          <button
+            type="button"
+            onClick={() => toggleSort(col)}
+            className={`inline-flex items-center font-semibold uppercase tracking-wide hover:text-gray-700 ${align}`}
+          >
+            {col.title}
+            <SortIcon direction={dir} />
+          </button>
+        ) : col.title}
+      </th>
+    );
+  };
   // Running totals of the widths to the left of each fixed column, so a second
   // pinned column sits flush against the first instead of on top of it.
   let fixedOffset = 0;
-  const offsets = columns.map(col => {
+  const offsets = leaves.map(col => {
     if (col.fixed !== 'left') return null;
     const at = fixedOffset;
     fixedOffset += col.width ?? 0;
@@ -189,51 +258,43 @@ export default function DataTable<T>({
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              {columns.map((col, ci) => {
-                const dir = directionFor(col);
-                // A figures column right-aligns unless the caller says
-                // otherwise: the decimal point is the thing being compared,
-                // and it only lines up at the right edge.
-                const align = ALIGN[col.align ?? (col.numeric ? 'right' : 'left')];
-                const pinned = col.fixed === 'left';
-                return (
-                  <th
-                    key={col.key}
-                    scope="col"
-                    // aria-sort is what a screen reader announces; the arrows
-                    // are decorative and marked so.
-                    aria-sort={dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : undefined}
-                    style={{
-                      width: col.width,
-                      ...(pinned ? { left: offsets[ci] ?? 0 } : {}),
-                    }}
-                    className={[
-                      cellBase, align,
-                      'font-semibold uppercase tracking-wide text-gray-500',
-                      size === 'sm' ? 'text-[10px]' : 'text-xs',
-                      pinned ? 'sticky z-10 bg-gray-50' : '',
-                      col.headerClassName ?? '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    {col.sortable && onSortChange ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleSort(col)}
-                        className={`inline-flex items-center font-semibold uppercase tracking-wide hover:text-gray-700 ${align}`}
-                      >
-                        {col.title}
-                        <SortIcon direction={dir} />
-                      </button>
-                    ) : col.title}
-                  </th>
-                );
+              {columns.map((h, hi) => {
+                if (isGroup(h)) {
+                  return (
+                    <th
+                      key={h.key ?? `group-${hi}`}
+                      scope="colgroup"
+                      colSpan={h.columns.length}
+                      className={[
+                        cellBase, 'text-center',
+                        'font-semibold uppercase tracking-wide text-gray-500',
+                        size === 'sm' ? 'text-[10px]' : 'text-xs',
+                        'border-b border-gray-200',
+                        h.headerClassName ?? '',
+                      ].filter(Boolean).join(' ')}
+                    >
+                      {h.title}
+                    </th>
+                  );
+                }
+                // A leaf beside a group spans both header rows, so its label
+                // sits level with the group's children rather than floating
+                // above an empty cell.
+                return headerCell(h, leaves.indexOf(h), grouped ? 2 : 1);
               })}
             </tr>
+            {grouped && (
+              <tr className="border-b border-gray-200 bg-gray-50">
+                {columns.flatMap(h => (isGroup(h) ? h.columns : [])).map(col =>
+                  headerCell(col, leaves.indexOf(col), 1),
+                )}
+              </tr>
+            )}
           </thead>
           <tbody>
             {data.length === 0 && !loading ? (
               <tr>
-                <td colSpan={columns.length} className={`${cellBase} py-10 text-center text-gray-500`}>
+                <td colSpan={leaves.length} className={`${cellBase} py-10 text-center text-gray-500`}>
                   {emptyText}
                 </td>
               </tr>
@@ -251,7 +312,7 @@ export default function DataTable<T>({
                       rowProps?.className ?? '',
                     ].filter(Boolean).join(' ')}
                   >
-                    {columns.map((col, ci) => {
+                    {leaves.map((col, ci) => {
                       const pinned = col.fixed === 'left';
                       return (
                         <td
