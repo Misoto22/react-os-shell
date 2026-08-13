@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.59.0
+
+- **`TimePicker` and `DateTimePicker`** — the form kit had `DatePicker` and
+  `DateRangePicker` but nothing for time, so a delivery window or a scheduled
+  report run could not be expressed. Both follow the DatePicker bargain: a
+  native input (`type="time"` / `type="datetime-local"`) wearing the kit's
+  field styling, so the browser supplies the wheel, the locale's 12/24-hour
+  convention and the keyboard behaviour.
+
+  The timezone rules are the DatePicker ones, applied one step further.
+  TimePicker's `onChange` hands back an `HH:MM` string, never a Date — a time
+  of day names no calendar day, so a Date built from one has a made-up date
+  inside it. A Date passed as `value` contributes its LOCAL wall-clock fields
+  (never `toISOString`). DateTimePicker serialises and parses local fields
+  only, hands `onChange` a Date built from the parsed integers with the local
+  constructor, and rejects rolled-over values (`2026-02-31T10:00`) rather than
+  letting the constructor slide them into March. A sub-minute `step` makes
+  TimePicker speak seconds, in both directions.
+
 ## 4.58.0
 
 - **`LineChart`** — the chart family stopped at `Sparkline` for trends: no
