@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
  * Startup splash animation — shown once when the app first loads after login.
  * Fades out after the animation completes, then unmounts.
  */
-export default function StartupAnimation({ onComplete, ready = false, productName = 'react-os-shell', subtitle }: { onComplete: () => void; ready?: boolean; productName?: string; subtitle?: string }) {
+export default function StartupAnimation({ onComplete, ready = false, productName = 'react-os-shell', subtitle, logo = '/favicon.svg' }: { onComplete: () => void; ready?: boolean; productName?: string; subtitle?: string; logo?: string }) {
   const [phase, setPhase] = useState<'logo' | 'text' | 'fade'>('logo');
   const [minTimePassed, setMinTimePassed] = useState(false);
   const onCompleteRef = useRef(onComplete);
@@ -44,7 +44,7 @@ export default function StartupAnimation({ onComplete, ready = false, productNam
 
       {/* Logo */}
       <div className={`relative transition-all duration-700 ease-out ${phase === 'logo' ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`}>
-        <img src="/favicon.svg" alt="" className="h-20 w-20 drop-shadow-[0_0_30px_rgba(124,58,237,0.5)]"
+        <img src={logo} alt="" className="h-20 w-20 drop-shadow-[0_0_30px_rgba(124,58,237,0.5)]"
           style={{ animation: 'spin-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }} />
       </div>
 

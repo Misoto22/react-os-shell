@@ -212,7 +212,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 
 | Export | Purpose |
 |---|---|
-| `Layout` | Top-level shell — desktop + taskbar + start menu. Mount once inside your providers. |
+| `Layout` | Top-level shell — desktop + taskbar + start menu. Mount once inside your providers. `branding={{ productName, logo, tagline }}` sets the visual identity in one object — start-menu button, startup splash, logout cover, mobile landing; its fields win over the older loose `productName`/`productIcon` props. The About dialog and What's New changelog stay on `DesktopHostConfig`. |
 | `StartMenu` / `Desktop` / `WindowManagerProvider` | Used internally by `Layout`; rarely instantiated directly. |
 | `Modal`, `ModalActions`, `CopyButton`, `CancelButton` | Window primitive supporting standard / compact / widget styles. |
 | `PopupMenu`, `PopupMenuItem`, `PopupMenuDivider`, `PopupMenuLabel` | Right-click / context-menu primitive. |

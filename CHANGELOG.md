@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.63.0
+
+- **`Layout` takes `branding`** — `{ productName, logo, tagline }`, the
+  product's visual identity in one object. The start-menu button, the startup
+  splash, the logout cover and the mobile landing all read from it; its
+  fields win over the older loose `productName` / `productIcon` props, so a
+  consumer can move over field by field. The two full-screen covers also stop
+  hard-coding `/favicon.svg`: both take a `logo`, and the logout cover takes
+  the `tagline` the splash already showed. Defaults are exactly what they
+  were, which a spec pins.
+
+  The About dialog and What's New changelog were already configurable and
+  stay where they belong, on `DesktopHostConfig` (`productName`,
+  `productIcon`, `productChangelog`, …) — that is the desktop's identity;
+  `branding` is the chrome around it. `src/changelog.ts` keeps its empty stub
+  role, and its comment now points at the real wiring instead of an
+  "eventual" one.
+
 ## 4.62.0
 
 - **`Stepper`** — the progress strip of a linear wizard, Tabs' one-way
