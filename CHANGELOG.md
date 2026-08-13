@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.56.0
+
+- **Keyboard window management.** The title bar is the pointer's drag handle,
+  and it is now the keyboard's too: a tab stop where plain arrows move the
+  window in 24 px steps, Shift+arrows resize it against the same 384×400 floor
+  the pointer resize enforces, Ctrl/Cmd+←/→ snap to the half-screen zones,
+  Ctrl/Cmd+↑ maximizes, Ctrl/Cmd+↓ restores the pre-snap box — or minimizes
+  when there is nothing to restore — and Enter mirrors the maximize button.
+  Moving, resizing and snapping a window were pointer-only, which left the
+  window itself outside WCAG 2.1.1 — the same reasoning that put clickable
+  table rows into the tab order in 4.53.0.
+
+  Keys pressed on the bar's own controls stay theirs (Enter on Close still
+  closes), locked layouts (sidebar mode) and exposé get no tab stop because
+  the keys could do nothing there, and `ShortcutHelp` gained a Windows
+  section listing the keys.
+
 ## 4.55.0
 
 - **`ErrorBoundary`** — catches a render crash and shows the 500 page instead of a
