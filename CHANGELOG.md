@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.58.0
+
+- **`LineChart`** — the chart family stopped at `Sparkline` for trends: no
+  axes, no series, fixed pixel width. Any page showing orders-per-week had
+  nothing to reach for. LineChart is Sparkline's big sibling — multi-series
+  over shared x positions, container-filling width, optional scale gutter with
+  reference lines, color-dot legend, point dots with tooltips, per-series area
+  fill — and still a dependency-free inline SVG themed by `currentColor`, like
+  the rest of the family.
+
+  The plot is a stretched 0–100 viewBox so it can fill whatever the dashboard
+  gives it; `vector-effect: non-scaling-stroke` keeps lines a uniform
+  screen-space width under that stretch, and the dots are zero-length
+  round-capped strokes because a stretched circle is an ellipse. Decorative
+  like its siblings (`aria-hidden`) — the numbers it draws should also exist
+  as text on the page.
+
 ## 4.57.0
 
 - **The startup and logout covers respect `prefers-reduced-motion`.** They are

@@ -193,7 +193,8 @@ export type { ColumnDef, SortState, PaginatedResponse } from '../data/types';
 export { default as Sparkline } from '../charts/Sparkline';
 export { default as BarChart } from '../charts/BarChart';
 export { default as DonutChart } from '../charts/DonutChart';
-export type { SparklineProps, BarChartProps, DonutChartProps, DonutSegment } from '../charts/types';
+export { default as LineChart } from '../charts/LineChart';
+export type { SparklineProps, BarChartProps, DonutChartProps, DonutSegment, LineChartProps, LineChartSeries } from '../charts/types';
 
 // ── Page templates (starter screens; see src/templates) ──
 export { default as DashboardTemplate } from '../templates/DashboardTemplate';
