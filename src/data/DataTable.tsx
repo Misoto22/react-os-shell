@@ -71,6 +71,17 @@ export interface DataTableProps<T> {
   onSortChange?: (sort: SortState | null) => void;
   /** Server pagination. Omit entirely for an unpaginated or infinite list. */
   pagination?: { page: number; pageCount: number; onPageChange: (page: number) => void };
+  /**
+   * Names the table for assistive technology, rendered as a visually hidden
+   * `<caption>`.
+   *
+   * A table with no name is announced as "table" and nothing else, so a page
+   * with two of them — the invoice lines and the payments against it — gives a
+   * screen-reader user two identical landmarks and no way to tell which is
+   * which. The heading above it is not enough: table navigation jumps between
+   * tables, not through the prose around them.
+   */
+  caption?: string;
   loading?: boolean;
   bordered?: boolean;
   size?: 'sm' | 'md';
@@ -114,7 +125,7 @@ function SortIcon({ direction }: { direction: 'asc' | 'desc' | null }) {
 }
 
 export default function DataTable<T>({
-  columns, data, rowKey, sort = null, onSortChange, pagination, loading = false,
+  columns, data, rowKey, sort = null, onSortChange, pagination, caption, loading = false,
   bordered = false, size = 'md', minWidth, rowClassName, onRow, emptyText = 'Nothing to show',
   footer, className = '',
 }: DataTableProps<T>) {
@@ -161,6 +172,7 @@ export default function DataTable<T>({
           </div>
         )}
         <table className="w-full border-collapse tabular-nums" style={minWidth ? { minWidth } : undefined}>
+          {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
               {columns.map((col, ci) => {

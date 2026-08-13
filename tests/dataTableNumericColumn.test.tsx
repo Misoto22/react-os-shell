@@ -59,3 +59,47 @@ test('a column without it is untouched', () => {
   assert.doesNotMatch(markup, /font-mono/);
   assert.doesNotMatch(markup, /text-right/);
 });
+
+/**
+ * A table with no name is announced as "table" and nothing else. A page with
+ * two — the invoice lines and the payments against it — then gives a
+ * screen-reader user two identical landmarks and no way to tell them apart.
+ *
+ * The heading above it does not help: table navigation jumps between tables,
+ * not through the prose around them.
+ */
+
+test('a caption names the table', () => {
+  const markup = html(
+    <DataTable rowKey="id" data={ROWS} caption="Invoice line items"
+      columns={[{ key: 'part', title: 'Part', dataIndex: 'part' }]} />,
+  );
+  assert.match(markup, /<caption[^>]*>Invoice line items<\/caption>/);
+});
+
+test('the caption is for the ear, not the eye', () => {
+  // It names the table without adding a visible title the design did not ask
+  // for — the heading above it is usually already there.
+  const markup = html(
+    <DataTable rowKey="id" data={ROWS} caption="Invoices"
+      columns={[{ key: 'part', title: 'Part', dataIndex: 'part' }]} />,
+  );
+  assert.match(markup, /<caption class="sr-only"/);
+});
+
+test('the caption is the first child of the table', () => {
+  // HTML requires it there; a <caption> after <thead> is dropped by the parser
+  // and the table goes back to being unnamed.
+  const markup = html(
+    <DataTable rowKey="id" data={ROWS} caption="Invoices"
+      columns={[{ key: 'part', title: 'Part', dataIndex: 'part' }]} />,
+  );
+  assert.match(markup, /<table[^>]*><caption/);
+});
+
+test('no caption, no element', () => {
+  const markup = html(
+    <DataTable rowKey="id" data={ROWS} columns={[{ key: 'part', title: 'Part', dataIndex: 'part' }]} />,
+  );
+  assert.doesNotMatch(markup, /<caption/);
+});

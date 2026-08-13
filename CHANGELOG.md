@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [4.50.0] — 2026-08-13
+
+### Added
+- **`DataTable` takes a `caption`**, rendered as a visually hidden
+  `<caption>`. A table with no name is announced as "table" and nothing else,
+  so a page with two of them — the invoice lines and the payments against it —
+  gave a screen-reader user two identical landmarks and no way to tell which
+  was which. The heading above it does not help: table navigation jumps between
+  tables, not through the prose around them.
+
 ## [4.49.0] — 2026-08-13
 
 ### Added
