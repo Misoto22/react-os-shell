@@ -75,6 +75,10 @@ export interface ShellStrings {
     /** aria-label of a TagInput chip's remove button: `"{remove} {label}"`. */
     remove: string;
   };
+  /** Form-level messages. */
+  form: {
+    errorSummaryTitle: string;
+  };
   /** HelpCenter chrome. */
   help: {
     title: string;
@@ -133,6 +137,9 @@ export const DEFAULT_SHELL_STRINGS: ShellStrings = {
     allSelected: 'All options selected',
     clear: 'Clear selection',
     remove: 'Remove',
+  },
+  form: {
+    errorSummaryTitle: 'There is a problem',
   },
   help: {
     title: 'Help',

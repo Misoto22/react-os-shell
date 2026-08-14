@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.72.0
+
+- **`FormErrorSummary`** — the error list at the top of a failed form.
+  `FormField` announces its own error, which is right for one field and
+  useless as a map: a long form failing in three places gave a keyboard or
+  screen-reader user no count and no route. This is the WCAG 3.3.1 pattern
+  as GOV.UK ships it — a box that takes focus when the errors APPEAR (and
+  does not re-steal it on every re-render while the user works through the
+  list, which a spec pins), listing each message as a link that focuses the
+  offending control. The links target the same control ids FormField already
+  wires, so adoption costs a `{ fieldId, message }` list, not a rewire; the
+  heading comes from the strings catalog.
+
 ## 4.71.0
 
 - **`toast.promise(p, { loading, success, error })`** — one toast for one

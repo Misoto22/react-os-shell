@@ -59,6 +59,8 @@ export { default as Radio } from '../forms/Radio';
 export type { RadioProps } from '../forms/Radio';
 export { default as FormField } from '../forms/FormField';
 export type { FormFieldProps } from '../forms/FormField';
+export { default as FormErrorSummary } from '../forms/FormErrorSummary';
+export type { FormError, FormErrorSummaryProps } from '../forms/FormErrorSummary';
 export { default as Label } from '../forms/Label';
 export type { LabelProps } from '../forms/Label';
 export { default as MediaUploadField, mediaFileName } from '../forms/MediaUploadField';
