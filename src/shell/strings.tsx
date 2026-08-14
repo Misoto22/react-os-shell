@@ -63,6 +63,8 @@ export interface ShellStrings {
   table: {
     empty: string;
     loading: string;
+    selectAll: string;
+    selectRow: string;
   };
   /** Picker defaults (SearchableSelect, TagInput). */
   select: {
@@ -122,6 +124,8 @@ export const DEFAULT_SHELL_STRINGS: ShellStrings = {
   table: {
     empty: 'Nothing to show',
     loading: 'Loading',
+    selectAll: 'Select all rows',
+    selectRow: 'Select row',
   },
   select: {
     none: '— None —',

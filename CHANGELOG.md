@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.70.0
+
+- **`DataTable` takes `selection`** — `{ selected, onChange }`, a leading
+  checkbox column controlled by row key. Bulk actions over a server-driven
+  list used to force `EntityList`, which drags in axios and react-query;
+  this is the peer-free version. Selection is by KEY, so it survives paging:
+  the header checkbox adds or removes only the current data's keys and
+  leaves foreign keys alone — "select three here, two more on page 4"
+  accumulates, and clear-all on one page cannot silently drop another
+  page's choices (spec-pinned). The header checkbox reads indeterminate for
+  a partly-chosen page, a checkbox click never also opens a clickable row,
+  the column composes with pinned columns (their offsets shift right) and
+  with `virtualized`, and the checkboxes carry catalog-translatable labels.
+
 ## 4.69.0
 
 - **Windows reopen after login — and after F5.** Window state is in-memory,

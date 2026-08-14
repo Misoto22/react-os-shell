@@ -126,6 +126,17 @@ export interface DataTableProps<T> {
   rowClassName?: (row: T, index: number) => string;
   onRow?: (row: T, index: number) => { onClick?: () => void; className?: string };
   emptyText?: ReactNode;
+  /**
+   * Row selection — a leading checkbox column, controlled by row key.
+   *
+   * `selected` holds row KEYS (what `rowKey` yields), so a selection made on
+   * one page survives paging to the next: the header checkbox adds or removes
+   * only the CURRENT data's keys and leaves foreign keys alone, which is what
+   * lets "select these three here, two more on page 4" accumulate. EntityList
+   * has the heavyweight version (with shift-click ranges); this is the
+   * peer-free one.
+   */
+  selection?: { selected: string[]; onChange: (selected: string[]) => void };
   /** Rendered under the rows — an infinite-scroll sentinel, a totals strip. */
   footer?: ReactNode;
   /**
@@ -175,7 +186,7 @@ function SortIcon({ direction }: { direction: 'asc' | 'desc' | null }) {
 export default function DataTable<T>({
   columns, data, rowKey, sort = null, onSortChange, pagination, caption, loading = false,
   bordered = false, size = 'md', minWidth, rowClassName, onRow, emptyText,
-  footer, virtualized, className = '',
+  selection, footer, virtualized, className = '',
 }: DataTableProps<T>) {
   // Catalog defaults — a caller's own `emptyText` always wins (see strings.tsx).
   const strings = useShellStrings();
@@ -238,6 +249,37 @@ export default function DataTable<T>({
   const leaves: DataTableColumn<T>[] = columns.flatMap(h => (isGroup(h) ? h.columns : [h]));
   const grouped = columns.some(isGroup);
 
+  // ── Selection ──
+  const selectedSet = new Set(selection?.selected ?? []);
+  const pageKeys = selection ? data.map((row, i) => keyOf(row, i)) : [];
+  const allSelected = pageKeys.length > 0 && pageKeys.every(k => selectedSet.has(k));
+  const someSelected = pageKeys.some(k => selectedSet.has(k));
+  const toggleRow = (key: string) => {
+    if (!selection) return;
+    selection.onChange(
+      selectedSet.has(key)
+        ? selection.selected.filter(k => k !== key)
+        : [...selection.selected, key],
+    );
+  };
+  // Only the current data's keys move; a selection made on another page is
+  // not this checkbox's to clear.
+  const toggleAll = () => {
+    if (!selection) return;
+    const page = new Set(pageKeys);
+    selection.onChange(
+      allSelected
+        ? selection.selected.filter(k => !page.has(k))
+        : [...selection.selected, ...pageKeys.filter(k => !selectedSet.has(k))],
+    );
+  };
+  /** The checkbox column shifts every pinned offset right by its width. */
+  const SELECT_W = 36;
+  const selOffset = selection ? SELECT_W : 0;
+  // The spacer/empty colSpans and the pinned-corner z-index care about it too.
+  const colCount = leaves.length + (selection ? 1 : 0);
+  const hasPinned = leaves.some(c => c.fixed === 'left');
+
   const cellBase = `${PAD[size]} ${size === 'sm' ? 'text-xs' : 'text-sm'}`;
 
   /**
@@ -270,7 +312,7 @@ export default function DataTable<T>({
         }
         style={{
           width: col.width,
-          ...(pinned ? { left: offsets[ci] ?? 0 } : {}),
+          ...(pinned ? { left: (offsets[ci] ?? 0) + selOffset } : {}),
           // A virtualized header pins to the top of the vertical scroll; one
           // sticky box can hold both axes, so a pinned column's header corner
           // stays put in both directions.
@@ -329,6 +371,27 @@ export default function DataTable<T>({
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr ref={headRowRef} className="border-b border-gray-200 bg-gray-50">
+              {selection && (
+                <th
+                  scope="col"
+                  rowSpan={grouped ? 2 : undefined}
+                  style={{ width: SELECT_W, ...(virtualized ? { top: 0 } : {}) }}
+                  className={[
+                    cellBase,
+                    hasPinned || virtualized ? 'sticky z-20 bg-gray-50' : '',
+                    hasPinned ? 'left-0' : '',
+                  ].filter(Boolean).join(' ')}
+                >
+                  <input
+                    type="checkbox"
+                    aria-label={strings.table.selectAll}
+                    checked={allSelected}
+                    ref={el => { if (el) el.indeterminate = someSelected && !allSelected; }}
+                    onChange={toggleAll}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                  />
+                </th>
+              )}
               {columns.map((h, hi) => {
                 if (isGroup(h)) {
                   return (
@@ -367,7 +430,7 @@ export default function DataTable<T>({
           <tbody>
             {data.length === 0 && !loading ? (
               <tr>
-                <td colSpan={leaves.length} className={`${cellBase} py-10 text-center text-gray-500`}>
+                <td colSpan={colCount} className={`${cellBase} py-10 text-center text-gray-500`}>
                   {emptyContent}
                 </td>
               </tr>
@@ -379,7 +442,7 @@ export default function DataTable<T>({
                 * data. */}
               {topPad > 0 && (
                 <tr aria-hidden="true">
-                  <td colSpan={leaves.length} style={{ height: topPad, padding: 0, border: 0 }} />
+                  <td colSpan={colCount} style={{ height: topPad, padding: 0, border: 0 }} />
                 </tr>
               )}
               {data.slice(start, end).map((row, si) => {
@@ -422,12 +485,31 @@ export default function DataTable<T>({
                       rowProps?.className ?? '',
                     ].filter(Boolean).join(' ')}
                   >
+                    {selection && (() => {
+                      const key = keyOf(row, i);
+                      return (
+                        <td
+                          style={{ width: SELECT_W }}
+                          // Clicks here toggle selection, never open the row.
+                          onClick={e => e.stopPropagation()}
+                          className={[cellBase, hasPinned ? 'sticky left-0 z-10 bg-white' : ''].filter(Boolean).join(' ')}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={strings.table.selectRow}
+                            checked={selectedSet.has(key)}
+                            onChange={() => toggleRow(key)}
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                          />
+                        </td>
+                      );
+                    })()}
                     {leaves.map((col, ci) => {
                       const pinned = col.fixed === 'left';
                       return (
                         <td
                           key={col.key}
-                          style={pinned ? { left: offsets[ci] ?? 0 } : undefined}
+                          style={pinned ? { left: (offsets[ci] ?? 0) + selOffset } : undefined}
                           className={[
                             cellBase, ALIGN[col.align ?? (col.numeric ? 'right' : 'left')],
                             col.numeric ? 'font-mono' : '', 'text-gray-900',
@@ -450,7 +532,7 @@ export default function DataTable<T>({
               })}
               {bottomPad > 0 && (
                 <tr aria-hidden="true">
-                  <td colSpan={leaves.length} style={{ height: bottomPad, padding: 0, border: 0 }} />
+                  <td colSpan={colCount} style={{ height: bottomPad, padding: 0, border: 0 }} />
                 </tr>
               )}
               </>
