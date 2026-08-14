@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.67.0
+
+- **A dropdown opened inside a dialog is no longer hidden behind it.** `Select`,
+  `SearchableSelect` and `TagInput` all portal their menu to `<body>` at
+  `z-[400]`, and the modal layer is `z-[9999]` — so a select inside a Dialog or
+  Drawer, which is where form controls usually are, opened its list behind the
+  thing that owns it. Nothing looked broken; the options simply were not there.
+
+  All three now open above the modal layer, and a spec pins the ordering.
+
+- **A `Select` menu is the width of its field.** It set `minWidth` from the trigger
+  and capped nothing, so the list grew to its longest option — in a 512px dialog a
+  464px field opened a 583px menu that hung 95px past the dialog edge. It takes the
+  field's width now, clamped to the viewport, and the rows truncate as a native
+  `<select>` does.
+
+- **A side `Drawer` is full width on a phone**, its asked-for width from the `sm`
+  breakpoint up. A 320px drawer on a 375px screen left a 55px strip of scrim — too
+  narrow to aim at, too wide to read as an edge — and made the panel look like a
+  desktop rail that had been squeezed rather than a sheet built for the screen.
+
+  The width moved from an inline style to a class to make that possible: an inline
+  width beats every `sm:` variant, so the responsive step could never have taken.
+  The classes are written out rather than interpolated, because Tailwind emits a
+  utility only when it has seen the literal string.
+
+- **`Dialog` can be dismissed, and shows it.** Clicking away did nothing: the
+  scrim carried the handler and the centring layer sat on top of it covering the
+  same viewport, so every click outside landed on the layer and reached nothing.
+  And there was no close button at all — a dialog whose body was, say, an image
+  could be left only with Escape, which is on no screen.
+
+  The backdrop dismissal moved to the layer that actually receives the click, and
+  a close button sits in the corner. `blocking` opts out of both, for the dialogs
+  that must be answered, and so does having a `footer`: a confirm already gives
+  two labelled ways out, and an unlabelled cross beside "Discard" and "Keep
+  Editing" is a third exit that says nothing about which it means — worst on the
+  decision where it matters most. The button is LAST in the DOM though drawn
+  top-right: first, it became the dialog's first tab stop and shadowed the real
+  choice.
+
+- **A spec that fails no longer costs the file's timeout.** A React root keeps the
+  event loop alive, so a test whose assertion threw before its own `unmount()` did
+  not merely fail — the file stopped exiting, node waited out the per-file timeout,
+  and reported "the file timed out" with the actual assertion nowhere in the
+  output. Measured on `drawer.test.tsx`: 82 seconds and no failure named, against
+  1.4ms and a named failure once the unmount was guaranteed.
+
+  `tests/dom.ts` now tracks every root it hands out and unmounts the survivors in
+  an `afterEach`, so no individual spec has to remember.
+
 ## 4.66.0
 
 - **`Calendar`** — a month grid that can be driven from the keyboard. `DateRangePicker`

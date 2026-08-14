@@ -97,7 +97,7 @@ export const NativeSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
  * Anchors below the trigger, flips above when below is cramped. Mirrors
  * SearchableSelect's `useDropdownPosition`.
  */
-interface MenuPos { left: number; top?: number; bottom?: number; minWidth: number; maxHeight: number }
+interface MenuPos { left: number; top?: number; bottom?: number; width: number; maxHeight: number }
 function useAnchoredPosition(triggerRef: React.RefObject<HTMLElement | null>, open: boolean): MenuPos | null {
   const [pos, setPos] = useState<MenuPos | null>(null);
   useLayoutEffect(() => {
@@ -112,7 +112,18 @@ function useAnchoredPosition(triggerRef: React.RefObject<HTMLElement | null>, op
       const placeAbove = spaceBelow < Math.min(MENU_MAX_HEIGHT, 160) && spaceAbove > spaceBelow;
       const maxHeight = Math.max(96, Math.min(MENU_MAX_HEIGHT, placeAbove ? spaceAbove : spaceBelow));
       const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, window.innerWidth - rect.width - VIEWPORT_MARGIN));
-      const next: MenuPos = { left, minWidth: rect.width, maxHeight };
+      // The menu is the WIDTH of the field, not a minimum for it.
+      //
+      // It was `minWidth` with nothing capping the other end, so the list grew
+      // to its longest option: in a 512px dialog, a field of 464px opened a
+      // menu of 583px that hung 95px past the dialog's edge. A native <select>
+      // matches its field and truncates what does not fit, and that is the
+      // shape people read a select as having.
+      //
+      // Still clamped to the viewport, for the field that is itself near an
+      // edge or wider than the room left beside it.
+      const width = Math.min(rect.width, window.innerWidth - 2 * VIEWPORT_MARGIN);
+      const next: MenuPos = { left, width, maxHeight };
       if (placeAbove) next.bottom = window.innerHeight - rect.top + MENU_GAP;
       else next.top = rect.bottom + MENU_GAP;
       setPos(next);
@@ -327,12 +338,22 @@ const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function Listbo
           ref={listRef}
           id={listboxId}
           role="listbox"
-          className="fixed z-[400] overflow-y-auto rounded-2xl py-1"
+          // The dropdown must sit ABOVE the modal layer, not below it.
+          //
+          // It was z-[400], under Dialog and Drawer at z-[9999] — so a Select
+          // inside a dialog, which is where form controls usually are, opened
+          // its menu behind the dialog that owns it. Nothing looked broken;
+          // the list simply was not there.
+          //
+          // Above the toasts too, deliberately: a menu is open only while the
+          // user is holding it open, and a notification arriving underneath it
+          // is better than one that covers what they are choosing from.
+          className="fixed z-[10000] overflow-y-auto rounded-2xl py-1"
           style={{
             left: menuPos?.left,
             top: menuPos?.top,
             bottom: menuPos?.bottom,
-            minWidth: menuPos?.minWidth,
+            width: menuPos?.width,
             maxHeight: menuPos?.maxHeight ?? MENU_MAX_HEIGHT,
             visibility: menuPos ? undefined : 'hidden',
             ...glassStyle(),

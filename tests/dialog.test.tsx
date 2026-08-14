@@ -1,6 +1,8 @@
 import './dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { createRoot, act } from './dom';
 import Dialog from '../src/shell/Dialog';
 import { ConfirmProvider, confirm, confirmDestructive } from '../src/shell/ConfirmDialog';
@@ -37,7 +39,14 @@ function mount(ui: React.ReactElement) {
  * of the provider's dialogs mounted at all times.
  */
 const openDialog = () => document.querySelector('[role="dialog"]') as HTMLElement;
-const buttons = () => Array.from(openDialog().querySelectorAll('button'));
+/**
+ * The dialog's own ACTIONS, which is what these specs are about — not every
+ * button inside it. The close affordance in the corner is a button too, and
+ * scoping to the footer keeps "the confirming action is last" a claim about
+ * the choice the user is being offered rather than about DOM order in general.
+ */
+const buttons = () =>
+  Array.from((openDialog().querySelector('.justify-end') ?? openDialog()).querySelectorAll('button'));
 const byLabel = (label: string) => buttons().find(b => b.textContent === label)!;
 
 /**
@@ -197,4 +206,102 @@ test('a second confirm queues rather than being dropped', async () => {
   act(() => { byLabel('OK').click(); });
   assert.equal(await second, true);
   unmount();
+});
+
+test('a click away from the panel closes it', () => {
+  // The scrim carried the handler and the centring layer sat on top of it,
+  // covering the same viewport — so every click "outside" landed on the layer
+  // and reached nothing. A dialog with no buttons of its own could be left
+  // only with Escape, and nothing on screen said so.
+  let closed = 0;
+  const { unmount } = mount(<Dialog open onClose={() => { closed += 1; }} title="Larger image">body</Dialog>);
+  const layer = document.querySelector('.fixed.inset-0.flex') as HTMLElement;
+
+  act(() => { layer.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+  assert.equal(closed, 1);
+  unmount();
+});
+
+test('a click INSIDE the panel does not close it', () => {
+  // The same handler sees clicks that bubble up from the body, so it has to
+  // tell "the backdrop was clicked" from "something in the dialog was".
+  let closed = 0;
+  const { unmount } = mount(<Dialog open onClose={() => { closed += 1; }} title="Larger image">body</Dialog>);
+  const panel = document.querySelector('[role="dialog"]') as HTMLElement;
+
+  act(() => { panel.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+  assert.equal(closed, 0);
+  unmount();
+});
+
+test('a dialog with no actions of its own offers a visible way out', () => {
+  // Escape and the backdrop both work now, but neither is on screen — a dialog
+  // whose body is just an image could be left only by a shortcut nothing
+  // announces.
+  const view = mount(<Dialog open onClose={() => {}} title="Larger image">body</Dialog>);
+  assert.ok(document.querySelector('[aria-label="Close"]'), 'a way out you can see');
+  view.unmount();
+});
+
+test('a dialog that already offers choices does not add a nameless third', () => {
+  // A confirm gives two labelled ways out. An unlabelled cross beside them says
+  // nothing about which it means, which is worst on the decision where it
+  // matters most — and it puts a stop in the middle of that dialog's Tab cycle.
+  const withFooter = mount(
+    <Dialog open onClose={() => {}} title="Discard changes?" footer={<button type="button">Keep Editing</button>}>
+      body
+    </Dialog>,
+  );
+  assert.equal(document.querySelector('[aria-label="Close"]'), null);
+  withFooter.unmount();
+
+  const blocking = mount(<Dialog open blocking onClose={() => {}} title="Confirm">body</Dialog>);
+  assert.equal(document.querySelector('[aria-label="Close"]'), null, 'blocking opts out too');
+  blocking.unmount();
+});
+
+test('a dropdown opened inside a dialog renders above it', () => {
+  // The three portalled menus were z-[400] and the modal layer is z-[9999], so
+  // a Select inside a Dialog — which is where form controls usually are — put
+  // its list behind the dialog that owns it. Nothing looked broken; the options
+  // simply were not there.
+  //
+  // Read from the source rather than from a render: the menu portals to <body>
+  // and jsdom computes no stacking, so what can be checked is the number each
+  // component ships, which is the thing that was wrong.
+  const root = process.env.REPO_ROOT ?? resolve(import.meta.dirname, '..');
+  const layerOf = (file: string, marker: RegExp) => {
+    const src = readFileSync(join(root, 'src', file), 'utf-8');
+    const line = src.split('\n').find(l => marker.test(l)) ?? '';
+    return Number(/z-\[(\d+)\]/.exec(line)?.[1] ?? NaN);
+  };
+
+  const modal = layerOf('shell/Dialog.tsx', /fixed inset-0 z-\[/);
+  for (const [file, marker] of [
+    ['forms/Select.tsx', /fixed z-\[\d+\] overflow-y-auto/],
+    ['shell/SearchableSelect.tsx', /fixed z-\[\d+\] rounded-2xl/],
+    ['forms/TagInput.tsx', /fixed z-\[\d+\] rounded-2xl/],
+  ] as const) {
+    assert.ok(layerOf(file, marker) > modal, `${file} must open above the modal layer (${modal})`);
+  }
+});
+
+test('a Select menu is the width of its field, not of its longest option', () => {
+  // It set `minWidth` from the trigger and capped nothing, so the list grew to
+  // its longest option: in a 512px dialog a 464px field opened a 583px menu
+  // that hung 95px past the dialog's edge. A native <select> matches its field
+  // and truncates what does not fit.
+  //
+  // Read from the source: the menu portals to <body> and jsdom lays nothing
+  // out, so what can be checked is that the width is DRIVEN by the trigger
+  // rect rather than left to the content — which is the thing that was wrong.
+  const root = process.env.REPO_ROOT ?? resolve(import.meta.dirname, '..');
+  const src = readFileSync(join(root, 'src', 'forms', 'Select.tsx'), 'utf-8');
+
+  assert.match(src, /width:\s*menuPos\?\.width/, 'the menu takes a computed width');
+  assert.doesNotMatch(src, /minWidth:\s*menuPos/, 'not a minimum it may exceed');
+  assert.match(src, /Math\.min\(rect\.width/, 'and that width comes from the trigger, clamped to the viewport');
+  // Every row truncates, which is what makes a bounded width readable rather
+  // than merely narrow.
+  assert.match(src, /cursor-pointer truncate/);
 });
