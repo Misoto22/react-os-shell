@@ -17,6 +17,7 @@ import { playStartup } from '../utils/sounds';
 import { glassStyle as getGlassStyle } from '../utils/glass';
 import StartupAnimation from './StartupAnimation';
 import LogoutAnimation from './LogoutAnimation';
+import SessionWindowRestore from './SessionRestore';
 import StartMenu from './StartMenu';
 // Sidebar is opt-in (`prefs.layout_mode === 'sidebar'`) and adds nothing
 // to the classic-mode bundle. lazy() also means consumers running a
@@ -969,6 +970,8 @@ export default function Layout({
 
   return (
     <div className="flex flex-col h-screen">
+      {/* Reopen last session's windows — see SessionRestore.tsx. */}
+      <SessionWindowRestore />
       {showStartup && <StartupAnimation onComplete={() => setShowStartup(false)} ready={!!profile} productName={brandName} logo={brandIcon} subtitle={brandTagline} />}
       {showLogout && <LogoutAnimation onComplete={() => { sessionStorage.removeItem('erp_startup_shown'); logout(); }} logo={brandIcon} subtitle={brandTagline} />}
       {/* Start Menu — suppressed in sidebar mode (Sidebar replaces it). */}

@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.69.0
+
+- **Windows reopen after login — and after F5.** Window state is in-memory,
+  so logging out or refreshing always meant an empty desktop. The shell now
+  saves each open window's identifying refs (a page's route, an entity's
+  registry key + id — never window content) through ShellPrefs, and replays
+  them on a fresh mount when nothing is open yet. A deep link that already
+  opened a window wins over the replay; part-number lookup windows are
+  deliberately not restored (they open through a search round-trip, and a
+  stale search re-running itself at login is a surprise, not a restoration).
+  Off switch in Preferences → Behavior ("Reopen windows from the last
+  session"); saves are debounced; and persisting starts only after the
+  restore attempt, so mounting with an empty desktop cannot overwrite the
+  saved set it was about to replay — the ordering that would otherwise make
+  the feature erase its own input, and the thing the specs pin.
+
 ## 4.68.0
 
 - **`ShellStringsProvider`** — the shell's own strings become translatable.
