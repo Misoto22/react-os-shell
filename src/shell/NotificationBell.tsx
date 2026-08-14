@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDate } from '../utils/date';
 import { playNotification } from '../utils/sounds';
 import { PopupMenu, PopupMenuItem, PopupMenuDivider, PopupMenuLabel } from './PopupMenu';
+import { useShellPrefs } from './ShellPrefs';
+import { useShellStrings } from './strings';
 
 /** Generic notification shape consumed by the shell. Consumer-specific
  * fields live on `extra` (or just on additional properties — TS structural
@@ -69,6 +71,12 @@ export default function NotificationBell({
   useUnreadCount, list, markRead, markAllRead, onItemClick, onViewAll, popDirection,
 }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
+  const strings = useShellStrings().notifications;
+  // Do Not Disturb: the badge keeps counting, the interruptions stop — no
+  // pop-up card, no browser Notification, no sound. Persisted per user.
+  const { prefs, save: savePrefs } = useShellPrefs();
+  const dnd = prefs.notifications_dnd === true;
+  const toggleDnd = () => savePrefs({ notifications_dnd: !dnd });
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
@@ -119,7 +127,9 @@ export default function NotificationBell({
   const prevCountRef = useRef<number | null>(null);
   useEffect(() => {
     if (prevCountRef.current === null) { prevCountRef.current = unreadCount; return; }
-    if (unreadCount > prevCountRef.current) {
+    // DND suppresses the interruptions but not the counter: prevCountRef still
+    // advances below, so turning DND off later does not replay a backlog.
+    if (unreadCount > prevCountRef.current && !dnd) {
       list({ page_size: 1 }).then(data => {
         const latest = data?.results?.[0];
         if (!latest) return;
@@ -136,7 +146,7 @@ export default function NotificationBell({
       }).catch(() => {});
     }
     prevCountRef.current = unreadCount;
-  }, [unreadCount, list, showInlineNotif]);
+  }, [unreadCount, list, showInlineNotif, dnd]);
 
   // Always run on mount + every 30s so the dropdown is always populated
   // with cached data before the first click — no loading-state flash.
@@ -194,7 +204,7 @@ export default function NotificationBell({
       <button ref={buttonRef} data-menu-toggle
         onMouseEnter={() => queryClient.prefetchQuery({ queryKey: ['notifications-dropdown'], queryFn: () => list({ page_size: 30 }) })}
         onClick={() => setOpen(prev => !prev)}
-        title="Notifications"
+        title={dnd ? strings.dndOn : strings.title}
         className="relative shrink-0 rounded-md p-2 text-gray-900 hover:text-black hover:bg-white/20 transition-colors">
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -204,18 +214,37 @@ export default function NotificationBell({
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        {dnd && (
+          /* A quiet moon on the bell: DND is on. Decorative — the button's
+             title and the popover toggle carry the state for AT. */
+          <span aria-hidden="true" className="absolute bottom-0.5 right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-indigo-500 text-white">
+            <svg className="h-2 w-2" fill="currentColor" viewBox="0 0 24 24"><path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          </span>
+        )}
       </button>
 
       {open && createPortal(
         <PopupMenu minWidth={320} className="w-80 flex flex-col overflow-hidden" style={{ ...dropdownPos }} onClose={() => setOpen(false)}>
           <PopupMenuLabel>
-            <span className="flex items-center justify-between w-full">
-              <span>Notifications</span>
-              {unreadCount > 0 && (
-                <button onClick={handleMarkAllRead} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium normal-case tracking-normal">
-                  Mark all read
+            <span className="flex items-center justify-between w-full gap-2">
+              <span>{strings.title}</span>
+              <span className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button onClick={handleMarkAllRead} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium normal-case tracking-normal">
+                    {strings.markAllRead}
+                  </button>
+                )}
+                <button
+                  onClick={toggleDnd}
+                  aria-pressed={dnd}
+                  title={strings.dnd}
+                  className={`rounded p-0.5 transition-colors ${dnd ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <svg className="h-3.5 w-3.5" fill={dnd ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
+                  </svg>
                 </button>
-              )}
+              </span>
             </span>
           </PopupMenuLabel>
           <PopupMenuDivider />
@@ -225,8 +254,8 @@ export default function NotificationBell({
               <svg className="h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
               </svg>
-              <p className="text-sm text-gray-600 font-medium">All caught up</p>
-              <p className="text-xs text-gray-400 mt-0.5">No notifications yet</p>
+              <p className="text-sm text-gray-600 font-medium">{strings.caughtUp}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{strings.empty}</p>
             </div>
           ) : (
             notifications.map(notif => (
@@ -250,7 +279,7 @@ export default function NotificationBell({
             <>
               <PopupMenuDivider />
               <PopupMenuItem onClick={() => { setOpen(false); onViewAll(); }}>
-                <span className="w-full text-center text-xs text-blue-600 font-medium">View all notifications</span>
+                <span className="w-full text-center text-xs text-blue-600 font-medium">{strings.viewAll}</span>
               </PopupMenuItem>
             </>
           )}
@@ -278,7 +307,7 @@ export default function NotificationBell({
               reach it. break-words keeps an unbroken token (URL, long ref)
               from overflowing the 320px card. */}
           <div className="flex-1 min-w-0 max-h-[60vh] overflow-y-auto">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 mb-0.5">Notification</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-blue-600 mb-0.5">{strings.cardLabel}</div>
             <div className="text-sm font-medium text-gray-800 leading-snug break-words">{inlineNotif.title}</div>
             {inlineNotif.message && (
               <div className="text-xs text-gray-500 leading-snug break-words mt-0.5">{inlineNotif.message}</div>
@@ -287,7 +316,7 @@ export default function NotificationBell({
           <button
             onClick={(e) => { e.stopPropagation(); dismissInline(); }}
             className="shrink-0 p-1 -mr-1 -mt-1 text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Dismiss notification"
+            aria-label={strings.dismiss}
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />

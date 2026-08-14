@@ -75,6 +75,18 @@ export interface ShellStrings {
     /** aria-label of a TagInput chip's remove button: `"{remove} {label}"`. */
     remove: string;
   };
+  /** Notification bell + popup. */
+  notifications: {
+    title: string;
+    markAllRead: string;
+    dnd: string;
+    dndOn: string;
+    caughtUp: string;
+    empty: string;
+    viewAll: string;
+    cardLabel: string;
+    dismiss: string;
+  };
   /** Form-level messages. */
   form: {
     errorSummaryTitle: string;
@@ -137,6 +149,17 @@ export const DEFAULT_SHELL_STRINGS: ShellStrings = {
     allSelected: 'All options selected',
     clear: 'Clear selection',
     remove: 'Remove',
+  },
+  notifications: {
+    title: 'Notifications',
+    markAllRead: 'Mark all read',
+    dnd: 'Do not disturb',
+    dndOn: 'Do not disturb is on',
+    caughtUp: 'All caught up',
+    empty: 'No notifications yet',
+    viewAll: 'View all notifications',
+    cardLabel: 'Notification',
+    dismiss: 'Dismiss notification',
   },
   form: {
     errorSummaryTitle: 'There is a problem',

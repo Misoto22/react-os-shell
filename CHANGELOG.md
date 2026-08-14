@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.73.0
+
+- **Notification Do Not Disturb.** The badge keeps counting, the
+  interruptions stop: with DND on (the moon toggle in the bell's popover,
+  persisted per user via ShellPrefs as `notifications_dnd`), a new
+  notification raises no pop-up card, no browser Notification and no sound —
+  but the unread count still climbs and the bell shows a quiet moon marker,
+  because muting alerts must not hide their existence. The suppressed
+  notifications are not lost: the bell's dropdown has always been the
+  history, fed by the consumer's own `list`. Turning DND off does not replay
+  the backlog — the counter advances while muted, so only the NEXT
+  notification interrupts (spec-pinned).
+
+  The bell's strings ("Notifications", "Mark all read", "All caught up",
+  the pop-up card's labels) also joined the 4.68.0 catalog.
+
 ## 4.72.0
 
 - **`FormErrorSummary`** — the error list at the top of a failed form.
