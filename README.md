@@ -226,6 +226,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | `SidebarNavItem`, `SidebarGroupLabel` | Filter-sidebar button (optional `count` badge and `severity` marker dot) plus its group heading. Roll the severity up in the app; omitting it renders exactly as before it existed. An unrecognised `severity` renders a visible "unknown" marker and logs — it never silently disappears. |
 | `MetricBar` | Value + proportional bar with optional `warn` / `crit` threshold ticks — the CPU / memory / disk row. `value={null}` renders "no data" (dashed empty track), never a zero-width bar; with no thresholds the fill stays grey rather than claiming health. `max` must be a positive finite number — given `0`/`NaN` the row prints the value but draws no bar, rather than dividing by zero into a full one. |
 | `Button`, `Input`, `Textarea`, `Select`, `Checkbox`, `Radio`, `FormField`, `Label` | Form controls — controlled (`value`/`onChange`); `Input`/`Textarea` forward native props for react-hook-form. |
+| `FormErrorSummary` | The error list at the top of a failed form (WCAG 3.3.1, the GOV.UK pattern): takes focus when errors appear, each message is a link that focuses the offending control by its `FormField` id. Renders nothing while `errors` is empty. |
 | `TagInput` | Multi-value field — chosen values as removable chips, typing filters the option list in the same dropdown SearchableSelect uses. `allowFreeText` admits unlisted entries; Backspace in the empty input removes the last chip. The value array stays duplicate-free by construction. |
 | `DatePicker`, `TimePicker`, `DateTimePicker`, `DateRangePicker` | Date/time fields. The first three wrap the platform's own inputs in the kit's field styling; all are careful to speak LOCAL dates and wall-clock times (never `toISOString`). `TimePicker` hands back an `HH:MM` string — a time of day names no calendar day, so it never invents a Date. |
 | `Card`, `StatCard` | Surface panel (optional header/footer) + dashboard metric tile. |
@@ -247,6 +248,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 |---|---|
 | `<ShellAuthProvider value={{ hasAnyPerm }}>` | Permission-filter nav items. |
 | `<ShellPrefsProvider value={{ prefs, save }}>` | Where the shell reads/writes user prefs (theme, taskbar pos, sticky notes, …). Use `useLocalStoragePrefs(key)` for a backend-less default. |
+| `<ShellStringsProvider value={{ … }}>` | Translates the shell's own strings — window controls, taskbar hints, the logout cover, About/What's New, picker and table defaults, the help viewer. English works with NO provider; the override is a typed partial merged per section, so an incomplete catalog falls back rather than breaking. Prop-level text (`emptyText`, placeholders) always wins over the catalog. |
 | `<ShellEntityFetcherProvider value={(endpoint, id) => …}>` | How the modal stack fetches entity data. |
 | `<BugReportConfigProvider value={{ submit, list?, resolve? }}>` | Wire the bug-report flow to your backend. |
 | `<DesktopHostProvider value={{ stickyResolver?, saveShortcuts?, … }}>` | Sticky-note ref resolver + persistence callbacks. |

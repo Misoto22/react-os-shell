@@ -2,6 +2,127 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.74.0
+
+- **Snap layouts picker.** Rest the pointer on — or focus — a window's
+  maximize button and a small palette of the snap zones appears: the left and
+  right halves and the four quarters, as click targets. Pure UI over the
+  snapping module's own `calcSnapBox`, so a picker snap behaves exactly like
+  a drag-to-edge snap or Ctrl/Cmd+arrows: it saves the pre-snap box, and
+  Ctrl/Cmd+↓ or the next drag restores the window's natural size
+  (spec-pinned). Opens after a short delay so a pass-over doesn't flash it,
+  closes on blur/mouse-leave with a grace period, and each zone carries a
+  catalog-translatable label. The quarters are new reachable-by-click
+  geometry for the mouse; the keyboard's half/maximize/restore set is
+  unchanged.
+
+## 4.73.0
+
+- **Notification Do Not Disturb.** The badge keeps counting, the
+  interruptions stop: with DND on (the moon toggle in the bell's popover,
+  persisted per user via ShellPrefs as `notifications_dnd`), a new
+  notification raises no pop-up card, no browser Notification and no sound —
+  but the unread count still climbs and the bell shows a quiet moon marker,
+  because muting alerts must not hide their existence. The suppressed
+  notifications are not lost: the bell's dropdown has always been the
+  history, fed by the consumer's own `list`. Turning DND off does not replay
+  the backlog — the counter advances while muted, so only the NEXT
+  notification interrupts (spec-pinned).
+
+  The bell's strings ("Notifications", "Mark all read", "All caught up",
+  the pop-up card's labels) also joined the 4.68.0 catalog.
+
+## 4.72.0
+
+- **`FormErrorSummary`** — the error list at the top of a failed form.
+  `FormField` announces its own error, which is right for one field and
+  useless as a map: a long form failing in three places gave a keyboard or
+  screen-reader user no count and no route. This is the WCAG 3.3.1 pattern
+  as GOV.UK ships it — a box that takes focus when the errors APPEAR (and
+  does not re-steal it on every re-render while the user works through the
+  list, which a spec pins), listing each message as a link that focuses the
+  offending control. The links target the same control ids FormField already
+  wires, so adoption costs a `{ fieldId, message }` list, not a rewire; the
+  heading comes from the strings catalog.
+
+## 4.71.0
+
+- **`toast.promise(p, { loading, success, error })`** — one toast for one
+  async operation. A spinning loading toast (sticky, `role="status"`, no
+  sound — the sound belongs to the outcome) while the promise is pending,
+  swapped for the success or error toast when it settles. "Saving… then
+  Saved, or the failure" was previously two hand-orchestrated toasts at
+  every call site. `success` and `error` may be functions of the resolved
+  value / the rejection ("Saved 3 rows"), and the promise is returned
+  untouched, so the caller's own error handling still runs.
+
+  `error` is required, and there is deliberately no fallback that prints the
+  exception itself: a raw `e.message` in a toast is how internals leak to
+  the screen — the same reasoning that keeps ErrorBoundary's stack behind
+  `showDetails`. A spec pins that an `ECONNREFUSED …` rejection never
+  reaches the DOM.
+
+## 4.70.0
+
+- **`DataTable` takes `selection`** — `{ selected, onChange }`, a leading
+  checkbox column controlled by row key. Bulk actions over a server-driven
+  list used to force `EntityList`, which drags in axios and react-query;
+  this is the peer-free version. Selection is by KEY, so it survives paging:
+  the header checkbox adds or removes only the current data's keys and
+  leaves foreign keys alone — "select three here, two more on page 4"
+  accumulates, and clear-all on one page cannot silently drop another
+  page's choices (spec-pinned). The header checkbox reads indeterminate for
+  a partly-chosen page, a checkbox click never also opens a clickable row,
+  the column composes with pinned columns (their offsets shift right) and
+  with `virtualized`, and the checkboxes carry catalog-translatable labels.
+
+## 4.69.0
+
+- **Windows reopen after login — and after F5.** Window state is in-memory,
+  so logging out or refreshing always meant an empty desktop. The shell now
+  saves each open window's identifying refs (a page's route, an entity's
+  registry key + id — never window content) through ShellPrefs, and replays
+  them on a fresh mount when nothing is open yet. A deep link that already
+  opened a window wins over the replay; part-number lookup windows are
+  deliberately not restored (they open through a search round-trip, and a
+  stale search re-running itself at login is a surprise, not a restoration).
+  Off switch in Preferences → Behavior ("Reopen windows from the last
+  session"); saves are debounced; and persisting starts only after the
+  restore attempt, so mounting with an empty desktop cannot overwrite the
+  saved set it was about to replay — the ordering that would otherwise make
+  the feature erase its own input, and the thing the specs pin.
+
+## 4.68.0
+
+- **`ShellStringsProvider`** — the shell's own strings become translatable.
+  Every user-facing string was hardcoded English at its call site — "Goodbye",
+  "Nothing to show", the window-control tooltips, the About dialog — so the
+  shell stayed English no matter what the consuming portal did. They now live
+  in one typed catalog (`ShellStrings`) that components read through
+  `useShellStrings`; with NO provider the English defaults apply, so nothing
+  changes for an app that never mounts it, which a spec pins.
+
+  An override is a typed partial merged per section — translating the window
+  controls does not oblige anyone to translate the help viewer, and a catalog
+  that falls behind a release falls back to English instead of breaking.
+  Prop-level text (`emptyText`, `emptyOptionLabel`, placeholders) always wins
+  over the catalog: it replaces hardcoded DEFAULTS, never a caller's words.
+  Deliberately not an i18n library — no message IDs, no interpolation DSL;
+  the shell's strings are labels and short sentences, and a typed object
+  keeps a translation honest when a string is added.
+
+  Wired so far: window chrome (controls, context menu, title-bar aria),
+  taskbar and exposé, the logout cover, About / What's New, DataTable and
+  picker defaults (SearchableSelect, TagInput), and HelpCenter. Remaining
+  strings migrate incrementally; the widget context menu and ShortcutHelp
+  descriptions are the known stragglers. Two capitalisation drifts were
+  unified along the way ("Pin on Top" vs "Pin on top" said both, in different
+  menus).
+
+- **CI tests the suite under React 19** as well as 18 — the admin portal runs
+  the shell on React 19 in production, and the `>=18` peer range is now a
+  tested promise rather than a hopeful one.
+
 ## 4.67.0
 
 - **A dropdown opened inside a dialog is no longer hidden behind it.** `Select`,

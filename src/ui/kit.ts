@@ -59,6 +59,8 @@ export { default as Radio } from '../forms/Radio';
 export type { RadioProps } from '../forms/Radio';
 export { default as FormField } from '../forms/FormField';
 export type { FormFieldProps } from '../forms/FormField';
+export { default as FormErrorSummary } from '../forms/FormErrorSummary';
+export type { FormError, FormErrorSummaryProps } from '../forms/FormErrorSummary';
 export { default as Label } from '../forms/Label';
 export type { LabelProps } from '../forms/Label';
 export { default as MediaUploadField, mediaFileName } from '../forms/MediaUploadField';
@@ -235,6 +237,10 @@ export {
   useLocalStoragePrefs,
 } from '../shell/ShellPrefs';
 export type { ShellPrefsAdapter } from '../shell/ShellPrefs';
+// The shell's user-facing strings — English defaults with no provider; mount
+// the provider once with a partial override to translate. See strings.tsx.
+export { ShellStringsProvider, useShellStrings, DEFAULT_SHELL_STRINGS } from '../shell/strings';
+export type { ShellStrings, ShellStringsOverride } from '../shell/strings';
 
 // ── Utilities & hooks ──
 // GLASS_INPUT_BG is intentionally absent: its CSS lives in shell.css, so the

@@ -81,6 +81,16 @@ export default function BehaviorPanel() {
           <span className="text-sm text-gray-700">Enter full screen mode automatically</span>
           <span className="text-xs text-gray-400 ml-1">— on login</span>
         </label>
+        <label className="flex items-center gap-2 cursor-pointer mt-2">
+          <input
+            type="checkbox"
+            checked={prefs.restore_windows ?? true}
+            onChange={e => savePref('restore_windows', e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-blue-600"
+          />
+          <span className="text-sm text-gray-700">Reopen windows from the last session</span>
+          <span className="text-xs text-gray-400 ml-1">— on login</span>
+        </label>
       </div>
 
       <ModalActions>

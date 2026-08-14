@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import { glassStyle } from '../utils/glass';
 import { INPUT_BASE } from '../forms/styles';
 import { useDropdownPosition, POPUP_MAX_WIDTH, MENU_MAX_HEIGHT } from '../forms/dropdownPosition';
+import { useShellStrings } from './strings';
 
 export interface SearchableOption {
   value: string;
@@ -69,7 +70,7 @@ export interface SearchableSelectProps {
 /** Hover-revealed × that clears the selection. The parent is `relative
  *  group`, so the button fades in on field hover only. mousedown (not
  *  click) so the input's focus/open handlers never fire. */
-function ClearButton({ onClear, ariaLabel = 'Clear selection' }: { onClear: () => void; ariaLabel?: string }) {
+function ClearButton({ onClear, ariaLabel }: { onClear: () => void; ariaLabel: string }) {
   return (
     <button
       type="button"
@@ -87,11 +88,14 @@ function ClearButton({ onClear, ariaLabel = 'Clear selection' }: { onClear: () =
 // input remaps from styles.css.
 
 export default function SearchableSelect({
-  value, onChange, options, placeholder, emptyOptionLabel = '— None —', className = '',
+  value, onChange, options, placeholder, emptyOptionLabel, className = '',
   disabled, id, allowFreeText = false, onSearchChange, rightAdornment,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearchState] = useState('');
+  // Catalog defaults — a caller's own labels always win (see strings.tsx).
+  const strings = useShellStrings();
+  const noneLabel = emptyOptionLabel ?? strings.select.none;
   // Wrap setSearch so every change also notifies the parent (when wired up).
   // Keeps the in-memory filtering working while letting a parent that wants
   // server-side search debounce + react to the same value.
@@ -223,13 +227,13 @@ export default function SearchableSelect({
             setSearch('');
           }
         }}
-        placeholder={placeholder || (emptyOptionLabel || 'Select…')}
+        placeholder={placeholder || noneLabel}
         className={`${INPUT_BASE} ${className} ${value ? 'pr-8' : ''} ${disabled ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''} truncate`}
         style={adornPad ? { paddingRight: adornPad } : undefined}
         disabled={disabled}
       />
       {value && !disabled && (
-        <ClearButton onClear={() => { onChange(''); setOpen(false); setSearch(''); }} />
+        <ClearButton ariaLabel={strings.select.clear} onClear={() => { onChange(''); setOpen(false); setSearch(''); }} />
       )}
       {rightAdornment && !open && (
         <div ref={adornRef} className={`absolute top-1/2 -translate-y-1/2 ${value && !disabled ? 'right-8' : 'right-2'} flex items-center gap-1 flex-nowrap justify-end pointer-events-none`}>
@@ -266,7 +270,7 @@ export default function SearchableSelect({
         >
           <div className="overflow-y-auto" style={{ maxHeight: menuPos?.maxHeight ?? MENU_MAX_HEIGHT }}>
             {filtered.length === 0 ? (
-              <p className="px-3 py-3 text-sm text-gray-400 text-center">No matches</p>
+              <p className="px-3 py-3 text-sm text-gray-400 text-center">{strings.select.noMatches}</p>
             ) : (
               filtered.map(o => (
                 <button
