@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useWindowManager } from './WindowManager';
+import { useShellStrings } from './strings';
 import { useShellPrefs } from './ShellPrefs';
 import Modal from './Modal';
 import WidgetManager from './WidgetManager';
@@ -131,6 +132,7 @@ export function useDesktopHost(): DesktopHostConfig {
 }
 
 export default function Desktop({ profile }: { profile: any }) {
+  const shellStrings = useShellStrings();
   const queryClient = useQueryClient();
   const { openEntity, openPage } = useWindowManager();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1271,7 +1273,7 @@ export default function Desktop({ profile }: { profile: any }) {
           {!hiddenMenuItems.includes('about') && (
             <PopupMenuItem onClick={() => { setContextMenu(null); setAboutOpen(true); }}>
               <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-              About {host.productName ?? 'this app'}
+              {shellStrings.about.aboutPrefix} {host.productName ?? shellStrings.about.thisApp}
             </PopupMenuItem>
           )}
           {host.onReportBug && <>
@@ -1324,7 +1326,7 @@ export default function Desktop({ profile }: { profile: any }) {
         const version = host.productVersion ?? APP_VERSION;
         const showVersion: boolean = prefs.show_desktop_version ?? true;
         return (
-        <Modal open={true} onClose={() => setAboutOpen(false)} title={`About ${host.productName ?? 'this app'}`} size="sm" bodyScroll={false} compact dimensions={[340, 420]}>
+        <Modal open={true} onClose={() => setAboutOpen(false)} title={`${shellStrings.about.aboutPrefix} ${host.productName ?? shellStrings.about.thisApp}`} size="sm" bodyScroll={false} compact dimensions={[340, 420]}>
           <div className="flex flex-col items-center">
             {/* Logo & Title */}
             <div className="flex flex-col items-center gap-2 pt-4 pb-3 w-full">
@@ -1338,7 +1340,7 @@ export default function Desktop({ profile }: { profile: any }) {
 
             {/* Open Source Licenses */}
             <div className="py-3 border-t border-gray-200 w-full px-4">
-              <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 text-center">Open Source Licenses</h3>
+              <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2 text-center">{shellStrings.about.openSourceLicenses}</h3>
               <div className="max-h-40 overflow-y-auto">
                 <table className="w-full text-[11px]">
                   <thead><tr className="text-gray-500 border-b border-gray-100"><th className="text-left py-1 font-medium">Package</th><th className="text-left py-1 font-medium">License</th></tr></thead>
@@ -1442,10 +1444,10 @@ export default function Desktop({ profile }: { profile: any }) {
       {whatsNewOpen && (() => {
         const entries = host.productChangelog ?? changelog;
         return (
-        <Modal open={true} onClose={() => setWhatsNewOpen(false)} title="What's New" size="md" bodyScroll={false}>
+        <Modal open={true} onClose={() => setWhatsNewOpen(false)} title={shellStrings.about.whatsNew} size="md" bodyScroll={false}>
           <div className="space-y-5 max-h-[60vh] overflow-y-auto px-1">
             {entries.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">No changelog available.</p>
+              <p className="text-sm text-gray-400 text-center py-6">{shellStrings.about.noChangelog}</p>
             ) : entries.map((entry, i) => (
               <div key={entry.version}>
                 <div className="flex items-center gap-3 mb-2">

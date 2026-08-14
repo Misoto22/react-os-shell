@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import Markdown from './Markdown';
+import { useShellStrings } from './strings';
 
 /**
  * One help article. Generic shape — the consuming portal maps its own
@@ -75,8 +76,10 @@ export default function HelpCenter({
   onNew,
   onEdit,
   renderBody,
-  emptyMessage = 'No help articles yet.',
+  emptyMessage,
 }: HelpCenterProps) {
+  // Catalog defaults — a caller's own `emptyMessage` always wins (see strings.tsx).
+  const strings = useShellStrings();
   const [query, setQuery] = useState('');
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
   // Per-category open/closed override. A category absent from the map uses its
@@ -137,10 +140,10 @@ export default function HelpCenter({
     <div className="flex h-full gap-4 px-4 py-3 min-h-0">
       <aside className="w-64 shrink-0 flex flex-col bg-white rounded-lg shadow overflow-hidden">
         <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-200 bg-gray-50 shrink-0">
-          <h2 className="text-sm font-semibold text-gray-900">Help</h2>
+          <h2 className="text-sm font-semibold text-gray-900">{strings.help.title}</h2>
           {canEdit && onNew && (
             <button type="button" onClick={onNew} className="text-xs text-blue-600 hover:underline">
-              + New
+              {strings.help.newArticle}
             </button>
           )}
         </div>
@@ -163,7 +166,7 @@ export default function HelpCenter({
               type="text"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search help…"
+              placeholder={strings.help.searchPlaceholder}
               className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-8 pr-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -171,10 +174,10 @@ export default function HelpCenter({
 
         <div className="flex-1 overflow-y-auto py-1">
           {loading ? (
-            <p className="px-3 py-6 text-center text-xs text-gray-400">Loading…</p>
+            <p className="px-3 py-6 text-center text-xs text-gray-400">{strings.help.loading}</p>
           ) : visibleGroups.length === 0 ? (
             <p className="px-3 py-6 text-center text-xs text-gray-500">
-              {q ? 'No articles match your search.' : emptyMessage}
+              {q ? strings.help.noResults : (emptyMessage ?? strings.help.empty)}
             </p>
           ) : (
             visibleGroups.map(group => {
@@ -205,7 +208,7 @@ export default function HelpCenter({
                         >
                           <span className="truncate">{doc.title}</span>
                           {doc.is_published === false && (
-                            <span className="ml-auto shrink-0 text-[10px] text-amber-600">Draft</span>
+                            <span className="ml-auto shrink-0 text-[10px] text-amber-600">{strings.help.draft}</span>
                           )}
                         </button>
                       );
@@ -226,7 +229,7 @@ export default function HelpCenter({
                 <p className="text-xs text-gray-500 mt-0.5">
                   {selected.category_label}
                   {selected.is_published === false && (
-                    <span className="ml-2 text-amber-600">· Draft</span>
+                    <span className="ml-2 text-amber-600">· {strings.help.draft}</span>
                   )}
                 </p>
               </div>
@@ -236,7 +239,7 @@ export default function HelpCenter({
                   onClick={() => onEdit(selected)}
                   className="shrink-0 text-sm text-blue-600 hover:underline"
                 >
-                  Edit
+                  {strings.help.edit}
                 </button>
               )}
             </div>
@@ -246,14 +249,14 @@ export default function HelpCenter({
               ) : selected.body ? (
                 <Markdown>{selected.body}</Markdown>
               ) : (
-                <p className="text-sm text-gray-500 italic">This article has no body yet.</p>
+                <p className="text-sm text-gray-500 italic">{strings.help.noBody}</p>
               )}
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center px-6 text-center">
             <p className="text-sm text-gray-500">
-              {loading ? 'Loading…' : 'Pick a help article from the left.'}
+              {loading ? strings.help.loading : strings.help.pickArticle}
             </p>
           </div>
         )}

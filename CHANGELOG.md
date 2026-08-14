@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.68.0
+
+- **`ShellStringsProvider`** — the shell's own strings become translatable.
+  Every user-facing string was hardcoded English at its call site — "Goodbye",
+  "Nothing to show", the window-control tooltips, the About dialog — so the
+  shell stayed English no matter what the consuming portal did. They now live
+  in one typed catalog (`ShellStrings`) that components read through
+  `useShellStrings`; with NO provider the English defaults apply, so nothing
+  changes for an app that never mounts it, which a spec pins.
+
+  An override is a typed partial merged per section — translating the window
+  controls does not oblige anyone to translate the help viewer, and a catalog
+  that falls behind a release falls back to English instead of breaking.
+  Prop-level text (`emptyText`, `emptyOptionLabel`, placeholders) always wins
+  over the catalog: it replaces hardcoded DEFAULTS, never a caller's words.
+  Deliberately not an i18n library — no message IDs, no interpolation DSL;
+  the shell's strings are labels and short sentences, and a typed object
+  keeps a translation honest when a string is added.
+
+  Wired so far: window chrome (controls, context menu, title-bar aria),
+  taskbar and exposé, the logout cover, About / What's New, DataTable and
+  picker defaults (SearchableSelect, TagInput), and HelpCenter. Remaining
+  strings migrate incrementally; the widget context menu and ShortcutHelp
+  descriptions are the known stragglers. Two capitalisation drifts were
+  unified along the way ("Pin on Top" vs "Pin on top" said both, in different
+  menus).
+
+- **CI tests the suite under React 19** as well as 18 — the admin portal runs
+  the shell on React 19 in production, and the `>=18` peer range is now a
+  tested promise rather than a hopeful one.
+
 ## 4.67.0
 
 - **A dropdown opened inside a dialog is no longer hidden behind it.** `Select`,

@@ -5,6 +5,7 @@ import { confirm } from './ConfirmDialog';
 import { useWindowManager } from './WindowManager';
 import { glassStyle as getGlassStyle } from '../utils/glass';
 import { PopupMenu, PopupMenuItem, PopupMenuDivider } from './PopupMenu';
+import { useShellStrings } from './strings';
 import { useIsMobile } from './useIsMobile';
 import { getSwipingParentKey, setSwipingParentKey, subscribeSwipingParentKey } from './mobileSwipeStore';
 import { beginWindowGesture } from './perfEvents';
@@ -1209,6 +1210,9 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
     };
   }, [swipeDragging]);
   const [displayTitle, setDisplayTitle] = useState<React.ReactNode>(title);
+  // Window-control labels come from the shell catalog (see strings.tsx).
+  const shellStrings = useShellStrings();
+  const winStr = shellStrings.window;
   useEffect(() => { setDisplayTitle(title); }, [title]);
   /** Native tooltip so a title truncated by CSS can still be read in full. Undefined when the
    *  title carries no plain text (icon-only nodes), so no empty tooltip is attached. */
@@ -2192,7 +2196,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
   const titleBarKeyProps = alwaysMaximized || exposeActive ? {} : {
     tabIndex: 0,
     role: 'group',
-    'aria-label': titleTooltip ? `${titleTooltip} — window` : 'Window',
+    'aria-label': titleTooltip ? `${titleTooltip} — ${winStr.windowSuffix}` : winStr.windowSuffix,
     'aria-keyshortcuts': 'ArrowUp ArrowDown ArrowLeft ArrowRight Shift+ArrowUp Shift+ArrowDown Shift+ArrowLeft Shift+ArrowRight Control+ArrowUp Control+ArrowDown Control+ArrowLeft Control+ArrowRight Enter',
     onKeyDown: onTitleBarKeyDown,
   } as const;
@@ -2514,7 +2518,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
             {!exposeActive && (
               <div className="flex items-center gap-1 shrink-0 ml-2">
                 {allowPinOnTop && (
-                  <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? 'Unpin from top' : 'Pin on top'}
+                  <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? winStr.unpin : winStr.pinOnTop}
                     className={`p-0.5 rounded hover:bg-gray-200 ${pinnedOnTop ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
                     <svg className="h-3 w-3" fill={pinnedOnTop ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" /></svg>
                   </button>
@@ -2537,14 +2541,14 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
             {!exposeActive && (
               <div className="flex items-center gap-0.5 shrink-0 ml-2">
                 {allowPinOnTop && (
-                  <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? 'Unpin from top' : 'Pin on top'}
+                  <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? winStr.unpin : winStr.pinOnTop}
                     className={`p-0.5 rounded hover:bg-gray-200 ${pinnedOnTop ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
                     <svg className="h-3 w-3" fill={pinnedOnTop ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" /></svg>
                   </button>
                 )}
-                <button onClick={() => _minimizeModal(modalId)} title="Minimize" className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">─</button>
+                <button onClick={() => _minimizeModal(modalId)} title={winStr.minimize} className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">─</button>
                 {!alwaysMaximized && (
-                  <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? 'Windowed' : 'Maximize'} className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">{maximized ? '❐' : '⤢'}</button>
+                  <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? winStr.windowed : winStr.maximize} className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">{maximized ? '❐' : '⤢'}</button>
                 )}
                 <button type="button" onClick={guardedClose} className="rounded p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200">
                   <XMarkIcon className="h-4 w-4" />
@@ -2564,19 +2568,19 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
             <div className="flex items-center gap-1.5 shrink-0 ml-4">
               {hasNav && (
                 <span className="flex items-center gap-1 mr-1 text-[10px] text-gray-400">
-                  <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 font-medium text-gray-500">K</kbd><span>Prev</span>
-                  <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 font-medium ml-1 text-gray-500">J</kbd><span>Next</span>
+                  <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 font-medium text-gray-500">K</kbd><span>{winStr.prev}</span>
+                  <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 font-medium ml-1 text-gray-500">J</kbd><span>{winStr.next}</span>
                 </span>
               )}
               {allowPinOnTop && (
-                <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? 'Unpin from top' : 'Pin on top'}
+                <button onClick={() => setPinnedOnTop(p => !p)} title={pinnedOnTop ? winStr.unpin : winStr.pinOnTop}
                   className={`text-xs px-2 py-1 rounded hover:bg-gray-200 ${pinnedOnTop ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
                   <svg className="h-3.5 w-3.5" fill={pinnedOnTop ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" /></svg>
                 </button>
               )}
-              <button onClick={() => _minimizeModal(modalId)} title="Minimize" className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">─</button>
+              <button onClick={() => _minimizeModal(modalId)} title={winStr.minimize} className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">─</button>
               {!alwaysMaximized && (
-                <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? 'Windowed' : 'Maximize'} className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">{maximized ? '❐' : '⤢'}</button>
+                <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? winStr.windowed : winStr.maximize} className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">{maximized ? '❐' : '⤢'}</button>
               )}
               <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">ESC</kbd>
               <button type="button" onClick={guardedClose} className="rounded-md text-gray-400 hover:text-gray-600">
@@ -2703,7 +2707,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
               <button
                 type="button"
                 data-expose-close
-                aria-label="Close window"
+                aria-label={shellStrings.taskbar.closeWindow}
                 title="Close"
                 className="absolute flex items-center justify-center rounded-full bg-black/55 text-white shadow-lg ring-1 ring-white/40 transition-colors hover:bg-red-500"
                 style={{
@@ -2754,17 +2758,17 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
       {!widget && !compact && (<>
         <PopupMenuItem onClick={() => { _minimizeModal(modalId); setWindowMenu(null); }}>
           <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
-          Minimize
+          {winStr.minimize}
         </PopupMenuItem>
         {!alwaysMaximized && (maximized ? (
           <PopupMenuItem onClick={() => { setMaximized(false); setBox(calcWindowed()); setWindowMenu(null); }}>
             <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15M4.5 9h15M4.5 15h15" /></svg>
-            Windowed
+            {winStr.windowed}
           </PopupMenuItem>
         ) : (
           <PopupMenuItem onClick={() => { reset(); setWindowMenu(null); }}>
             <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
-            Maximize
+            {winStr.maximize}
           </PopupMenuItem>
         ))}
 
@@ -2772,7 +2776,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
       {allowPinOnTop && (
         <PopupMenuItem onClick={() => { setPinnedOnTop(p => !p); setWindowMenu(null); }}>
           <svg className={`h-4 w-4 ${pinnedOnTop ? 'text-blue-600' : 'text-gray-400'}`} fill={pinnedOnTop ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" /></svg>
-          {pinnedOnTop ? 'Unpin from Top' : 'Pin on Top'}
+          {pinnedOnTop ? winStr.unpin : winStr.pinOnTop}
         </PopupMenuItem>
       )}
       {shortcutSpec && (
@@ -2780,7 +2784,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
           <svg className={`h-4 w-4 ${isOnDesktop ? 'text-yellow-500' : 'text-gray-400'}`} fill={isOnDesktop ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
           </svg>
-          {isOnDesktop ? 'Remove from Desktop' : 'Add to Desktop'}
+          {isOnDesktop ? shellStrings.taskbar.removeFromDesktop : shellStrings.taskbar.addToDesktop}
         </PopupMenuItem>
       )}
       {/* Custom menu items registered by child components */}
@@ -2795,7 +2799,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
       <PopupMenuDivider />
       <PopupMenuItem danger onClick={() => { setWindowMenu(null); guardedClose(); }}>
         <XMarkIcon className="h-4 w-4" />
-        Close
+        {winStr.close}
       </PopupMenuItem>
     </PopupMenu>
   );

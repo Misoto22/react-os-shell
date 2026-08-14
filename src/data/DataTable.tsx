@@ -21,6 +21,7 @@
  */
 import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type UIEvent } from 'react';
 import Pagination from './Pagination';
+import { useShellStrings } from '../shell/strings';
 import type { SortState } from './types';
 
 export interface DataTableColumn<T> {
@@ -173,9 +174,12 @@ function SortIcon({ direction }: { direction: 'asc' | 'desc' | null }) {
 
 export default function DataTable<T>({
   columns, data, rowKey, sort = null, onSortChange, pagination, caption, loading = false,
-  bordered = false, size = 'md', minWidth, rowClassName, onRow, emptyText = 'Nothing to show',
+  bordered = false, size = 'md', minWidth, rowClassName, onRow, emptyText,
   footer, virtualized, className = '',
 }: DataTableProps<T>) {
+  // Catalog defaults — a caller's own `emptyText` always wins (see strings.tsx).
+  const strings = useShellStrings();
+  const emptyContent = emptyText ?? strings.table.empty;
   const keyOf = (row: T, i: number): string =>
     typeof rowKey === 'function' ? rowKey(row, i) : String(row[rowKey]);
 
@@ -318,7 +322,7 @@ export default function DataTable<T>({
           // page around under the user.
           <div className="absolute inset-0 z-20 flex items-start justify-center bg-white/60 pt-8" role="status" aria-live="polite">
             <span className="h-6 w-6 animate-spin rounded-full border-2 border-gray-200 border-t-blue-600" />
-            <span className="sr-only">Loading</span>
+            <span className="sr-only">{strings.table.loading}</span>
           </div>
         )}
         <table className="w-full border-collapse tabular-nums" style={minWidth ? { minWidth } : undefined}>
@@ -364,7 +368,7 @@ export default function DataTable<T>({
             {data.length === 0 && !loading ? (
               <tr>
                 <td colSpan={leaves.length} className={`${cellBase} py-10 text-center text-gray-500`}>
-                  {emptyText}
+                  {emptyContent}
                 </td>
               </tr>
             ) : (

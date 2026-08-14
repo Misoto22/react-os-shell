@@ -23,6 +23,7 @@ import { createPortal } from 'react-dom';
 import { glassStyle } from '../utils/glass';
 import { inputClasses } from './styles';
 import { MENU_MAX_HEIGHT, POPUP_MAX_WIDTH, useDropdownPosition } from './dropdownPosition';
+import { useShellStrings } from '../shell/strings';
 
 export interface TagInputOption {
   value: string;
@@ -53,6 +54,7 @@ export default function TagInput({
 }: TagInputProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const strings = useShellStrings();
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -129,7 +131,7 @@ export default function TagInput({
             {!disabled && (
               <button
                 type="button"
-                aria-label={`Remove ${labelFor(v)}`}
+                aria-label={`${strings.select.remove} ${labelFor(v)}`}
                 onClick={() => remove(v)}
                 className="text-blue-400 hover:text-red-500 focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 rounded leading-none"
               >
@@ -205,7 +207,7 @@ export default function TagInput({
           <div className="overflow-y-auto" style={{ maxHeight: menuPos?.maxHeight ?? MENU_MAX_HEIGHT }}>
             {available.length === 0 ? (
               <p className="px-3 py-3 text-sm text-gray-400 text-center">
-                {options.length > 0 && value.length >= options.length ? 'All options selected' : 'No matches'}
+                {options.length > 0 && value.length >= options.length ? strings.select.allSelected : strings.select.noMatches}
               </p>
             ) : (
               available.map(o => (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { playLogout } from '../utils/sounds';
+import { useShellStrings } from './strings';
 
 export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon.svg' }: { onComplete: () => void; subtitle?: string; logo?: string }) {
   // 'show' → greeting visible; 'out' → logo/title spin and fade away. The
@@ -9,6 +10,7 @@ export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon
   // swaps in behind it and the user goes straight from "Goodbye" to login
   // (no flash of the desktop in between).
   const [phase, setPhase] = useState<'show' | 'out'>('show');
+  const strings = useShellStrings();
 
   useEffect(() => {
     playLogout();
@@ -42,8 +44,8 @@ export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon
 
       {/* Title — fades down */}
       <div className={`mt-6 text-center transition-all duration-700 ${phase === 'show' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-        <h1 className="text-2xl font-bold tracking-[0.3em] text-white/90 uppercase">Goodbye</h1>
-        <p className="mt-2 text-xs text-white/40">See you next time</p>
+        <h1 className="text-2xl font-bold tracking-[0.3em] text-white/90 uppercase">{strings.logout.goodbye}</h1>
+        <p className="mt-2 text-xs text-white/40">{strings.logout.seeYou}</p>
       </div>
 
       {/* Subtitle (consumer-supplied — typically the company / product name) */}

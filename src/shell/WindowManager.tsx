@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient, { isShellApiClientConfigured } from '../api/client';
+import { useShellStrings } from './strings';
 import { entityDetailUrl, entityRefetchInterval, shouldRetryEntityFetch } from './entityFetchPolicy';
 import { WINDOW_REGISTRY, isPageEntry, isEntityEntry, type PageRegistryEntry, type ModalRegistryEntry } from '../windowRegistry/types';
 import Modal, { triggerSplitView, modalDepthRef, getActiveModalId, subscribeActive, activateModal, ExposeBackdrop, WindowShortcutProvider, setWindowDefaultPosition, isPanelFullyVisible, panelOffscreenBearing, revealWindow, requestModalClose, type WindowShortcutSpec } from './Modal';
@@ -185,6 +186,7 @@ function PageWindow({ item, onClose, accentRgb }: { item: MinimizedItem; onClose
 
 /** Star button to favorite a document — saves to preferences.favorite_documents */
 export function DocFavStar({ entityType, entityId, label }: { entityType: string; entityId: string; label: string }) {
+  const shellStrings = useShellStrings();
   const queryClient = useQueryClient();
   const { data: profile } = useQuery({ queryKey: ['my-profile-sidebar'], enabled: isShellApiClientConfigured(), queryFn: () => apiClient.get('/auth/me/').then(r => r.data) });
   const favDocs: { entityType: string; entityId: string; label: string }[] = (profile?.preferences || {}).favorite_documents || [];
@@ -200,7 +202,7 @@ export function DocFavStar({ entityType, entityId, label }: { entityType: string
   };
 
   return (
-    <button onClick={toggle} title={isFav ? 'Remove from desktop' : 'Add to desktop'}
+    <button onClick={toggle} title={isFav ? shellStrings.taskbar.removeFromDesktop : shellStrings.taskbar.addToDesktop}
       className={`shrink-0 transition-colors ${isFav ? 'text-yellow-500 hover:text-yellow-600' : 'text-gray-300 hover:text-yellow-400'}`}>
       <svg className="h-4 w-4" fill={isFav ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
@@ -459,6 +461,7 @@ function clearPeekFocus() {
 export function ThumbCard({ id, label, maxW, maxH, titleAbove = false, onClick, onClose }: {
   id: string; label: string; maxW: number; maxH: number; titleAbove?: boolean; onClick?: () => void; onClose?: () => void;
 }) {
+  const shellStrings = useShellStrings();
   const previewRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState<{ w: number; h: number }>({ w: maxW, h: Math.round(maxH * 0.75) });
   const [hasSnapshot, setHasSnapshot] = useState(false);
@@ -526,7 +529,7 @@ export function ThumbCard({ id, label, maxW, maxH, titleAbove = false, onClick, 
         <button
           onClick={(e) => { e.stopPropagation(); onClose(); }}
           className="absolute top-1 right-1 z-20 h-5 w-5 rounded-full bg-gray-900/90 ring-1 ring-white/80 shadow-sm hover:bg-red-500 text-white flex items-center justify-center"
-          title="Close window"
+          title={shellStrings.taskbar.closeWindow}
         >
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
@@ -545,6 +548,7 @@ function TaskbarTabPreview({ items, anchorEl, onActivate, onClose, onMouseEnter,
   items: MinimizedItem[]; anchorEl: HTMLElement; onActivate: (id: string) => void; onClose: (id: string) => void;
   onMouseEnter: () => void; onMouseLeave: () => void;
 }) {
+  const shellStrings = useShellStrings();
   const MAX_W = 240;
   const MAX_H = 160;
   const isGroup = items.length > 1;
@@ -644,7 +648,7 @@ function TaskbarTabPreview({ items, anchorEl, onActivate, onClose, onMouseEnter,
             {titleBelow && <span className={titleClass}>{it.label}</span>}
             {bearing !== null && (
               <span
-                title="This window is off screen — click to bring it back"
+                title={shellStrings.taskbar.offscreenHint}
                 className="mt-1 inline-flex items-center gap-1 rounded bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white shadow-sm"
               >
                 <svg className="h-3 w-3" style={{ transform: `rotate(${bearing}deg)` }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
@@ -666,6 +670,7 @@ function TaskbarWindows({ openWindows, onRemove, onSplitView, onActivate, onActi
   onActivate: (label: string) => void;
   onActivateById: (id: string) => void;
 }) {
+  const shellStrings = useShellStrings();
   const [target, setTarget] = useState<HTMLElement | null>(null);
   useEffect(() => {
     const el = document.getElementById('taskbar-windows');
@@ -786,7 +791,7 @@ function TaskbarWindows({ openWindows, onRemove, onSplitView, onActivate, onActi
             }
             <span className="truncate flex-1">{isGrouped ? group.label : liveTitle(primary.label)}</span>
             {offscreen && (
-              <span title="Off screen — click to bring this window back" className="shrink-0 h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <span title={shellStrings.taskbar.offscreenDot} className="shrink-0 h-1.5 w-1.5 rounded-full bg-amber-500" />
             )}
             {isGrouped && (
               <span className="shrink-0 px-1.5 py-0.5 rounded-full bg-blue-500/80 text-white text-[10px] font-bold leading-none">{group.items.length}</span>
@@ -801,7 +806,7 @@ function TaskbarWindows({ openWindows, onRemove, onSplitView, onActivate, onActi
       })}
       <div className="flex-1" />
       {tabWindows.length >= 2 && (
-        <button onClick={onSplitView} title="Exposé — show all open windows as thumbnails"
+        <button onClick={onSplitView} title={shellStrings.taskbar.expose}
           className="flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-blue-600 border border-blue-300 hover:bg-blue-50 transition-colors shrink-0">
           {/* 2×2 grid icon — exposé toggle, mirrors macOS Mission Control. */}
           <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
