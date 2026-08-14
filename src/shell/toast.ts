@@ -51,7 +51,7 @@ export interface ToastOptions {
 let defaults: ToastOptions = {};
 
 /** Live toasts by dedupe key, so a repeat can find and refresh its own. */
-const live = new Map<string, { el: HTMLElement; restart: () => void }>();
+const live = new Map<string, { el: HTMLElement; restart: () => void; dismiss: () => void }>();
 
 function getOrCreate(id: string, className: string): HTMLElement {
   let el = document.getElementById(id);
@@ -84,8 +84,8 @@ const GLASS_COMMON = `
 
 // ── Toast (operation feedback) — top-center, brief ──
 
-function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: string,
-                   opts?: ToastOptions) {
+function showToast(variant: 'success' | 'error' | 'warning' | 'info' | 'loading', message: string,
+                   opts?: ToastOptions): { dismiss: () => void } {
   const opts_ = { ...defaults, ...opts };
   const placement: ToastPlacement = opts_.placement ?? 'top';
   const sticky = opts_.sticky ?? false;
@@ -94,14 +94,18 @@ function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: s
   const key = `${placement}|${variant}|${message}`;
   if (opts_.dedupe) {
     const existing = live.get(key);
-    if (existing) { existing.restart(); return; }
+    if (existing) { existing.restart(); return { dismiss: existing.dismiss }; }
   }
 
-  import('../utils/sounds').then(s => {
-    if (variant === 'success') s.playSuccess();
-    else if (variant === 'error') s.playError();
-    else s.playNotification();
-  }).catch(() => {});
+  // A loading toast is the START of an operation — the sound belongs to the
+  // outcome, which follows in a moment.
+  if (variant !== 'loading') {
+    import('../utils/sounds').then(s => {
+      if (variant === 'success') s.playSuccess();
+      else if (variant === 'error') s.playError();
+      else s.playNotification();
+    }).catch(() => {});
+  }
 
   const container = placement === 'bottom'
     ? getOrCreate(TOAST_BOTTOM_CONTAINER_ID, 'fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] flex flex-col-reverse gap-2 items-center pointer-events-none')
@@ -114,12 +118,14 @@ function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: s
     // user should read before continuing, not something that failed. Painting
     // both red teaches people to ignore the colour.
     variant === 'warning' ? '#f59e0b' :
-    '#3b82f6';
+    '#3b82f6'; // info and loading share the working blue
   const icons = {
     success: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>',
     error: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>',
     warning: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>',
     info: '<svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    // An open arc that spins — same vocabulary as LoadingSpinner.
+    loading: '<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="' + color + '" stroke-width="2"><path stroke-linecap="round" d="M12 3a9 9 0 019 9"/></svg>',
   };
   const icon = icons[variant];
 
@@ -188,7 +194,9 @@ function showToast(variant: 'success' | 'error' | 'warning' | 'info', message: s
   // behaved this way since it existed.
   el.addEventListener('click', dismiss);
 
-  live.set(key, { el, restart });
+  live.set(key, { el, restart, dismiss });
+  // Internal handle — `toast.promise` swaps its loading toast for the outcome.
+  return { dismiss };
 }
 
 // ── Notification (system alert) — top-right, stays longer ──
@@ -250,6 +258,40 @@ const toast = {
   info: (message: string, opts?: ToastOptions) => showToast('info', message, opts),
   // Persistent top-right notification card (the old toast.info presentation).
   notify: (message: string, opts?: { duration?: number }) => showNotification(message, opts),
+  /**
+   * One toast for one async operation: a spinning "loading" toast while `p`
+   * is pending, swapped for a success or error toast when it settles. The
+   * promise is returned untouched, so `await toast.promise(save(), …)` still
+   * throws to the caller — this narrates the operation, it does not handle it.
+   *
+   * `error` is REQUIRED, and there is deliberately no fallback that prints
+   * the exception: a raw `e.message` in a toast is how internals leak to the
+   * screen (the same reasoning that keeps ErrorBoundary's stack behind
+   * `showDetails`). The success/error messages may be functions of the
+   * resolved value / the rejection, for the "Saved 3 rows" case.
+   */
+  promise: <T,>(
+    p: Promise<T>,
+    msgs: {
+      loading: string;
+      success: string | ((value: T) => string);
+      error: string | ((error: unknown) => string);
+    },
+    opts?: ToastOptions,
+  ): Promise<T> => {
+    const pending = showToast('loading', msgs.loading, { ...opts, sticky: true });
+    p.then(
+      value => {
+        pending.dismiss();
+        showToast('success', typeof msgs.success === 'function' ? msgs.success(value) : msgs.success, opts);
+      },
+      error => {
+        pending.dismiss();
+        showToast('error', typeof msgs.error === 'function' ? msgs.error(error) : msgs.error, opts);
+      },
+    );
+    return p;
+  },
   /**
    * Set defaults for every subsequent toast. Call once at app startup; later
    * calls replace the whole object rather than merging, so a consumer sets its

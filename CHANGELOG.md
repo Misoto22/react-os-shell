@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.71.0
+
+- **`toast.promise(p, { loading, success, error })`** — one toast for one
+  async operation. A spinning loading toast (sticky, `role="status"`, no
+  sound — the sound belongs to the outcome) while the promise is pending,
+  swapped for the success or error toast when it settles. "Saving… then
+  Saved, or the failure" was previously two hand-orchestrated toasts at
+  every call site. `success` and `error` may be functions of the resolved
+  value / the rejection ("Saved 3 rows"), and the promise is returned
+  untouched, so the caller's own error handling still runs.
+
+  `error` is required, and there is deliberately no fallback that prints the
+  exception itself: a raw `e.message` in a toast is how internals leak to
+  the screen — the same reasoning that keeps ErrorBoundary's stack behind
+  `showDetails`. A spec pins that an `ECONNREFUSED …` rejection never
+  reaches the DOM.
+
 ## 4.70.0
 
 - **`DataTable` takes `selection`** — `{ selected, onChange }`, a leading
