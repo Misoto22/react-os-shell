@@ -45,6 +45,31 @@ jobs:
       - name: Verify dist artifacts
         run: node scripts/verify-dist.mjs
 
+  # The admin portal runs this package on React 19 in production, while the
+  # devDependency (and the matrix above) is React 18. The peer range says
+  # `>=18`, so this lane is what makes that a tested promise instead of a
+  # hopeful one: same specs, React 19 installed over the lockfile. Runtime
+  # compatibility only — typecheck stays on the 18 types the repo pins.
+  react-19:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install React 19
+        run: npm install --no-save react@19 react-dom@19
+
+      - name: Test under React 19
+        run: npm test
+
   browser:
     runs-on: ubuntu-latest
     steps:
