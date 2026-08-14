@@ -36,6 +36,13 @@ export interface ShellStrings {
     windowSuffix: string;
     prev: string;
     next: string;
+    snapLayouts: string;
+    snapLeft: string;
+    snapRight: string;
+    snapTopLeft: string;
+    snapTopRight: string;
+    snapBottomLeft: string;
+    snapBottomRight: string;
   };
   /** Taskbar and exposé. */
   taskbar: {
@@ -117,6 +124,13 @@ export const DEFAULT_SHELL_STRINGS: ShellStrings = {
     windowSuffix: 'window',
     prev: 'Prev',
     next: 'Next',
+    snapLayouts: 'Snap layouts',
+    snapLeft: 'Snap left half',
+    snapRight: 'Snap right half',
+    snapTopLeft: 'Snap top-left quarter',
+    snapTopRight: 'Snap top-right quarter',
+    snapBottomLeft: 'Snap bottom-left quarter',
+    snapBottomRight: 'Snap bottom-right quarter',
   },
   taskbar: {
     closeWindow: 'Close window',

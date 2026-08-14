@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.74.0
+
+- **Snap layouts picker.** Rest the pointer on — or focus — a window's
+  maximize button and a small palette of the snap zones appears: the left and
+  right halves and the four quarters, as click targets. Pure UI over the
+  snapping module's own `calcSnapBox`, so a picker snap behaves exactly like
+  a drag-to-edge snap or Ctrl/Cmd+arrows: it saves the pre-snap box, and
+  Ctrl/Cmd+↓ or the next drag restores the window's natural size
+  (spec-pinned). Opens after a short delay so a pass-over doesn't flash it,
+  closes on blur/mouse-leave with a grace period, and each zone carries a
+  catalog-translatable label. The quarters are new reachable-by-click
+  geometry for the mouse; the keyboard's half/maximize/restore set is
+  unchanged.
+
 ## 4.73.0
 
 - **Notification Do Not Disturb.** The badge keeps counting, the

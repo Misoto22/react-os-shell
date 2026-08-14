@@ -776,6 +776,75 @@ function hideSnapPreview() {
   snapPreviewEl.style.display = 'none';
 }
 
+// ── Snap layouts picker ──────────────────────────────────────────────────
+// Windows-11-style: rest on (or focus) the maximize button and a small
+// palette of the snap zones appears — the halves and quarters the drag-to-
+// edge gesture and Ctrl/Cmd+arrows already reach, as click targets. Pure UI
+// over calcSnapBox; the zones and their geometry are the snapping module's.
+const SNAP_PICKER_ZONES: { zone: SnapZone; labelKey: 'snapLeft' | 'snapRight' | 'snapTopLeft' | 'snapTopRight' | 'snapBottomLeft' | 'snapBottomRight'; region: string }[] = [
+  { zone: 'left', labelKey: 'snapLeft', region: 'inset-y-0 left-0 w-1/2' },
+  { zone: 'right', labelKey: 'snapRight', region: 'inset-y-0 right-0 w-1/2' },
+  { zone: 'tl', labelKey: 'snapTopLeft', region: 'top-0 left-0 h-1/2 w-1/2' },
+  { zone: 'tr', labelKey: 'snapTopRight', region: 'top-0 right-0 h-1/2 w-1/2' },
+  { zone: 'bl', labelKey: 'snapBottomLeft', region: 'bottom-0 left-0 h-1/2 w-1/2' },
+  { zone: 'br', labelKey: 'snapBottomRight', region: 'bottom-0 right-0 h-1/2 w-1/2' },
+];
+const SNAP_PICKER_OPEN_MS = 350;
+const SNAP_PICKER_CLOSE_MS = 200;
+
+function SnapLayoutsButton({ maximized, onToggleMax, onSnap, buttonClassName, strings }: {
+  maximized: boolean;
+  onToggleMax: () => void;
+  onSnap: (zone: SnapZone) => void;
+  buttonClassName: string;
+  strings: { maximize: string; windowed: string; snapLayouts: string } & Record<'snapLeft' | 'snapRight' | 'snapTopLeft' | 'snapTopRight' | 'snapBottomLeft' | 'snapBottomRight', string>;
+}) {
+  const [open, setOpen] = useState(false);
+  const openTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => () => { clearTimeout(openTimer.current); clearTimeout(closeTimer.current); }, []);
+  const armOpen = () => { clearTimeout(closeTimer.current); openTimer.current = setTimeout(() => setOpen(true), SNAP_PICKER_OPEN_MS); };
+  const armClose = () => { clearTimeout(openTimer.current); closeTimer.current = setTimeout(() => setOpen(false), SNAP_PICKER_CLOSE_MS); };
+
+  return (
+    <span className="relative inline-flex" onMouseEnter={armOpen} onMouseLeave={armClose}>
+      <button
+        onClick={onToggleMax}
+        onFocus={armOpen}
+        onBlur={armClose}
+        title={maximized ? strings.windowed : strings.maximize}
+        className={buttonClassName}
+      >
+        {maximized ? '❐' : '⤢'}
+      </button>
+      {open && (
+        <div
+          role="group"
+          aria-label={strings.snapLayouts}
+          onMouseEnter={() => clearTimeout(closeTimer.current)}
+          onMouseLeave={armClose}
+          className="absolute right-0 top-full z-30 mt-1 grid w-max grid-cols-2 gap-1 rounded-lg border border-gray-200 bg-white p-1.5 shadow-lg"
+        >
+          {SNAP_PICKER_ZONES.map(({ zone, labelKey, region }) => (
+            <button
+              key={zone}
+              type="button"
+              aria-label={strings[labelKey]}
+              title={strings[labelKey]}
+              onClick={() => { setOpen(false); onSnap(zone); }}
+              onFocus={() => clearTimeout(closeTimer.current)}
+              onBlur={armClose}
+              className="relative h-7 w-11 rounded border border-gray-300 bg-gray-50 hover:border-blue-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            >
+              <span aria-hidden="true" className={`absolute rounded-sm bg-blue-500/70 ${region}`} style={{ margin: 2 }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  );
+}
+
 // ── Pointer-gesture shield (drag/resize) ──────────────────────────────
 // A window drag/resize must keep receiving pointer events for the WHOLE
 // gesture. The move/up listeners live on `window`, which only sees events
@@ -2191,6 +2260,17 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
     boxRef.current = next;
     setBox(next);
   }, [modalId, maximized, calcWindowed, calcMaximized]);
+  // Shared by the snap-layouts picker: same pre-snap save as a snap-drop and
+  // the keyboard path, so Ctrl+Down / the next drag restores the natural box.
+  const applySnapZone = useCallback((zone: SnapZone) => {
+    if (!preSnapBoxRef.current) preSnapBoxRef.current = { ...boxRef.current };
+    setMaximized(false);
+    const snapped = calcSnapBox(zone);
+    boxRef.current = snapped;
+    setBox(snapped);
+    activateModal(modalId);
+  }, [modalId]);
+
   // Spread onto each desktop title-bar variant. Locked layouts (sidebar mode)
   // and exposé get no tab stop — there is nothing the keys could do there.
   const titleBarKeyProps = alwaysMaximized || exposeActive ? {} : {
@@ -2548,7 +2628,13 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
                 )}
                 <button onClick={() => _minimizeModal(modalId)} title={winStr.minimize} className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">─</button>
                 {!alwaysMaximized && (
-                  <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? winStr.windowed : winStr.maximize} className="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none">{maximized ? '❐' : '⤢'}</button>
+                  <SnapLayoutsButton
+                    maximized={maximized}
+                    onToggleMax={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }}
+                    onSnap={applySnapZone}
+                    buttonClassName="text-gray-400 hover:text-gray-600 px-1 py-0.5 rounded hover:bg-gray-200 text-xs leading-none"
+                    strings={winStr}
+                  />
                 )}
                 <button type="button" onClick={guardedClose} className="rounded p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200">
                   <XMarkIcon className="h-4 w-4" />
@@ -2580,7 +2666,13 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
               )}
               <button onClick={() => _minimizeModal(modalId)} title={winStr.minimize} className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">─</button>
               {!alwaysMaximized && (
-                <button onClick={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }} title={maximized ? winStr.windowed : winStr.maximize} className="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200">{maximized ? '❐' : '⤢'}</button>
+                <SnapLayoutsButton
+                  maximized={maximized}
+                  onToggleMax={() => { if (maximized) { setMaximized(false); setBox(calcWindowed()); } else { reset(); } }}
+                  onSnap={applySnapZone}
+                  buttonClassName="text-gray-400 hover:text-gray-600 text-xs px-2 py-1 rounded hover:bg-gray-200"
+                  strings={winStr}
+                />
               )}
               <kbd className="rounded border border-gray-300 bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">ESC</kbd>
               <button type="button" onClick={guardedClose} className="rounded-md text-gray-400 hover:text-gray-600">
