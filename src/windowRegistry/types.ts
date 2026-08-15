@@ -87,6 +87,12 @@ export interface ModalRegistryEntry {
   autoMinHeight?: number;
   /** App-style window: small title bar, no body padding, no footer. */
   appStyle?: boolean;
+  /** Flush body — keeps the STANDARD full title bar and footer, but drops the
+   *  body padding so the detail content sits flush to the window edges.
+   *  Implies `bodyScroll: false`; the detail component manages its own
+   *  scrolling. Use for full-height tabbed / split-pane detail windows.
+   *  See PageRegistryEntry.flushBody. */
+  flushBody?: boolean;
   /** navIcon route key for window title icon (e.g. '/orders'). */
   icon?: string;
 }

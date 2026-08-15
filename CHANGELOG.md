@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.75.0
+
+- **Entity windows can declare `flushBody`.** `ModalRegistryEntry` now
+  accepts the same `flushBody` flag page windows have had: standard title
+  bar and footer, but no body padding and no body scroll — the detail
+  component owns its own layout and scrolling. Until now the flag was
+  silently ignored on entity entries (the type didn't declare it and the
+  entity `<Modal>` never forwarded it), so full-height tabbed/split detail
+  views rendered inside the default `p-4` scrolling body. The page-window
+  path is unchanged.
+
 ## 4.74.1
 
 - **Entity windows: a render-callback close actually closes while editing.**

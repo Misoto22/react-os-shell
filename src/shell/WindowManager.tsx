@@ -328,6 +328,7 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
       autoHeight={entry.autoHeight}
       autoMinHeight={entry.autoMinHeight}
       appStyle={entry.appStyle}
+      flushBody={entry.flushBody}
       accentRgb={accentRgb}
     >
       <WindowDirtyContext.Provider value={registerDirty}>
