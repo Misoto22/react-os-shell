@@ -49,6 +49,33 @@ export function WindowShortcutProvider({ spec, children }: { spec: WindowShortcu
  * the whole tree is at best ugly and at worst clipped.
  */
 const TITLE_STRIP_TYPES = new Set(['button', 'input', 'textarea', 'select', 'kbd', 'svg']);
+
+/**
+ * What Cmd/Ctrl+Enter clicks when a window has no `<form>` to `requestSubmit()`.
+ *
+ * Two kinds of entry, in descending order of how much we trust them:
+ *
+ *  - **Explicit** — `type="submit"`, the bare `data-submit` attribute, and the
+ *    `.btn-submit` utility class. These are how a consumer *declares* "this is
+ *    the submit", so they are the ones to reach for in new markup.
+ *  - **Legacy colour heuristic** — `.bg-green-600` / `.bg-blue-600`. From before
+ *    the explicit opt-ins existed, when the submit button was identified by
+ *    being the blue (or green, for approve/post) one. Kept because consumers
+ *    still ship plenty of it; do not add more colours here.
+ *
+ * `.btn-submit` was missing from this list until 4.76.0, which made converting a
+ * button from a hardcoded `bg-blue-600` fill to the themable `.btn-submit`
+ * utility silently drop it out of the selector — Cmd+Enter stopped working while
+ * the button's own ⌘⏎ badge went on advertising it. The admin portal hit this
+ * across ~26 buttons and worked around it by also adding `data-submit`.
+ *
+ * NOTE: a comma-separated `querySelector` returns the first match in **document
+ * order**, not the first *selector* that matches — so the order of the entries
+ * below is documentation, not precedence. When a panel holds several candidates,
+ * the earliest one in the DOM wins.
+ */
+export const MODAL_SUBMIT_SELECTOR =
+  'button[type="submit"], button[data-submit], button.btn-submit, button.bg-green-600, button.bg-blue-600';
 function extractTitleText(node: ReactNode): string {
   if (node == null || typeof node === 'boolean') return '';
   if (typeof node === 'string') return node;
@@ -2302,7 +2329,7 @@ export default function Modal({ open, onClose, title, icon, copyText, size = 'lg
     if (!panel) return;
     const form = panel.querySelector('form');
     if (form) { form.requestSubmit(); } else {
-      const btn = panel.querySelector<HTMLButtonElement>('button[type="submit"], button[data-submit], button.bg-green-600, button.bg-blue-600');
+      const btn = panel.querySelector<HTMLButtonElement>(MODAL_SUBMIT_SELECTOR);
       if (btn && !btn.disabled) btn.click();
     }
   }, []);
