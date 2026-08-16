@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.77.0
+
+- **`EntityList` can name the entity in its load error.** New optional
+  `errorTitle` / `errorMessage` props are forwarded to the `ListLoadError`
+  rendered when `isError` is set and no rows have loaded. `ListLoadError` has
+  always accepted `title`/`message`, but `EntityList` rendered it bare, so a
+  list adopting the native `isError` prop had to trade its own copy —
+  "Couldn't load the talent database", "Couldn't load blog posts" — for the
+  generic "Couldn't load this list", and the custom `ListLoadError` such lists
+  used to render through the `emptyState` ternary is unreachable once `isError`
+  is passed. Both props are optional and omitting them keeps the generic
+  defaults, so existing callers are unaffected.
+
 ## 4.76.0
 
 - **Cmd+Enter finds `.btn-submit` buttons.** The submit-button selector

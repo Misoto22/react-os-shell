@@ -44,6 +44,13 @@ export interface EntityListProps<T> {
   isError?: boolean;
   /** Retry handler for the error state — wire the data source's `refetch`. */
   onRetry?: () => void;
+  /** Heading for the error state, e.g. "Couldn't load candidates". Omit for
+   *  {@link ListLoadError}'s generic "Couldn't load this list" — name the
+   *  entity where the list has one, so an outage reads as *this* list failing. */
+  errorTitle?: string;
+  /** Explanatory line under {@link EntityListProps.errorTitle}. Omit for
+   *  ListLoadError's generic connection/retry message. */
+  errorMessage?: string;
 
   tableId: string;
   columns: EntityListColumn[];
@@ -118,7 +125,7 @@ export interface EntityListProps<T> {
 export default function EntityList<T>(props: EntityListProps<T>) {
   const {
     items, isLoading, emptyState, totalCount,
-    isError, onRetry,
+    isError, onRetry, errorTitle, errorMessage,
     tableId, columns, renderCell, getRowId = (item: any) => item.id,
     sort, onSort,
     selected, setSelected,
@@ -225,7 +232,11 @@ export default function EntityList<T>(props: EntityListProps<T>) {
   if (isLoading) return <LoadingSpinner />;
   // A failed initial fetch (no rows) reads as an error with retry, not the
   // empty state. Once rows exist, a later next-page failure keeps the list.
-  if (isError && items.length === 0) return <ListLoadError onRetry={onRetry} />;
+  // `title`/`message` default inside ListLoadError, so passing undefined here
+  // keeps the generic copy for callers that don't name their entity.
+  if (isError && items.length === 0) {
+    return <ListLoadError title={errorTitle} message={errorMessage} onRetry={onRetry} />;
+  }
   if (items.length === 0) return <>{emptyState}</>;
 
   const allSelected = items.length > 0 && selected.size === items.length;
