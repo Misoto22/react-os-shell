@@ -39,7 +39,7 @@ export type {
 
 // ── Shell components ──
 export { default as Modal, ModalActions, CopyButton, CancelButton, useWindowMenuItem, WindowTitle, useWindowTitle, useModalActive, useIsActiveWindow, useEnclosingModalId, useWidgetSettings, setWindowDefaultPosition, setWindowPosition, getWindowPosition, toggleExposeMode, exitExposeMode, setExposeHighlight, getExposeHighlight, subscribeExposeHighlight, commitExposeHighlight, registerModalEscapeInterceptor } from './shell/Modal';
-export { requestWindowFront } from './shell/Modal';
+export { requestWindowFront, MODAL_SUBMIT_SELECTOR } from './shell/Modal';
 export { createWindowTarget, useWindowTarget } from './shell/windowTarget';
 export type { WindowTarget, WindowTargetOptions, StagedTarget } from './shell/windowTarget';
 export { default as WindowErrorBoundary, WindowCrashedFallback } from './shell/WindowErrorBoundary';

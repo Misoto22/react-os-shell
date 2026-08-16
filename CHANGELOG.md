@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.76.0
+
+- **Cmd+Enter finds `.btn-submit` buttons.** The submit-button selector
+  `Modal.submitModal` falls back to when a window has no `<form>` matched
+  `type="submit"`, `[data-submit]`, `.bg-green-600` and `.bg-blue-600` — but
+  not the `.btn-submit` utility class. Converting a button from a hardcoded
+  `bg-blue-600` fill to the themable `.btn-submit` therefore dropped it out of
+  the selector silently: Cmd+Enter stopped working while the button's own ⌘⏎
+  badge went on advertising it. Consumers had to add `data-submit` alongside
+  the class to keep the hotkey (the admin portal did so across ~26 buttons).
+  `.btn-submit` is now matched on its own, and those `data-submit` attributes
+  become redundant — though they remain valid and are still required for any
+  consumer whose `^` range can resolve an older shell.
+- **`MODAL_SUBMIT_SELECTOR` is exported.** The selector string was previously
+  private, so consumers asserting on Cmd+Enter behaviour hardcoded a copy of it
+  in their own specs and had no way to notice it drifting. Import it instead.
+
 ## 4.75.0
 
 - **Entity windows can declare `flushBody`.** `ModalRegistryEntry` now
