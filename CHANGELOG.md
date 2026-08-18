@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.78.0
+
+- **`Select` sizes its touch branch for a finger.** On touch it already swapped
+  the custom listbox for the native `<select>` — the OS picker being the better
+  affordance — but it passed the caller's desktop rung straight through, so it
+  rendered a 39px control under a finger at `size="lg"` (measured), and a rung
+  shorter again at the default `md`. Both are below the 44px WCAG 2.5.5 floor
+  every `Button` touch rung is held above. The touch branch now takes the `touch` rung and discards
+  the desktop one: `sm`/`md`/`lg` are the desktop ladder, and this branch only
+  renders when there is no desktop.
+
+  **This changes the height of every mobile `Select` in every consumer.** A
+  `size="lg"` Select goes 39-40px → 56px; a Select with no `size` — the common
+  case, and 15 of the 21 mobile call sites in the dealer portal — goes from the
+  `md` rung to 56px, close to double, and from `text-sm` to `text-base`. The
+  unsized ones are the bigger jump, and they are the ones nobody thought about
+  when reading this.
+
+  Worth a look on any phone layout that puts a Select in a row or stack with
+  another control. `Select` is currently the only control in the kit that picks
+  its own touch rung: `Input`, `Textarea`, `DatePicker`, `TimePicker`,
+  `DateTimePicker`, `InputNumber` and `TagInput` all render what they are given
+  on every viewport, and `SearchableSelect` has no size axis at all. A field
+  that renders a Select or an Input depending on its data will now change
+  height with the data.
+
+- **`Select` takes a `touchSize`.** Defaults to `touch`, so the fix above is
+  what you get for free. Pass a desktop rung to line a Select back up with the
+  neighbours it shares a row with — `touchSize="md"` against an unsized `Input`
+  — without dropping to `NativeSelect`, which is a native `<select>` on the
+  desktop too and brings back BG#00421 (the OS popup swallows every key event,
+  so shell hotkeys die while it is open). `NativeSelect` is unchanged and
+  remains the way out of the branch entirely.
+
 ## 4.77.0
 
 - **`EntityList` can name the entity in its load error.** New optional
