@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.79.1
+
+- **The notification dropdown no longer grows a horizontal scrollbar.** The list
+  was `overflow-y-auto` and nothing else, and CSS computes the *other* axis to
+  `auto` the moment one axis is not `visible` — so any horizontal overflow at all
+  hung a scrollbar under a panel of fixed width that has nowhere to scroll
+  sideways to. A notification title with no break opportunity in it (a container
+  or reference number pasted into a subject line) is enough on its own: it
+  overflowed the item by ~180px, because only the *message* line carries
+  `truncate`. The list is now `overflow-x-hidden` as well, and the title wraps on
+  `break-words` so nothing is lost to the axis that is now hidden. Item heights
+  and the wrapping of ordinary titles are unchanged.
+
 ## 4.79.0
 
 - **`PdfActionButton` stops waiting for a document that is never coming.** The
@@ -40,6 +53,7 @@ All notable changes to this project will be documented in this file. The format 
   converts silence into a value, never a failure into a success. The helper
   behind it (`withTimeout`, `TIMED_OUT`) is internal and not exported from the
   package entry — `timeoutMs` is the whole public surface.
+
 
 ## 4.78.1
 
