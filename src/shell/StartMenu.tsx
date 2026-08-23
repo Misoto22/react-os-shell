@@ -213,8 +213,19 @@ export default function StartMenu({
           </div>
         </div>
 
-        {/* Flat list */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Flat list. Every scroll region in this file names BOTH axes and
+            carries `wrap-anywhere`. `overflow-y-auto` on its own makes the
+            other axis compute to `auto` too, so one nav label with no break
+            opportunity in it — 110px past a 174px flyout, measured — hangs a
+            horizontal scrollbar on a panel of fixed width.
+
+            `wrap-anywhere`, not `break-words`: the label is a flex item, so it
+            refuses to shrink below its min-content size, and `overflow-wrap:
+            break-word` does not change min-content. `anywhere` does, so the row
+            shrinks and the label wraps rather than being clipped by the axis
+            now pinned shut. Ordinary labels already wrapped at their spaces and
+            are untouched. */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere">
           {filtered.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-12">No matching apps</p>
           ) : (
@@ -466,7 +477,7 @@ export default function StartMenu({
           </div>
 
           {search.length >= 2 ? (
-            <div className="flex-1 overflow-y-auto px-1 pb-2 max-h-[400px]">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere px-1 pb-2 max-h-[400px]">
               {searchResults.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">No results</p>
               ) : searchResults.map((r, i) => (
@@ -480,7 +491,7 @@ export default function StartMenu({
               ))}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto px-1 pb-1 flex flex-col">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere px-1 pb-1 flex flex-col">
               {isVertical && (<>
                 {/* Reversed column → profile sits at the top, so footer items +
                     sections render first to stay pinned next to it. */}
@@ -586,7 +597,7 @@ export default function StartMenu({
             onMouseEnter={() => scheduleClose(i + 1)}
             onMouseLeave={() => scheduleClose(i)}
           >
-            <div className="py-1 px-1 overflow-y-auto overscroll-contain" style={{ maxHeight: availH }}>
+            <div className="py-1 px-1 overflow-y-auto overflow-x-hidden wrap-anywhere overscroll-contain" style={{ maxHeight: availH }}>
               {items.map(item => {
                 const kids = submenuItems(item);
                 const isOpen = openPath[i + 1]?.key === item.to;
