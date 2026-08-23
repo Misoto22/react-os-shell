@@ -248,7 +248,13 @@ export default function NotificationBell({
             </span>
           </PopupMenuLabel>
           <PopupMenuDivider />
-          <div className="overflow-y-auto" style={{ flex: '1 1 auto', minHeight: 0 }}>
+          {/* Both axes are named on purpose. `overflow-y: auto` on its own makes
+              the other axis compute to `auto` as well, so a fraction of a pixel
+              of horizontal overflow — a rounding error on the item's
+              `calc(100% - 8px)`, a title with no break opportunity in it — hangs
+              a horizontal scrollbar under a dropdown of fixed width that has
+              nothing to scroll sideways to. */}
+          <div className="overflow-y-auto overflow-x-hidden" style={{ flex: '1 1 auto', minHeight: 0 }}>
           {notifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
               <svg className="h-8 w-8 text-gray-300 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -264,7 +270,10 @@ export default function NotificationBell({
                   {!notif.is_read ? <div className="h-2 w-2 rounded-full bg-blue-500" /> : <div className="h-2 w-2" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className={`text-sm leading-tight ${!notif.is_read ? 'font-medium' : ''}`}>{notif.title}</p>
+                  {/* The message truncates, but the title wraps — `break-words` so a
+                      long unbroken token (a container or reference number) wraps
+                      instead of running out under the hidden axis above. */}
+                  <p className={`text-sm leading-tight break-words ${!notif.is_read ? 'font-medium' : ''}`}>{notif.title}</p>
                   {notif.message && <p className="text-xs text-gray-500 mt-0.5 truncate">{notif.message}</p>}
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[10px] text-gray-400">{timeAgo(notif.created_at)}</span>
