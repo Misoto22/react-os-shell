@@ -19,7 +19,7 @@ import { useState, useRef, useMemo, useEffect, useLayoutEffect, type ReactNode }
 import { createPortal } from 'react-dom';
 import { glassStyle } from '../utils/glass';
 import { INPUT_BASE } from '../forms/styles';
-import { useDropdownPosition, POPUP_MAX_WIDTH, MENU_MAX_HEIGHT } from '../forms/dropdownPosition';
+import { useDropdownPosition, MENU_MAX_HEIGHT } from '../forms/dropdownPosition';
 import { useShellStrings } from './strings';
 
 export interface SearchableOption {
@@ -260,8 +260,7 @@ export default function SearchableSelect({
             top: menuPos?.top,
             bottom: menuPos?.bottom,
             minWidth: menuPos?.minWidth,
-            maxWidth: POPUP_MAX_WIDTH,
-            width: 'max-content',
+            width: menuPos?.minWidth,
             // Hidden for the first paint until the layout effect measures the
             // trigger, so the menu never flashes at (0,0).
             visibility: menuPos ? undefined : 'hidden',
@@ -277,10 +276,10 @@ export default function SearchableSelect({
                   key={o.value}
                   type="button"
                   onMouseDown={() => { onChange(o.value); setOpen(false); setSearch(''); }}
-                  className={`w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center justify-between gap-2 whitespace-nowrap ${value === o.value ? 'text-blue-600 font-medium bg-blue-50/50' : 'text-gray-700'}`}
+                  className={`w-full overflow-hidden text-left px-3 py-1.5 text-sm hover:bg-gray-50 flex items-center justify-between gap-2 whitespace-nowrap ${value === o.value ? 'text-blue-600 font-medium bg-blue-50/50' : 'text-gray-700'}`}
                 >
-                  <span>{o.label}</span>
-                  {o.sublabel && <span className="text-xs text-gray-400 shrink-0">{o.sublabel}</span>}
+                  <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                  {o.sublabel && <span className="min-w-0 max-w-[45%] shrink-0 truncate text-xs text-gray-400">{o.sublabel}</span>}
                 </button>
               ))
             )}
