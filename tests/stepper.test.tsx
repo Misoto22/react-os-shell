@@ -47,6 +47,18 @@ test('without onChange the strip is an indicator: no controls at all', () => {
   assert.doesNotMatch(markup, /<button/);
 });
 
+test('stages occupy equal-width columns and stay centred in each column', () => {
+  const view = render(<Stepper items={STEPS} value="shipping" />);
+  const list = view.container.querySelector('ol');
+  const stages = [...view.container.querySelectorAll('li')];
+
+  assert.equal(list?.style.gridTemplateColumns, 'repeat(3, minmax(0, 1fr))');
+  assert.equal(stages.length, 3);
+  for (const stage of stages) {
+    assert.match(stage.className, /\bjustify-center\b/);
+  }
+});
+
 test('the connectors left of the current step read as travelled', () => {
   const markup = renderToStaticMarkup(<Stepper items={STEPS} value="shipping" />);
   assert.equal((markup.match(/bg-blue-600 rounded|rounded bg-blue-600/g) ?? []).length, 1,
