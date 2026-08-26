@@ -8,11 +8,13 @@ platform's design SSOT, so the harness applies here too.
 
 ## Shared conventions — the harness
 
-Org-wide rules are vendored in [`.harness/`](.harness/00-INDEX.md) from
-`Efficient-Pty-Ltd/efficient-harness`. **Do not edit `.harness/` here** —
-changes go upstream and sync back by bot PR. Read `.harness/00-INDEX.md`
-first (`51-frontend-tokens.md` especially — this package IS that SSOT).
-Precedence: user instructions > this file > `.harness/` > agent defaults.
+Org-wide rules live in the sibling checkout
+`../efficient-harness/harness/` (from a worktree under `.worktrees/`,
+three levels up; canonical repo `Efficient-Pty-Ltd/efficient-harness` —
+if the checkout is missing, clone it or run `just clone-missing` in
+efficient-ops). Read its `00-INDEX.md` first; edit rules THERE, never
+locally. (`51-frontend-tokens.md` especially — this package IS that SSOT.)
+Precedence: user instructions > this file > the harness > agent defaults.
 
 ## Release checklist (every PR)
 

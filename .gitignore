@@ -22,7 +22,7 @@ ds-bundle/
 dist/_compiled.css
 ds-bundle-out/
 
-# BEGIN harness-managed (synced from efficient-harness — do not edit; block is drift-gated)
+# BEGIN harness-managed (pasted from efficient-harness templates/gitignore.base — edit there, then refresh this block)
 # OS / editor noise (defensive bottom layer; the real home is your global
 # ignore: ~/.config/git/ignore)
 .DS_Store
