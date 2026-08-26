@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.79.3
+
+- **Dropdown menus can open above their trigger.** `DropdownMenu` now accepts
+  `side="top"`, giving bottom action bars the same shared menu interaction and
+  appearance without letting the menu escape beneath a window. The existing
+  `side="bottom"` placement remains the default for toolbar and row actions.
+
 ## 4.79.2
 
 - **A preview whose file arrives before its window no longer hangs on "LOADING

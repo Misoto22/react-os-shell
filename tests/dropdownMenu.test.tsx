@@ -55,6 +55,19 @@ test('clicking opens it and points the trigger at it', () => {
   view.unmount();
 });
 
+test('a menu can open above a footer trigger', () => {
+  const view = render(
+    <DropdownMenu trigger="⋮" items={ITEMS} aria-label="Footer actions" side="top" />,
+  );
+  act(() => { trigger(view).click(); });
+
+  const positioner = open(view)!.parentElement!.parentElement!;
+  assert.ok(positioner.classList.contains('bottom-full'));
+  assert.ok(positioner.classList.contains('mb-1'));
+  assert.equal(positioner.classList.contains('top-full'), false);
+  view.unmount();
+});
+
 test('the arrows move between items, and the menu is one tab stop', () => {
   // Roving tabindex: Tab reaches the menu, the arrows move inside it. Without
   // the roving half, Tab would walk every item on the way past.
