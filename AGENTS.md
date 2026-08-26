@@ -1,20 +1,9 @@
 # react-os-shell
 
 Shared desktop-shell + UI-kit component library, published to npm and
-consumed by every EFFICIENT frontend (admin, customer, supplier, dealer,
-pos — pos takes the `react-os-shell/ui` subpath only). This repo lives
-outside the Efficient org (public, `victorymau/react-os-shell`) but is the
-platform's design SSOT, so the harness applies here too.
-
-## Shared conventions — the harness
-
-Org-wide rules live in the sibling checkout
-`../efficient-harness/harness/` (from a worktree under `.worktrees/`,
-three levels up; canonical repo `Efficient-Pty-Ltd/efficient-harness` —
-if the checkout is missing, clone it or run `just clone-missing` in
-efficient-ops). Read its `00-INDEX.md` first; edit rules THERE, never
-locally. (`51-frontend-tokens.md` especially — this package IS that SSOT.)
-Precedence: user instructions > this file > the harness > agent defaults.
+consumed by the EFFICIENT frontends (admin, customer, supplier; dealer and
+pos take the `react-os-shell/ui` subpath only). This repo lives outside
+the Efficient org (public, `victorymau/react-os-shell`).
 
 ## Release checklist (every PR)
 
