@@ -1,0 +1,21 @@
+# Harness drift gate — identical in every consumer repo (distributed from
+# efficient-harness templates/harness.yml). Zero cross-repo dependencies:
+# the checker itself is vendored in .harness/, so this works in private,
+# public, and out-of-org repos alike.
+name: Harness
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: harness-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  drift:
+    name: Harness drift gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: .harness/ + gitignore block match the pin
+        run: sh .harness/check-drift.sh
