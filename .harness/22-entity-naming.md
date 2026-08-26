@@ -21,9 +21,9 @@ How every entity in EFFICIENT is named across the seven layers it touches:
 | FE entity_type | windowRegistry key, openEntity arg, EntityTimeline prop | `sales_order` |
 | URL slug | Backend route + frontend route | `/sales-orders` |
 | FE files | `*Form.tsx` / `*Detail.tsx` / `*List.tsx` | `SalesOrderForm.tsx` |
-| BE Python class | Django model class in `models.py` | `Order` |
-| DB permission codename | Django auto-generated (view/add/change/delete) | `view_order` |
-| NumberingConfig key | DB row in `accounts.NumberingConfig` | `sales_order` |
+| BE Python class | Django model class in `models.py` | `SalesOrder` |
+| DB permission codename | Django auto-generated (view/add/change/delete) | `view_salesorder` |
+| NumberingConfig key | DB row in `system.NumberingConfig` | `sales_order` |
 
 For most entities all seven layers are aligned. A handful are deliberately desynced because changing them would break either the API contract or live DB rows — those are flagged below in **Stable identifiers**.
 
@@ -33,11 +33,11 @@ For most entities all seven layers are aligned. A handful are deliberately desyn
 
 | User label | entity_type | URL | FE files | Python class | NumberingConfig key |
 |---|---|---|---|---|---|
-| Client | `client` | `/clients` | `ClientForm/Detail/List` | `Client` | — |
-| Sales Order | `sales_order` | `/sales-orders` | `SalesOrderForm/Detail/List` | `Order` | `sales_order` (`SO#`) |
-| Sales Invoice | `sales_invoice` | `/sales-invoices` | `SalesInvoiceForm/Detail` | `Invoice` | _`invoice`_ (`CI#`) |
+| Customer | `customer` | `/customers` | `CustomerForm/Detail/List` | `Customer` | — |
+| Sales Order | `sales_order` | `/sales-orders` | `SalesOrderForm/Detail/List` | `SalesOrder` | `sales_order` (`SO#`) |
+| Sales Invoice | `sales_invoice` | `/sales-invoices` | `SalesInvoiceForm/Detail` | `SalesInvoice` | _`invoice`_ (`CI#`) |
 | Goods Issue | `goods_issue` | `/goods-issues` | `GoodsIssueForm/Detail/List` | `GoodsIssue` | _`shipment`_ (`PL#`) |
-| Receipt | `receipt` | `/receipts` | `ReceiptForm/Detail/List` | _`Payment`_ | `receipt` (`RP#`) |
+| Receipt | `receipt` | `/receipts` | `ReceiptForm/Detail/List` | `Receipt` | `receipt` (`RP#`) |
 | Sales Claim | `sales_claim` | `/sales-claims` | `SalesClaimForm/Detail/List` | `SalesClaim` | _`warranty_claim`_ (`WC#`) |
 | RMA | `rma` | `/rmas` (inline only — no standalone list yet) | inline within `SalesClaimDetail` | `ReturnMerchandiseAuthorization` | `rma` (`RMA#`) |
 | Supplier Warranty Claim | `supplier_warranty_claim` | `/supplier-warranty-claims` (admin) / `/suppliers/warranty-claims` (supplier-portal) | `SupplierWarrantyClaimList/Detail` | `SupplierWarrantyClaim` | `supplier_warranty_claim` (`SWC#`) |
@@ -50,8 +50,8 @@ For most entities all seven layers are aligned. A handful are deliberately desyn
 | Supplier | `supplier` | `/suppliers` | `SupplierForm/Detail/List` | `Supplier` | — |
 | Purchase Order | `purchase_order` | `/purchase-orders` | `PurchaseOrderForm/Detail/List` | `PurchaseOrder` | `purchase_order` (`PO#`) |
 | Goods Receipt | `goods_receipt` | `/goods-receipts` | `GoodsReceiptForm/Detail/List` | `GoodsReceiptNote` | `goods_receipt` (`GR#`) |
-| Purchase Invoice | `purchase_invoice` | `/purchase-invoices` | `PurchaseInvoiceForm/Detail/List` | `SupplierInvoice` | `supplier_invoice` (`VI#`) |
-| Payment | `payment` | `/payments` | `PaymentForm/Detail/List` | `SupplierPayment` | `supplier_payment` (`MP#`) |
+| Purchase Invoice | `purchase_invoice` | `/purchase-invoices` | `PurchaseInvoiceForm/Detail/List` | `PurchaseInvoice` | _`supplier_invoice`_ (`VI#`) |
+| Payment | `payment` | `/payments` | `PaymentForm/Detail/List` | `Payment` | _`supplier_payment`_ (`MP#`) |
 | Production Progress | `production_progress` | `/production-progress` | `ProductionProgressForm/Detail/List` | `ProductionProgress` | `production_progress` (`PP#`) |
 | QC Report | `qc_report` | `/qc-reports` | `QCReportForm/Detail/List` | `QCReport` | `qc_report` (`QC#`) |
 | Supplier Price Sheet | `supplier_price_sheet` | `/supplier-price-sheets` | `SupplierPriceSheetForm/Detail/List` | `SupplierPriceSheet` | `supplier_price_sheet` (`VP#`) |
@@ -100,7 +100,6 @@ The user-facing label moved on but the model class kept its name.
 
 | User label | Python class |
 |---|---|
-| Receipt (customer) | `Payment`, `PaymentAllocation` |
 | Goods Receipt | `GoodsReceiptNote` |
 
 **Major renames already shipped** — listed here so the historical context isn't lost:
@@ -111,6 +110,7 @@ The user-facing label moved on but the model class kept its name.
 - `VendorType` → `SupplierType`
 - `ShipmentItem` → `GoodsIssueItem` (2026-04-30)
 - `MouldLog` → `DfmLog` (2026-04-30)
+- **Pass 17** (`efficient/entity_map.py` header): `Client` → `Customer`, `Order` → `SalesOrder`, `Invoice` → `SalesInvoice`, `SupplierInvoice` → `PurchaseInvoice` (and their `*Item` children); customer receipts are `Receipt` and supplier payments are `Payment` (both in `bank/models.py`)
 - `WarrantyClaim` / `WarrantyClaimItem` / `WarrantyClaimMedia` → `SalesClaim` / `SalesClaimItem` / `SalesClaimMedia` (2026-05-27, Phase 2 of "Sales Claims & Returns" refactor — broadened to cover Standard Returns alongside Warranty Claims; NumberingConfig key kept as `warranty_claim`/`WC#` for sequence continuity)
 
 **App renames (folder + `app_label` + table prefix):**
@@ -121,7 +121,7 @@ Both renames are reconciled automatically on deploy by the `migrate` override (`
 
 ### NumberingConfig DB keys
 
-Live DB rows in `accounts.NumberingConfig` keyed by `entity_type`. Renaming requires a coordinated data migration in lockstep with FE / serializer code changes. After the supplier rename these are aligned with the entity_type literals.
+Live DB rows in `system.NumberingConfig` (relocated from `accounts` by `system/0008_relocate_config_models_from_accounts.py`; table `system_numberingconfig`) keyed by `entity_type`. Renaming requires a coordinated data migration in lockstep with FE / serializer code changes. After the supplier rename these are aligned with the entity_type literals.
 
 | Entity | NumberingConfig.entity_type | Prefix |
 |---|---|---|
@@ -132,8 +132,9 @@ Live DB rows in `accounts.NumberingConfig` keyed by `entity_type`. Renaming requ
 | Supplier Price Sheet | `supplier_price_sheet` | `VP#` |
 | Receipt (customer) | `receipt` | `RP#` |
 | Sales Claim | `warranty_claim` | `WC#` |
+| Price Sheet (customer) | `client_price_sheet` | `CP#` |
 
-`shipment`, `invoice`, and `warranty_claim` are the remaining desynced trio — `shipment` predates `GoodsIssue`, `invoice` is implicitly the customer-side one, and `warranty_claim` predates the Sales Claim rename (kept so existing `WC#` sequence continues unbroken).
+The desynced keys are `shipment`, `invoice`, `warranty_claim`, `client_price_sheet`, `supplier_invoice`, and `supplier_payment` — each predates a later entity rename (`GoodsIssue`, `SalesInvoice`, `SalesClaim`, `CustomerPriceSheet`, `PurchaseInvoice`, `Payment` respectively) and is kept so the live numbering sequences continue unbroken. ALL of them are frozen (EN-1): never "align" one to its entity_type.
 
 ---
 

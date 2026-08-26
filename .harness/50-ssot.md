@@ -1,7 +1,7 @@
 # SSOT — no hard-coding
 
-Adopted org-wide from efficient-shop `doc/no-hardcoding.md` (R1–R8, kept
-verbatim there until the P1 migration lands; shop's numbering is retained).
+Adopted org-wide from efficient-shop `doc/no-hardcoding.md` (migrated —
+the shop file is now a pointer here; shop's R-numbering is retained).
 A value is hard-coded when it is written at a use site instead of flowing
 from its single source of truth.
 
@@ -29,9 +29,17 @@ from its single source of truth.
 
 ---
 
-## The full R1–R8 text (org-adopted; examples reference efficient-shop,
-## the reference implementation — migrated 2026-08-26 from its
-## `doc/no-hardcoding.md`, now a pointer here)
+## The full R1–R8 text
+
+> Migrated 2026-08-26 from efficient-shop `doc/no-hardcoding.md` (now a
+> pointer here). **Scope note:** the imperative sentences below name shop
+> modules (`lib/media.ts`, `lib/api/types.ts`, `app/globals.css`, …) —
+> those are the REFERENCE IMPLEMENTATION, binding as written only in
+> efficient-shop. In every other repo the rule binds through that repo's
+> own designated equivalent (e.g. the iOS media resolver is
+> `ServerEnvironment.mediaURL`; the portals' tokens come from
+> react-os-shell, not `globals.css`); a repo with no equivalent module is
+> not required to invent one, only to keep the VALUE single-sourced.
 
 ---
 

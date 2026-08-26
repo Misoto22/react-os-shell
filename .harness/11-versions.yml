@@ -32,6 +32,6 @@ deltas_known:
   - repo: efficient-pos
     what: "react-os-shell pinned ^4.67.0 (12 minors behind)"
   - repo: efficient-shop
-    what: "react-os-shell pinned ^4.67.0; pnpm 11.2.2 vs 11.7.0"
+    what: "react-os-shell pinned ^4.67.0; pnpm 11.2.2 vs 11.7.0; Node 24 via .node-version while the org line is 26"
   - repo: efficient-dealer-portal
     what: "eslint ^10 while the org line is 9 — decide: move the org to 10, or roll dealer back"

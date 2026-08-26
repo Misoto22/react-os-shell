@@ -75,9 +75,9 @@ house vocabulary and most re-use of it is correct.
 
 ## How the ratchet works
 
-- The scanner config is [`.jscpd.json`](../.jscpd.json): it scans `app/`,
+- The scanner config is [`.jscpd.json`](https://github.com/Efficient-Pty-Ltd/efficient-shop/blob/main/.jscpd.json): it scans `app/`,
   `components/`, `lib/`, and `proxy.ts`, at **`minTokens: 70`**.
-- The committed baseline is [`.jscpd.baseline.json`](../.jscpd.baseline.json). Its
+- The committed baseline is [`.jscpd.baseline.json`](https://github.com/Efficient-Pty-Ltd/efficient-shop/blob/main/.jscpd.baseline.json). Its
   `baseline` field is jscpd's total **duplicated-token** count on `main` at the
   time it was generated. Existing duplication is *grandfathered* by that number.
   What that number is grandfathering is triaged clone-by-clone in

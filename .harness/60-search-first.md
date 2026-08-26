@@ -2,7 +2,7 @@
 
 ## SF-1 — The search ladder (run it, in order)
 Before writing a new component, function, endpoint, or script:
-1. This repo — same concept under another name? (`just find <term>`)
+1. This repo — same concept under another name? (`just harness-find <term>`)
 2. Sibling repos — another portal already built it? (esp. admin-portal, the
    richest; check `git show origin/main:<path>` — a checkout may sit on a
    stale branch, which has produced wrong platform-wide conclusions twice)
@@ -11,7 +11,7 @@ Before writing a new component, function, endpoint, or script:
    schema / efficient-cli's snapshot).
 5. Open source — a maintained library beats writing it; judge by stars,
    recency, license, and whether it is ALREADY a transitive dependency.
-**Enforced:** `just find` recipe (P2); otherwise review.
+**Enforced:** `just harness-find` recipe (vendored); otherwise review.
 
 ## SF-2 — Upstream before local
 A fix that belongs in the kit goes to react-os-shell first (dealer's

@@ -65,7 +65,7 @@ All windows (create, edit, detail/view) use the `<Modal>` component which provid
 - Example: `<span className="flex items-center gap-2">PO#26004 <StatusBadge status={po.status} /></span>`
 
 ### Size
-- ALL modals MUST be `size="2xl"` — no exceptions (detail, create, edit)
+- Modals default to `size="2xl"` (detail, create, edit) — a narrower size only when content is intentionally narrow (see Size above)
 
 ### Create/Edit Form Rules
 - **No Cancel button**: Users close with ESC or X (top-right)
@@ -149,7 +149,7 @@ Every entity serializer MUST have a `can_delete` SerializerMethodField. Delete i
 ### Detail Popup Requirements (ALL 25 pages)
 Every list page that opens a detail popup MUST follow these rules:
 1. **Shared component**: Detail popup must be a component in `src/components/` (not inline in the page file)
-2. **Modal size**: Always `size="2xl"`
+2. **Modal size**: `size="2xl"` unless intentionally narrow
 3. **Title**: Entity number/code + StatusBadge (if entity has status) + Edit button
 4. **Edit button in title**: Outline style, next to status badge
    ```tsx
@@ -234,8 +234,8 @@ useModalDuplicate(useCallback(() => {
 ```
 [Left]  Delete (red text)                [Right]  Save as New (blue text)  Update (accent btn with hotkey)
 ```
-- Edit button: in title bar next to entity number + status badge, outline/ghost style (`border border-gray-300 text-gray-600`), with `&#8997;&#8679;E` hotkey badge. Small size (`text-xs`, compact padding).
-- Update/Save button: right side, green, with `&#8984;&#9166;` hotkey badge
+- Edit button: in title bar next to entity number + status badge, outline/ghost style (`border border-gray-300 text-gray-600`), with the `ALT_SHIFT_E` hotkey badge from `Kbd.tsx`. Small size (`text-xs`, compact padding).
+- Update/Save button: right side, green, with the `CMD_ENTER` hotkey badge from `Kbd.tsx`
 - Approve: right side, green, only in view mode when status is "submitted"
 - Delete: left side, red text, only in edit mode when entity has no dependencies
 - Save as New: right side, blue text link next to Update button, only in edit mode

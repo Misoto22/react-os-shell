@@ -83,7 +83,7 @@ REGIS Design is a wheel distribution company. They design wheels, have them manu
 - **In Production → Confirmed**: "Revert to Confirmed" only if no production progress reports exist
 - **Confirmed → Draft**: "Revert to Draft"
 
-**Unassigned POs** (no manufacturer): Show "Assign Purchase Order" button which splits by vendor
+**Unassigned POs** (no supplier): Show "Assign Purchase Order" button which splits by supplier
 
 **Merge** (draft only, same supplier): Multiple draft POs to the same supplier can be merged into one (Purchase Orders list → select rows → Merge). Use case: a client with several warehouses places one SO per warehouse, each sent to production as its own draft PO; merging lets the factory manufacture them together. The merged PO keeps the chosen target's `po_number`, header, and primary `sales_order`; line items move onto it (each keeping its `sales_order_item` link) and the other POs are soft-deleted. The factory sees **one combined line per part number** (PO PDF + supplier portal + production progress), while internally each line still tracks back to its own sales order — so shipments/invoicing allocate per order via the existing fungible stock + reservation flow. Inverse of split-by-vendor.
 
@@ -117,30 +117,30 @@ REGIS Design is a wheel distribution company. They design wheels, have them manu
 |-----------|-----------|
 | **SO selected** | Customer (from SO), port of discharge, all SO line items loaded, warehouse auto-selected if only 1 MID produces the SO |
 | **Customer selected** | Port of discharge, displays PNs with stock > 0 or coming > 0, filters SOs to customer's only, filters warehouses to MIDs producing for customer |
-| **Warehouse selected** | Port of loading (from warehouse's manufacturer), filters displayed PNs to that MID |
+| **Warehouse selected** | Port of loading (from warehouse's supplier), filters displayed PNs to that supplier |
 
 **Auto-create GRN on submit:**
 - When delivery note is created with a warehouse selected:
-  - Groups items by manufacturer (via PO data)
-  - Creates one Goods Receipt Note per manufacturer → warehouse
+  - Groups items by supplier (via PO data)
+  - Creates one Goods Receipt Note per supplier → warehouse
   - Each GRN is linked back to the delivery note via `delivery_note` FK
   - Uses `goods_receipt` numbering (GR#)
 
 ### Goods Receipt (Goods Receipt Notes)
-**Statuses**: `submitted` → `arranged` → `shipped` → `delivered` | `cancelled`
+**Statuses**: `submitted` → `in_transit` → `received` | `cancelled` (`GoodsReceiptNote.STATUS_CHOICES`; NOT the Goods Issue states)
 - Numbering: uses `goods_receipt` entity type (e.g. GR#10001)
 - Linked to Purchase Orders and Warehouses
-- Warehouse selection auto-sets manufacturer (shipper) if warehouse is linked to a vendor
+- Warehouse selection auto-sets the supplier (shipper) if the warehouse is linked to one
 - `delivery_note` FK links back to the originating Goods Issue
 - **Dropship mode**: When enabled, shows additional fields (delivery note, port of loading/discharge, forwarder, B/L, ETA)
 
 ### Warehouses
 - Name, address, city, state, zip, country
-- `is_supplier` flag — when true, can link to a Manufacturer (vendor)
-- Used in Goods Issue and Goods Receipt forms instead of direct manufacturer selection
+- `is_supplier` flag — when true, can link to a `Supplier`
+- Used in Goods Issue and Goods Receipt forms instead of direct supplier selection
 - Warehouse filters in delivery note form are limited to MIDs producing for the selected customer
 
-### Warranty Claims
+### Sales Claims (customers' warranty claims — model `SalesClaim`, numbered `WC#`)
 **Statuses**: `draft` → `submitted` → `under_review` → `closed` (with `cancelled` as a terminal sideline; legacy `resolution`/`resolved` kept for historical rows only)
 - Linked to shipments (or a free-text `shipment_reference` if no DN exists)
 - Editable while in `draft` or `submitted`; locked once in `under_review`
@@ -149,11 +149,11 @@ REGIS Design is a wheel distribution company. They design wheels, have them manu
 - Media attachments for evidence
 
 **On `submitted → under_review` the system auto-creates:**
-- one `SupplierWarrantyClaim` (numbered `SWC#…`) per supplier (Phase 2 — REPLACES the immediate draft vendor credit that Phase 1 used to create at this step)
+- one `SupplierWarrantyClaim` (numbered `SWC#…`) per supplier (Phase 2 — REPLACES the immediate draft supplier credit that Phase 1 used to create at this step)
 - one draft `Invoice` (`invoice_type='credit_note'`, numbered `CN#…`) for the client, lines pre-filled at SO unit_price × claim qty — this is the **client credit request**
 - one `ReturnMerchandiseAuthorization` (RMA) per supplier whose items have `return_required=True`
 
-The **vendor credit note** is no longer created at Start Review. It's created when the supplier agrees on a final amount inside their `SupplierWarrantyClaim` (see below).
+The **supplier credit note** is no longer created at Start Review. It's created when the supplier agrees on a final amount inside their `SupplierWarrantyClaim` (see below).
 
 **Approval** happens by editing each draft credit (final agreed amount may differ from the auto-fill) and clicking Post. Rejection happens by clicking Cancel on the draft credit — user can re-enter review later for a new round.
 
@@ -171,7 +171,7 @@ The **vendor credit note** is no longer created at Start Review. It's created wh
 ### Supplier Warranty Claims (Phase 2)
 **Statuses**: `submitted` → `acknowledged` → `agreed` → `closed` (with `rejected` and `cancelled` as side branches; `rejected` → can be re-`submitted` after admin renegotiation)
 - A claim REGIS sends TO a supplier — visible inside the **supplier-portal** at `/suppliers/warranty-claims`
-- Auto-created (one per supplier) when a customer-side `WarrantyClaim` hits Under Review; OR created manually by admin for stock-discovered defects with no customer claim involvement
+- Auto-created (one per supplier) when a customer-side `SalesClaim` hits Under Review; OR created manually by admin for stock-discovered defects with no customer claim involvement
 - Carries a `claimed_amount` (auto-summed from items at creation) and a nullable `agreed_amount` (set on the `agreed` transition)
 - Numbered `SWC#…`
 
@@ -179,7 +179,7 @@ The **vendor credit note** is no longer created at Start Review. It's created wh
 
 **Admin actions** (in the admin-portal): full lifecycle parity including `force_agree` — an audited override (`[FORCE OVERRIDE]` prefix in the timeline) for when a supplier never responds.
 
-**On the `agreed` transition the system auto-creates** a draft `SupplierInvoice` (`invoice_type='credit_note'`, numbered `CN#…`) tied to BOTH the source customer `WarrantyClaim` AND this `SupplierWarrantyClaim`. The credit's total amount is overridden to `agreed_amount`; per-line prices keep PO `unit_price` so admin can still tweak the draft before posting.
+**On the `agreed` transition the system auto-creates** a draft `PurchaseInvoice` (`invoice_type='credit_note'`, numbered `CN#…`) tied to BOTH the source customer `SalesClaim` AND this `SupplierWarrantyClaim`. The credit's total amount is overridden to `agreed_amount`; per-line prices keep PO `unit_price` so admin can still tweak the draft before posting.
 
 ### Sales Invoices (Client Invoices)
 **Statuses**: `draft` → `posted`
@@ -187,9 +187,9 @@ The **vendor credit note** is no longer created at Start Review. It's created wh
 - Contains line items with part numbers, quantities, prices
 - PDF generation available
 
-### Purchase Invoices (Vendor Invoices)
+### Purchase Invoices (model `PurchaseInvoice`)
 **Statuses**: `draft` → `posted`
-- Received from manufacturers
+- Received from suppliers
 - Contains line items with part numbers, quantities, prices
 - Linked to Purchase Orders
 
@@ -197,9 +197,9 @@ The **vendor credit note** is no longer created at Start Review. It's created wh
 - Linked to client invoices
 - Payment allocation to specific invoices
 
-### Vendor Payments
-- Payments to manufacturers
-- Linked to vendor invoices
+### Payments (supplier — model `Payment`)
+- Payments to suppliers
+- Linked to purchase invoices
 
 ## Numbering System
 All entity numbers are auto-generated via `NumberingConfig` model:
@@ -217,7 +217,7 @@ Part Numbers → Shipment Items
 Part Numbers → Invoice Items
 Purchase Orders → QC Reports
 Purchase Orders → Production Progress
-Manufacturers → Purchase Orders, QC Reports, Vendor Invoices, Vendor Payments
+Suppliers → Purchase Orders, QC Reports, Purchase Invoices, Payments
 ```
 
 ## Permission Model
@@ -239,20 +239,20 @@ Each entity has a `can_delete` field computed by the serializer. Entities can on
 | Sales Order | No POs, no invoices |
 | Shipment | No invoices, no warranty claims |
 | Invoice | No payment allocations |
-| Warranty Claim | Always |
+| Sales Claim | Always |
 | Client | No orders |
 | Customer Price Sheet | No orders referencing it |
-| Purchase Order | No QC reports, no vendor invoices |
+| Purchase Order | No QC reports, no purchase invoices |
 | Production Progress | Always |
 | QC Report | Always |
-| Vendor Invoice | Status is draft |
-| Manufacturer | No POs, no part numbers |
-| Vendor Price Sheet | No POs referencing it |
+| Purchase Invoice | Status is draft |
+| Supplier | No POs, no part numbers |
+| Supplier Price Sheet | No POs referencing it |
 | Part Number | No orders/POs/shipments/invoices (both sides) |
 | Brand | No designs |
 | Design | No wheel finishes, no part numbers, no moulds |
 | Wheel Finish | No part numbers |
-| Bank Account | No payments, no vendor payments |
+| Bank Account | No receipts, no supplier payments |
 | Payment (Receipt) | Always (allocations cascade) |
 | Vendor Payment | Always |
 | User | No activity logs, not referenced as created_by/approved_by/designer/uploaded_by on any entity. Otherwise offer "Deactivate" instead. |
