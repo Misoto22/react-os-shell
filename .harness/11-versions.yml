@@ -1,0 +1,37 @@
+# Machine-readable version matrix — the SSOT for toolchains and shared deps.
+# scripts/check-versions.py compares each repo's manifest against this file
+# in CI (P3). Verified against origin/main of every repo on 2026-08-26.
+#
+# deltas_known: drift that existed when this file was written. Each entry is
+# a TODO with an owner decision, not an accepted state — remove the entry
+# when the repo catches up (the checker fails on drift NOT listed here,
+# so this list is also the temporary-waiver mechanism).
+
+toolchains:
+  node: "26"            # CI runtime for all frontend repos
+  pnpm: "11.7.0"        # pinned via packageManager
+  python: "3.12"        # efficient-backend, efficient-doc
+  rust-edition: "2021"  # efficient-cli
+  swift: "5"            # efficient-ios-app (iOS 17+)
+
+shared_deps:
+  react: "19.2.4"
+  typescript: "~5.9.3"
+  vite: "^8"
+  next: "16"            # efficient-shop only
+  tailwindcss: "^4"
+  react-os-shell: ">=4.79"   # min pin; current release 4.79.2
+  eslint: "9"
+  vitest: "4"
+  django: ">=5,<6"
+  drf: ">=3.15"
+
+deltas_known:
+  - repo: react-os-shell
+    what: "CI matrix runs Node 22/24; peerDeps + devDeps react ^18 while every consumer is on 19"
+  - repo: efficient-pos
+    what: "react-os-shell pinned ^4.67.0 (12 minors behind)"
+  - repo: efficient-shop
+    what: "react-os-shell pinned ^4.67.0; pnpm 11.2.2 vs 11.7.0"
+  - repo: efficient-dealer-portal
+    what: "eslint ^10 while the org line is 9 — decide: move the org to 10, or roll dealer back"

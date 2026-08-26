@@ -1,0 +1,20 @@
+# Vendored harness recipes — synced from efficient-harness; do not edit here.
+# Consume from the repo justfile with:  import? '.harness/justfile.include'
+# (NOTE: deliberately defines NO `verify` — just forbids duplicate recipes,
+# and several repos already define their own. CI-2 makes the NAME the
+# contract; each repo owns the body.)
+
+# Search ladder steps 1–3 (SF-1): this repo → sibling checkouts → the kit.
+harness-find term:
+    @echo "── this repo ──"
+    @rg -n --hidden -g '!node_modules' -g '!.git' -i "{{term}}" . | head -40 || true
+    @echo "── siblings (origin/main) ──"
+    @for d in ../efficient-* ../react-os-shell; do \
+       [ -d "$d/.git" ] && git -C "$d" grep -il "{{term}}" origin/main -- 2>/dev/null | head -5 | sed "s|^|$d :: |"; \
+    done || true
+    @echo "── react-os-shell exports ──"
+    @rg -n -i "{{term}}" ../react-os-shell/src/index.ts ../react-os-shell/src/ui 2>/dev/null | head -20 || true
+
+# Verify the vendored .harness/ matches its pinned upstream version.
+harness-check:
+    @sh .harness/check-drift.sh
