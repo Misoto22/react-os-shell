@@ -21,3 +21,22 @@ ds-bundle/
 .design-sync/node_modules
 dist/_compiled.css
 ds-bundle-out/
+
+# BEGIN harness-managed (pasted from efficient-harness templates/gitignore.base — edit there, then refresh this block)
+# OS / editor noise (defensive bottom layer; the real home is your global
+# ignore: ~/.config/git/ignore)
+.DS_Store
+.idea/
+
+# Local agent state — never commit (docs/superpowers/ plans ARE committed;
+# the hidden .superpowers/ session workspace is not)
+.superpowers/
+.claude/settings.local.json
+.playwright-mcp/
+.worktrees/
+
+# Secrets — values never land in git (.env.op holding op:// refs is fine)
+.env
+.env.local
+.env.*.local
+# END harness-managed
