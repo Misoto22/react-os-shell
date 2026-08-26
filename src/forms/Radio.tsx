@@ -46,9 +46,9 @@ const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
         className={`${DOT} mt-0.5`}
         {...rest}
       />
-      <span className="text-sm leading-tight">
-        {label && <span className="font-medium text-gray-700">{label}</span>}
-        {description && <span className="mt-0.5 block text-xs text-gray-500">{description}</span>}
+      <span className="min-w-0 flex-1 text-sm leading-tight">
+        {label && <span className="block min-w-0 font-medium text-gray-700">{label}</span>}
+        {description && <span className="mt-0.5 block min-w-0 text-xs text-gray-500">{description}</span>}
       </span>
     </label>
   );
