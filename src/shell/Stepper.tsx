@@ -49,7 +49,11 @@ export default function Stepper({
   const currentIndex = Math.max(0, items.findIndex(s => s.id === value));
 
   return (
-    <ol aria-label={ariaLabel} className={`flex items-start ${className}`.trim()}>
+    <ol
+      aria-label={ariaLabel}
+      className={`grid items-start ${className}`.trim()}
+      style={{ gridTemplateColumns: `repeat(${Math.max(items.length, 1)}, minmax(0, 1fr))` }}
+    >
       {items.map((step, i) => {
         const state = i < currentIndex ? 'complete' : i === currentIndex ? 'current' : 'upcoming';
         const clickable = state === 'complete' && !!onChange;
@@ -68,7 +72,7 @@ export default function Stepper({
           </span>
         );
         const text = (
-          <span className="min-w-0">
+          <span className="min-w-0 text-center">
             <span className={`block text-sm font-medium ${state === 'upcoming' ? 'text-gray-400' : 'text-gray-900'}`}>
               {step.label}
             </span>
@@ -82,28 +86,29 @@ export default function Stepper({
           <li
             key={step.id}
             aria-current={state === 'current' ? 'step' : undefined}
-            className={`flex items-start gap-2 ${i > 0 ? 'flex-1' : ''}`}
+            className="relative flex min-w-0 justify-center"
           >
-            {/* The connector belongs to the step it leads INTO, and takes the
-              * incoming step's color: every line left of the current circle
-              * reads as travelled. */}
-            {i > 0 && (
+            {/* Each stage owns the connector leading OUT of it. Anchoring the
+              * line to equal-width column centres keeps every circle centred,
+              * regardless of label length. */}
+            {i < items.length - 1 && (
               <span
                 aria-hidden="true"
-                className={`mt-3.5 h-0.5 flex-1 rounded ${i <= currentIndex ? 'bg-blue-600' : 'bg-gray-200'}`}
+                className={`absolute top-3.5 h-0.5 rounded ${i < currentIndex ? 'bg-blue-600' : 'bg-gray-200'}`}
+                style={{ left: 'calc(50% + 0.875rem)', right: 'calc(-50% + 0.875rem)' }}
               />
             )}
             {clickable ? (
               <button
                 type="button"
                 onClick={() => onChange?.(step.id)}
-                className="flex items-start gap-2 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                className="relative z-10 flex min-w-0 flex-col items-center gap-1.5 rounded px-2 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               >
                 {circle}
                 {text}
               </button>
             ) : (
-              <span className="flex items-start gap-2">
+              <span className="relative z-10 flex min-w-0 flex-col items-center gap-1.5 px-2 text-center">
                 {circle}
                 {text}
               </span>
