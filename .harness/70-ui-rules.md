@@ -1,11 +1,35 @@
-# UI RULES — windows, forms, buttons, lists, shared components
+# UI RULES — windows, lists, forms, details, visual vocabulary
 
-> Canonical org-wide copy (migrated 2026-08-26 from efficient-ops
-> `.claude/skills/ui-rules/SKILL.md`, now a pointer here). Read before
-> building or modifying ANY frontend page or component. **Review-only**
-> except where a named test is cited inline.
+> Canonical org-wide copy. Merged 2026-08-26 from TWO sources: the
+> portal-ui skill (Victor Mau, grounded in the 2026-08-13/14/16 audits —
+> newer, wins every conflict) and efficient-ops' ui-rules skill (2026-06,
+> the window-behaviour/base-pattern half). Both sources are now pointers
+> here. Read before building or modifying ANY portal window or component.
+> **Review-only** except where a named test is cited inline
+> (`submitSkinGuard.test.ts`, `test_reporting.py` GRID_DOMAINS ratchet).
+> The full audit census (adoption counts, file:line references, known
+> deviations) lives in the portal-ui plugin:
+> <https://github.com/Efficient-Pty-Ltd/claude-plugins> —
+> `plugins/portal-ui/skills/portal-ui/ui-audit-2026-08-14.md`.
 
-# EFFICIENT — UI Rules
+## Scope
+
+
+The **admin, customer and supplier** portals use `ModalActions` (the customer
+and supplier portals were clean as of 2026-08-13). The **dealer portal and POS**
+do not use it at all — they have their own layout, so these footer rules do not
+apply there, though Bug 1 and Bug 2 do.
+
+The confirm rule (and Bug 4) applies wherever `react-os-shell` is a dependency
+— admin, customer, supplier, dealer. **POS has no shell dependency yet**, so its
+one `window.confirm` (`UnresolvedSaleGate`) is known debt for the UI-kit
+adoption epic, not something to hand-roll a dialog for today.
+
+
+
+---
+
+# Part I — Window behaviour (the shell contract)
 
 ## Window Rules (All Modals)
 
@@ -71,8 +95,8 @@ All windows (create, edit, detail/view) use the `<Modal>` component which provid
 - **No Cancel button**: Users close with ESC or X (top-right)
 - **Entity number editable**: In edit mode, entity number/code field should be editable
 - **Title naming convention**:
-  - Transactional: "New ..." (New Project, New Sales Order, New Invoice, New Proposal)
-  - Master data: "Add ..." (Add Brand, Add Part Number, Add Vendor, Add Bank Account)
+  - Transactional: "New ..." (New Project, New Sales Order, New Sales Invoice, New Proposal)
+  - Master data: "Add ..." (Add Brand, Add Part Number, Add Supplier, Add Bank Account)
   - R&D creation: "Create Design"
   - Edit mode: "Edit ..." (Edit Project, Edit Sales Order, etc.)
 
@@ -119,32 +143,6 @@ import { CMD_ENTER, ALT_SHIFT_D } from '../../components/Kbd';
 </div>
 ```
 
-### Delete Logic (`can_delete` field on serializer)
-Every entity serializer MUST have a `can_delete` SerializerMethodField. Delete is only offered when:
-- **Project**: No designs, no proposals
-- **Proposal**: Always deletable (reverts project status on delete)
-- **Mould**: No part numbers
-- **DFM Log**: Always deletable
-- **Weight Log**: Always deletable
-- **Sales Order**: No POs, no invoices
-- **Shipment**: No invoices, no warranty claims
-- **Invoice**: No payment allocations
-- **Warranty Claim**: Always deletable
-- **Client**: No orders
-- **Customer Price Sheet**: No orders referencing it
-- **Purchase Order**: No QC reports, no vendor invoices
-- **Production Progress**: Always deletable
-- **QC Report**: Always deletable
-- **Vendor Invoice**: Status is draft
-- **Manufacturer**: No POs, no part numbers
-- **Vendor Price Sheet**: No POs referencing it
-- **Part Number**: No orders/POs/shipments/invoices (client + vendor side)
-- **Brand**: No designs
-- **Design**: No wheel finishes, no part numbers, no moulds
-- **Wheel Finish**: No part numbers
-- **Bank Account**: No payments, no vendor payments
-- **Payment (Receipt)**: Always deletable (allocations cascade)
-- **Vendor Payment**: Always deletable
 
 ### Detail Popup Requirements (ALL 25 pages)
 Every list page that opens a detail popup MUST follow these rules:
@@ -161,7 +159,688 @@ Every list page that opens a detail popup MUST follow these rules:
 5. **Edit button visibility**: Hidden when entity is not editable (e.g., posted invoices) or when already in edit mode
 6. **No Edit button in popup body**: Never put Edit at the bottom or in the content area
 
-## Button Rules
+
+## Delete gating — `can_delete` on the serializer
+Every entity serializer MUST have a `can_delete` SerializerMethodField. Delete is only offered when:
+- **Project**: No designs, no proposals
+- **Proposal**: Always deletable (reverts project status on delete)
+- **Mould**: No part numbers
+- **DFM Log**: Always deletable
+- **Weight Log**: Always deletable
+- **Sales Order**: No POs, no invoices
+- **Goods Issue**: No invoices, no sales claims
+- **Sales Invoice**: No receipt allocations
+- **Sales Claim**: Always deletable
+- **Customer**: No orders
+- **Customer Price Sheet**: No orders referencing it
+- **Purchase Order**: No QC reports, no purchase invoices
+- **Production Progress**: Always deletable
+- **QC Report**: Always deletable
+- **Purchase Invoice**: Status is draft
+- **Supplier**: No POs, no part numbers
+- **Supplier Price Sheet**: No POs referencing it
+- **Part Number**: No orders/POs/shipments/invoices (client + vendor side)
+- **Brand**: No designs
+- **Design**: No wheel finishes, no part numbers, no moulds
+- **Wheel Finish**: No part numbers
+- **Bank Account**: No receipts, no supplier payments
+- **Receipt (customer)**: Always deletable (allocations cascade)
+- **Payment (supplier)**: Always deletable
+
+
+---
+
+# Part II — The audited window conventions (2026-08 audits)
+
+## Footer layout — primary RIGHT, everything else LEFT
+
+`ModalActions` (from `react-os-shell`) portals into the window footer wherever
+it sits in the tree. Two groups, and the split is not optional:
+
+```tsx
+{/* document / secondary actions */}
+<ModalActions position="left">
+  <PdfActionButton … />
+</ModalActions>
+
+{/* the ONE primary — a bare ModalActions is the right-hand slot */}
+{(entity.can_submit || entity.can_approve) && (
+  <ModalActions>
+    {entity.can_submit && <button className="…bg-blue-600…">Submit for approval</button>}
+    {entity.can_approve && <button className="…bg-green-600…">Approve &amp; Book</button>}
+  </ModalActions>
+)}
+```
+
+- **Exactly one primary** may occupy the right slot. When two could render,
+  prove they are mutually exclusive (`can_submit` / `can_approve` are gated on
+  opposite statuses) or pick one.
+- Reference implementations: `PaymentDetail`, `AccountTransferDetail`,
+  `ReceiptDetail`.
+- ⌘⏎ picks the default button via
+  `button[type="submit"], button[data-submit], button.bg-green-600, button.bg-blue-600`
+  (`react-os-shell/src/shell/Modal.tsx`) — first match in DOM order. Add
+  `data-submit` when the primary is not one of those colours.
+- A form whose right slot is already taken by `Update` may keep a second
+  primary on the left (`PaymentForm`'s Mark Paid). That is the one exception.
+
+
+## Every list window gets a sidebar
+
+Every entity list window renders inside the shell's `SidebarLayout` (Victor
+Mau's call, 2026-08-14). ~93 admin-portal windows already comply (customer and
+supplier too — 19/18 files); assume a NEW list or an old straggler is missing
+it. **Report windows (`src/pages/reports/`) are exempt from the sidebar** —
+all 51 keep their own filter-bar layout by design — but NOT from the
+`EntityList` rule in the next section.
+
+The anatomy — reference: `ReceiptList`; import the pieces from
+`src/components/SidebarNav`, which re-exports the shell's `SidebarNavItem` /
+`SidebarGroupLabel` alongside the count helpers:
+
+```tsx
+<SidebarLayout
+  sidebarTop={<SidebarActionButton hotkey={ALT_SHIFT_N} onClick={handleNew}>Record Receipt</SidebarActionButton>}
+  sidebar={
+    <nav className="px-2 py-3">
+      <SidebarGroupLabel>Status</SidebarGroupLabel>
+      <SidebarNavItem label="All" count={bucketTotal(statusCounts, STATUS_BUCKETS, { excludeCancelled: true })}
+        active={!filterStatus} onClick={() => setFilterStatus('')} />
+      {STATUS_BUCKETS.map((s) => (
+        <SidebarNavItem key={s.value} label={s.label} count={statusCounts?.[s.value]}
+          active={filterStatus === s.value} onClick={() => setFilterStatus(s.value)} />
+      ))}
+    </nav>
+  }
+  sidebarBottom={<CsvActionButton … />}
+  storageKey="receipts.sidebarWidth" defaultWidth={224} maxWidth={320}
+  sidebarClassName="border-r border-gray-200 bg-gray-50"
+>
+  {/* toolbar + table */}
+</SidebarLayout>
+```
+
+- **`sidebarTop` = the primary create action** — a `SidebarActionButton` wired
+  to the SAME handler as `useNewHotkey`, with `hotkey={ALT_SHIFT_N}` so the
+  hint renders. Secondary actions take `variant="secondary"`.
+- **`sidebar` = the filter nav** — `SidebarGroupLabel` + `SidebarNavItem`
+  buckets, **every one of them carrying its row count** (Victor Mau's call,
+  2026-08-16 — the Campaigns sidebar shipped countless and that is the defect,
+  not a style choice). A bucket without a `count` makes the operator click it
+  to find out whether anything is in there. See the next subsection for the
+  wiring.
+- **`sidebarBottom` = export** (`CsvActionButton`), pinned flush to the bottom.
+- **Persist the width**: `storageKey="<window>.sidebarWidth"`,
+  `defaultWidth={224}`, `maxWidth={320}`,
+  `sidebarClassName="border-r border-gray-200 bg-gray-50"`.
+- Known stragglers as of 2026-08-14: `NotificationList`, `MyPayslips`,
+  `CertificationTests`, `DealerNotifications` (registered windows), plus
+  embedded list surfaces (`WhatsAppNumbers`, the marketplace hub tabs) where
+  the PARENT window's layout owns the decision — check the hub before adding
+  per-tab sidebars.
+
+### Every status bucket shows its qty — and the backend counts it
+
+The pill is not decoration; it is what makes the sidebar a summary rather than
+five buttons. Wiring, both halves:
+
+```tsx
+// portal — the SAME params object the rows use
+const statusCounts = useStatusCounts('mailing-campaigns', '/newsletter/campaigns/',
+                                     campaignParams, ['no_page']);
+<SidebarNavItem label="Draft" count={statusCounts?.['draft']} … />
+```
+
+```python
+# backend — the endpoint the hook calls
+class MailingCampaignViewSet(StatusCountsMixin, viewsets.ModelViewSet):
+```
+
+- **`useStatusCounts(keyPrefix, endpoint, params, omit?)`** (from
+  `src/components/SidebarNav`) fetches `GET <endpoint>status-counts/`, keyed
+  under the list's OWN query-key prefix so the invalidations the window
+  already fires on create/edit refresh the pills too. `bucketTotal(counts,
+  BUCKETS, { excludeCancelled })` feeds the All row. `status`,
+  `status_exclude`, `ordering` and `page` are stripped for you; pass a
+  list-shape param like `no_page` in `omit` so it doesn't fragment the cache
+  key.
+- **Pill-less is only ever "loading", "zero" or "no endpoint".** The shell's
+  `SidebarNavItem` hides a `count` of 0 by design, and a 404 returns
+  `undefined` without retrying. Don't special-case any of the three — but a
+  bucket that is permanently pill-less because you never wired the hook is the
+  bug this rule exists for.
+- **🚨 The counts must line up with the rows the bucket click shows.** The
+  mixin runs the ViewSet's whole filter pipeline (filterset, search) before
+  aggregating, so anything the list filters SERVER-side is already reflected.
+  A filter the page applies CLIENT-side is not — the pills then tally rows the
+  list refuses to show. Move that filter onto the endpoint instead: the
+  Campaigns website filter became `?site=` / `?site_isnull=true` on
+  `MailingCampaignFilter` for exactly this reason, and `products/tests.py`
+  regression-guards the same agreement for the DFM log's `latest_only`.
+- **🚨 A ViewSet whose class queryset carries annotations needs a
+  `status_counts` branch in `get_queryset`.** An annotation declared before
+  `.values()` is added to the values output and therefore to the GROUP BY, so
+  the aggregation splits into one group per row and **every pill reads 1**.
+  Return the bare queryset for the action (`MailingCampaignViewSet`,
+  `InvoiceViewSet` — `sales/views.py` scopes its `total_qty` annotate to the
+  `list` action for the same reason). Nothing type-checks this; a test that
+  creates a campaign with several `sends` rows and asserts the bucket is still
+  1 does.
+- `status_counts_field` overrides what the buckets count when the sidebar isn't
+  on a lifecycle `status` — `is_active`, a type/category field, or an FK (keys
+  come back as the FK's id; booleans as `'true'`/`'false'`).
+  `remap_status_counts` folds a bucket the UI no longer surfaces into its
+  replacement.
+
+Two sidebars can't use the mixin at all, and both alternatives are legitimate
+— reach for them only when the shape genuinely doesn't fit:
+
+- **Buckets that are PREDICATES, not values of one field** get their own
+  action. The talent database's Everyone / Talent pool / Not in play is
+  `GET /recruitment/people/view-counts/` → `{all, pooled, available}`, built
+  on `self.filter_queryset(self.get_queryset())` so search and tag still
+  narrow it. **Share the predicate with the filter that implements the same
+  view** — `PersonFilter.filter_available` and the action both read one
+  module-level `ENGAGED_Q`; two copies drift, and the symptom is a pill
+  contradicting its own rows. `distinct()` each count when the predicate or
+  the search joins a to-many.
+- **A window that already fetches every row counts them client-side.**
+  `EmployeeList` pulls the whole roster (`no_page=true`) and filters in a
+  memo, so a round trip would only re-ask what it holds. Split the filtering
+  in two: a `scoped` memo for everything EXCEPT the bucket (search, type),
+  which the pills tally, then the bucket filter on top for the rows. Getting
+  that order wrong makes the active bucket's pill equal the row count and
+  every other pill go blank.
+- Don't reach for either when a plain `status` field would do, and don't build
+  a second aggregate next to one that exists — but a heavier endpoint is not
+  automatically reusable: the abandoned-cart pills take `StatusCountsMixin`
+  rather than `summary/`'s `counts`, because reading four numbers out of
+  `summary` drags the funnel scans and a per-currency revenue join over
+  `SalesOrderItem` along on every keystroke.
+
+All admin sidebars carried counts as of 2026-08-16 (`UserProfile` and
+`ServerStatus` use `SidebarNavItem` for a settings/health nav, not status
+buckets — exempt; customer, supplier and dealer were clean already). A new
+list window is where the next gap comes from.
+
+
+## The table is the shell's `EntityList` — tick-boxes + a right-click menu, always
+
+Every list's rows render through the shell's `EntityList` (Victor Mau's call,
+2026-08-14) — the canonical pageless data grid. Admin imports it via the thin
+local re-export `src/components/EntityList` (`export { EntityList as default }
+from 'react-os-shell'`); the customer and supplier portals consume the same
+implementation. **This rule DOES cover report tables** — none of the 51
+`src/pages/reports/` pages complied when the rule was set on 2026-08-14
+(Sales by Customer's plain `<table>`, no tick-boxes, no context menu, was
+the reported defect). **All 51 were converted the same day** (ap #1582,
+#1584, #1587, #1588, #1590), so a report now inherits the grid from
+`ReportGrid` — see the reports subsection below.
+
+- **Tick-boxes are built in and non-optional** — `selected` / `setSelected`
+  (`useState<Set<string | number>>()`) are REQUIRED props and bring the
+  checkbox column with them. Don't hand-roll a `<table>` or use bare
+  `ResizableTable` to dodge the wiring.
+- **The right-click menu only exists if you feed it.** With neither
+  `exportEndpoint` nor `contextActions` set, `EntityList` renders NO context
+  menu — that bare state is banned. Always pass at least
+  `exportEndpoint="<base>/export_csv/"` + `exportFilename` (built-in "Export
+  selected to CSV" for the ticked rows, honouring visible/ordered columns),
+  and add `contextActions={(items) => [...]}` for domain bulk actions where
+  they exist. Reference: `PurchaseOrderList`, `GoodsReceiptList`,
+  `StockTakeList`, `GoodsIssueList`.
+- Wire `isError` + `onRetry` from `useInfiniteScroll` so a failed fetch reads
+  as an error with a retry, not "nothing here".
+### Reports get the grid through `ReportGrid`, never `EntityList` directly
+
+A report page does NOT wire `EntityList` itself — it renders
+`src/components/reports/ReportGrid`, which adapts the report layer's one
+column spec (`ReportColumn`) to the grid so the screen, the column picker
+and both exports keep reading the same declaration. The page supplies
+`columns` / `rows` / `rowKey` / `ctx` (the `ReportShell` render-prop
+context, which carries `tableId`, the filter-baked `exportEndpoint` and
+`onDrill`) plus `selected` / `setSelected` and a `footerLabel`; pass
+`grid` on `ReportShell` so it drops its bordered scroll wrapper — the grid
+scrolls itself, and nesting the two double-scrolls.
+
+What `ReportGrid` decides for you, so don't re-solve it per page:
+
+- **Row identity is the server-stamped `row_id`**, with the page's `rowKey`
+  only as the fallback. The backend `Report.row_id` descriptor derives it
+  (`row_id_from(*keys)` over the report's GROUPING keys) and `?ids=` filters
+  the CSV export to the ticked rows. The derivation lives on the server
+  ONLY — the portal reads `row_id` back rather than rebuilding the
+  composite, so the two sides cannot drift. A new report in any domain must
+  declare a `row_id`; `efficient/tests/test_reporting.py`'s `GRID_DOMAINS`
+  ratchet fails the build otherwise.
+- **Sorting is client-side and opt-out.** Rows arrive pre-ordered by the
+  report's own logic (aged receivables oldest-first), so there is no sort
+  until a header is clicked; blanks sink last in both directions. Pass
+  `sortable={false}` when the ORDER *is* the data — BOM Explosion is a
+  flattened tree whose parent-child adjacency a column sort destroys.
+- **Totals become the footer line** via `footerExtra`, not a table row, and
+  resolve through the shared `computeTotals` — an explicit backend total
+  wins over the client-side sum, because the backend returns `null` exactly
+  when summing would be wrong (mixed currencies).
+- `onRowClick` defaults to the row's first drillable column's target and
+  no-ops on a row with no drill; pass it explicitly only when the row's
+  primary entity is not its first drill.
+- `indentOf` carries a tree indent on the first column.
+
+`ReportTable` (the old plain-table renderer) was deleted with the
+conversion — **grouped/sectioned payloads went with it**, so a future
+grouped report has to rebuild that shape inside `ReportGrid`.
+
+
+## List toolbar — search, then filters, dates last
+
+Body shape (72 exact matches): `<div className="flex flex-col h-full p-4">` →
+toolbar row `<div className="pb-3 shrink-0 flex items-center gap-3 flex-wrap">`
+→ `<EntityList …>`. Within the row: search input first
+(`border border-gray-300 rounded-lg px-2.5 py-1.5 text-sm w-64 focus:border-blue-500 focus:ring-blue-500`,
+placeholder `"Search..."`), then FK `SearchableSelect`s, then **`FilterBar` +
+`useFilters`** (Victor Mau's call, 2026-08-14 — the ~65 hand-rolled `<select>`
+rows are legacy, convert when touched; `FilterBar` owns its own Clear button),
+then `DateRangePicker` last (wired to `…_date_from`/`…_date_to`). Status
+buckets belong in the SIDEBAR, never the toolbar.
+
+
+## Active is a toggle, never a checkbox
+
+Every Active / `is_active` control in a portal form renders as the shell's
+`Switch` (Victor Mau's call, 2026-08-14) — imported from `react-os-shell`,
+`size="sm"`, with the field name as its `label`:
+
+```tsx
+{/* react-hook-form */}
+<Controller name="is_active" control={control} render={({ field }) => (
+  <Switch size="sm" checked={!!field.value} onChange={field.onChange} label="Active" />
+)} />
+
+{/* local state */}
+<Switch size="sm" checked={isActive} onChange={setIsActive} label="Active" />
+```
+
+- This deliberately overrides the shell kit's own Switch doc-comment ("Checkbox
+  inside a form, Switch for immediate effect") **for Active fields only**.
+  Other booleans (Default, DST, behaviour flags…) stay checkboxes.
+- Config-driven ref-data forms get it for free: `RefForm` renders a
+  `type: 'checkbox'` field as a Switch when its key is `is_active` — keep the
+  config type as `checkbox`.
+- Reference implementations: `BankAccountForm`, `BrandForm`, `PaymentTermForm`
+  (admin portal, converted 2026-08-14 along with DeliveryLocation / Design /
+  PayrollComponent / TermsTemplate).
+
+
+## Destructive actions live in the EDIT form, never the read view
+
+Cancel / Delete / Void belong in the `*Form`, reached through **Edit**. Forward
+transitions (Submit for approval, Approve & Book, Reserve Stock, Start Review,
+Complete & Post) **stay in the read view**.
+
+The registry decides which component is the read view:
+
+```tsx
+if (editing) return <XForm id={entity.id} onSuccess={() => setEditing?.(false)} … />;
+return <XDetail entity={entity} />;   // ← read-only. No Cancel/Delete here.
+```
+
+**Duplicate buttons stay** where they already exist (Victor Mau's call,
+2026-08-13) — they were removed from Receipt and Payment only.
+
+## Destructive actions confirm through the SHELL dialog, never a native popup
+
+`react-os-shell` ships a Promise-based confirm family, rendered in-theme by the
+shell's `ConfirmProvider`:
+
+- **`confirmDestructive({ message, confirmWord: 'Delete' })`** — the destructive
+  confirm window. Required for anything irreversible: Delete, Cancel, Void,
+  ending a listing. `confirmWord` is the verb on the red button. Reference:
+  `RefTable`, `SalesClaimForm`, `RequisitionForm`, `PurchaseInvoiceForm`.
+- **`await confirm({ title, message, variant })`** — lower-stakes gate (discard
+  dirty state, take a site offline). It accepts a bare string, but pass the
+  object so the dialog carries the record's facts.
+- **`prompt({ … })`** — the shell's input dialog, replacing `window.prompt`.
+
+`window.confirm` / `window.alert` / `window.prompt` are banned (Victor Mau,
+2026-08-14; the why is recorded in `serverStatus/ConfirmPopover.tsx`): they
+can't be styled or themed, can't carry the facts, and block the event loop.
+The bare-identifier trap that keeps shipping them anyway is Bug 4 below.
+
+
+## Detail windows — chrome-less body, facts table, timeline last
+
+Reference: `PaymentDetail`, `ReceiptDetail`, `SalesOrderDetail`.
+
+- **The Detail is a chrome-less body**: entity prop in, `<div className="space-y-4">`
+  (or `DetailLayout` for tall docs in a `bodyScroll={false}` Modal) out. Title,
+  status badge, Edit button and key facts live in the REGISTRY entry
+  (`title: dupTitle(…)`, `footer: dupFooter(…)`), not the component. The
+  self-fetching Modal-rooted family (JournalEntryDetail, GLAccountDetail, …)
+  exists only because those also open as nested popups.
+- **Facts render as the bordered `lc`/`vc` table**, never a `<dl>` (that's for
+  settings-flavoured records): wrapper
+  `border border-gray-200 rounded-lg overflow-hidden`, label cell
+  `px-3 py-2 text-xs font-medium text-gray-500 uppercase bg-gray-50 border-r border-gray-200`,
+  value cell `px-3 py-2 text-sm text-gray-900 border-r border-gray-200` —
+  hoist them as `const lc/vc`, don't inline per-`<td>`.
+- **Line tables:** own lines get `thead bg-gray-100 text-gray-700`; related-doc
+  sub-tables `bg-gray-50 text-gray-500`. Numerics right-aligned
+  (`.toLocaleString()` for qty). Totals: `tfoot bg-gray-50 font-semibold`,
+  first row `border-t-2 border-gray-300`, right-aligned `colSpan` labels,
+  `text-xs` adjustment rows (negatives `text-green-700` with a real `−`),
+  grand total `font-bold` labelled `Total (incl. {taxLabel})` when taxed.
+- **Money/dates:** `const fmt = (v) => formatCurrency(v, doc.currency)` closure;
+  header Amount rows append the code. `formatDate`/`formatDateTime` always —
+  never raw ISO passthrough or `toFixed(2)` + a bare symbol.
+- **Empty value = `<span className="text-gray-400">—</span>`** (Victor Mau's
+  call, 2026-08-14). Bare `'—'` and ASCII `'-'` are legacy; `displayOrDash`
+  stays the LIST-column helper.
+- **Section headings: `text-sm font-semibold text-gray-700 mb-2`** (Victor Mau's
+  call, 2026-08-14) — the uppercase `text-gray-900 tracking-wider` rival is legacy.
+- **`EntityTimeline` is the LAST block, directly above `ModalActions`** (36/42
+  comply) — `entityType` snake_case + `entityId` + `entityLabel` (doc number).
+  Tabbed workspace details move it to an Activities tab with
+  `variant="messages-only"`. It belongs in the Detail, never the Form.
+- **Status-explaining banner** at body top where a status needs context:
+  `flex items-start gap-2 rounded-lg border border-{tone}-200 bg-{tone}-50 px-3 py-2 text-sm`
+  (slate=draft, amber=pending/blocked, green=approved) + one sentence saying
+  what the primary button will do.
+- **Tabs** only for workspace entities (PartNumber, Customer, Supplier…), via
+  the shared `TabBar` — never hand-roll the underline strip.
+- **Related links:** blue `text-blue-600 hover:text-blue-800 hover:underline`
+  buttons calling `openEntity(type, id, snapshotOrNull, label, listRoute)`
+  (5-arg form — the route drives accent + taskbar grouping). Prefer the shared
+  `PartNumberLink` / `CounterpartyLink` / `openCompanyProfile`.
+
+
+## Forms — INPUT_CLS, the error pipeline, per-field undo
+
+Reference: `BankAccountForm` (react-hook-form), `ReceiptForm` /
+`GLAccountForm` (useState). Full census in the audit file.
+
+- **Inputs:** `import { INPUT_CLS } from '../utils/formClasses'`, aliased
+  `const inp = INPUT_CLS`, with `const lbl = 'block text-sm font-medium text-gray-700 mb-1'`
+  and the `errCls` red-border helper. `COMPACT_INPUT_CLS` for dense grids —
+  never a hand-rolled compact string. Required marker = trailing `*` inside
+  the label text (not a red span).
+- **State:** document forms with line items = `useState`/`useUndoableState` +
+  hand-written `handleSave`; flat master-data forms = bare react-hook-form.
+  **zod is installed but unused — do not introduce it.**
+- **Layout:** `grid grid-cols-2 gap-4`; `col-span-2` for full-width; Notes/
+  textarea last with `rows={2}`. No responsive variants — windows are
+  desktop-fixed.
+- **Error pipeline:** `parseApiError` in the save mutation's `onError` →
+  `setFormErrors(parsed.fieldErrors)` (`Record<string, string[]>`) →
+  `<FormErrorAlert errors={mut.isError ? formErrors : null} className="mb-4" />`
+  before the footer + `className={inp + errCls('field')}` per field. Use
+  `parseApiError` (silent), NOT `apiErrorToast`, when the global MutationCache
+  will already toast (Bug 2).
+- **Selects:** `SearchableSelect` for any FK (`className={inp}`);
+  `CurrencySelect` bound to the currency CODE; shell `Select` for short enums.
+  rhf: `register()` for plain inputs, `<Controller>` for every custom field
+  component, `setValue(…, { shouldDirty: true })` for imperative writes.
+- **Submit:** use `FormActions` (labels
+  `Updating.../Creating...` ↔ `Update`/`Create`; document forms may say
+  `Save Draft`). **Submit skin = `.btn-submit` + `.kbd-submit`** (Victor Mau's
+  call, 2026-08-14; ✅swept in ap#1595, guarded by
+  `tests/unit/submitSkinGuard.test.ts`). A non-native `.btn-submit` button
+  NEEDS `data-submit` — the shell's ⌘⏎ selector matches `bg-blue-600` but not
+  `.btn-submit`, so the conversion silently unhooks the hotkey without it.
+  Alt-hint chips (⌥⇧N/E) on blue toolbar buttons deliberately KEEP the raw
+  blue badge — only ⌘⏎ badges use `.kbd-submit`.
+  `meta: { success: '<Entity> <verbed>.' }` on every save mutation.
+- **Undo:** register EVERY editable field — `useUndoableState(initial, { label,
+  coalesceKey })` or `useUndoable(watch(f), v => setValue(f, v), { label,
+  coalesceKey })` (per field; never the whole `watch()` object) — and render
+  `<ModalActions position="left"><UndoControls /></ModalActions>` at the FORM
+  ROOT (a conditional branch can hide a portaled footer). A `FormActions` form
+  with no registered state must wrap `<UndoProvider canEdit={false}>`.
+- **Also:** an FK field's label gets `{value && <OpenLink …/>}`; blank optional
+  FKs/dates normalise to `null` in `mutationFn` (DRF rejects `''`).
+
+
+## Visual vocabulary — buttons, pills, icons, dark mode
+
+Buttons are hand-rolled class recipes, not the shell `Button` — keep the
+recipes exact (census + all six verbatim strings in the audit file):
+
+- **Primary/submit:** `.btn-submit` (see Forms above). Solid `bg-green-600` is
+  the approve/post/book action.
+- **Secondary:** `bg-white text-gray-700 border border-gray-300 px-3 py-1.5
+  text-sm font-medium rounded-lg hover:bg-gray-50 disabled:opacity-50`.
+- **Destructive DEFAULT = red OUTLINE** (`text-red-600 border border-red-200
+  bg-white … hover:bg-red-50 hover:border-red-300`); solid `bg-red-600` only
+  for terminal, irreversible actions (decline/reject). Amber outline = caution/
+  reversal; gray outline = quiet/dismiss.
+- **⛔ Off-palette solid fills as buttons** (`bg-amber-600`, `bg-indigo-600`,
+  `bg-emerald-600`) — they ignore the accent theme.
+- **Sizes:** `px-4 py-2 text-sm` footers · `px-3 py-1.5 text-sm` toolbars
+  (dominant) · `px-2.5 py-1 text-xs` row actions. Icons pair as `h-4 w-4`+`gap-2`
+  / `h-3.5 w-3.5`+`gap-1.5`; Heroicons v2 outline-24 only; `h-` before `w-`.
+- **Pills:** `StatusBadge` for ANY status string (tones come from
+  `shell-config/statusGroups.ts` — never a local STATUS_COLOR map);
+  `ColoredBadge tone=` for categorical values (`constants/badges.ts`);
+  `colorClass=` only for a colour with no tone name; raw span pills are drift.
+  Admin's `statusGroups.ts` is CANONICAL — the customer/supplier maps must
+  agree with it (they currently don't on submitted/rejected/delivered/unpaid).
+- **Rounding `rounded-lg`** (pills `rounded-full`); body text `text-sm`,
+  metadata/table heads `text-xs`; `font-medium` emphasis, `font-semibold`
+  headings.
+- **Dark mode: NEVER write `dark:` variants** — write light classes; the shell
+  remaps them. Three traps, each a DISTINCT class the remaps can miss:
+  `/NN` alpha modifiers, `hover:`/`disabled:` state variants, `!`-important
+  forms. Raw hex bypasses theming entirely (legit only in email/storefront
+  render surfaces). New tinted classes may need a `[data-theme="dark"]` rule in
+  admin's `index.css`.
+
+
+## States, feedback & permissions
+
+- **Loading:** `if (isLoading) return <LoadingSpinner />;` — bare, prop-less.
+  Lists never spin manually (`EntityList` owns loading/error/empty).
+- **Empty:** `<EmptyState message="No <plural> yet." hint="<what fills it>" />`
+  — sentence case, full stop; switch the message when filters are active
+  ("No matches." vs genuinely empty).
+- **Error ≠ empty:** wire `isError` + `onRetry` (from `useInfiniteScroll`) into
+  every `EntityList` — 0/69 did at audit time, so every list showed "No X
+  yet." on a 500. Error copy: "Couldn't load <thing>" + a Try again button.
+- **Modals from lists:** `Modal size="2xl" dirty="auto"` wrapping the form
+  (`id | null` + `onSuccess`/`onCancel`; the list owns open-state and
+  invalidation). **`dirty="auto"` is not the shell default — omitting it
+  silently drops the discard guard.**
+- **Hotkeys:** `useNewHotkey(handleNew)` + the visible `ALT_SHIFT_N` chip on
+  `SidebarActionButton` (same handler — a hotkey without its chip is
+  undiscoverable); `useEditHotkey(cond ? fn : null)` — pass `null` to disable,
+  don't skip the call.
+- **Permissions:** `hasPerm(codename)` ('*' = superuser); never group names.
+  Creates HIDE behind `hasPerm('add_x')`; per-record deletes HIDE behind
+  `can_delete`; **status transitions on a visible record SHOW-DISABLE-EXPLAIN**:
+  a module-level `*_DENIED` sentence ("You need the <Module> → <Perm>
+  permission to …. Ask an administrator to add it to your role."),
+  `aria-disabled` + `title` on the button, and a `toast.error` guard in the
+  handler — a hidden transition reads as a broken screen (BG#00479/BG#00485).
+
+
+- Only show for write operations (POST/PUT/PATCH/DELETE), not GET
+- Show human-readable permission name: `Products -> Add Part Number`
+- All denials logged to activity log
+
+
+
+## Window registry & navigation
+
+- **Page entry:** `'/route': { component: lazy(() => import('…')), label,
+  multiInstance: true, flushBody: true, dimensions: [1376, 1150] }` — string-
+  literal import specifier (a template literal kills code-splitting);
+  `flushBody` whenever the page brings its own `SidebarLayout`; every entity
+  LIST window is `multiInstance: true`, settings/hubs/editors are singletons.
+- **Entity entry:** `endpoint`, `queryKey`, `icon` (a page-route key), `render`,
+  `title: dupTitle(…)`, `footer: dupFooter(…)`, `size: '2xl'`. Render branch
+  order is fixed: `_duplicate` → `_new` → `editing` → Detail. Registry `title`
+  fns are NOT components — no hooks inside them; permission-aware chrome must
+  be a component (`SupplierEditButton`).
+- **`size` vs `dimensions`:** `dimensions` re-enforces pixels on every open
+  (list windows pin `[1376, 1150]`); `size` seeds the first open then persists
+  the user's resize (details `'2xl'`, editors `'3xl'`). `autoHeight: false`
+  MUST come with `dimensions` (else the 240px floor). `flushBody` on an ENTITY
+  entry works only on react-os-shell ≥ 4.75.0 (before that the entity path
+  silently ignored it; the portal pins ≥ 4.77.0 as of 2026-08-16 — don't
+  "clean up" entity flushBody flags, they are live).
+- **`openEntity(type, id, snapshot, label, route)` — always the 5-arg form.**
+  Seed the list row as `snapshot` (null from bare links); `label` = doc number
+  (taskbar + copy text); `route` = the owning page route (accent stripe +
+  taskbar grouping — omitting it is a bug). Drafts: `new-${Date.now()}` +
+  `{ _new: true }`; duplicates `{ _duplicate: true }`. Entity windows dedupe
+  per record.
+- **Persistence names:** sidebar `storageKey="<camelArea>.sidebarWidth"`;
+  `tableId` = kebab `<noun>-list`, the SAME string into `useSort(field, dir,
+  tableId)` and `CsvActionButton`; detail sub-tables `<parent>-<child>` or
+  deliberately none (comment why); reports `` `report:${route}` ``.
+- **New window recipe:** registry entry → `nav.tsx` item (`to` = same route,
+  `perms: ['view_x']`) → `navIcons['<route>']` → `App.tsx` route. **A report is
+  ONE line in `shell-config/reports.ts`** — it derives all four. Every
+  NavSection requires `feedbackModule`; `perms` alone can NOT gate
+  operator-only UI (every Admin has `'*'`) — use `operatorOnly`. Renamed routes
+  get a `ROUTE_ALIASES` entry. A non-default registry flag gets a one-line why
+  (ticket ref) — that's current practice, keep it at 100%.
+
+
+---
+
+# Part III — Recurring bugs (found in 15+ components)
+
+## 🚨 Bug 1 — delete/cancel that leaves a stale list and a dead window
+
+The single most repeated defect in this codebase. Found in **13 components**.
+
+```tsx
+// ✗ WRONG — this was in 13 places
+onDelete={async () => {
+  await apiClient.delete(`/products/moulds/${id}/`);
+  onSuccess();          // registry wires this to setEditing(false)
+}}
+```
+
+The registry wires an edit-mode form as `onSuccess={() => setEditing?.(false)}`.
+So this **only leaves edit mode**: the list keeps the deleted record and the
+window falls back to a detail view of something that no longer exists. For a
+status change (cancel) the record survives but every list, balance and
+statement showing it goes stale.
+
+```tsx
+// ✓ RIGHT
+const deleteMut = useMutation({
+  mutationFn: () => deleteMould(id!),
+  meta: { success: 'Mould deleted.' },
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['moulds'] });
+    (onDeleted ?? onSuccess)();
+  },
+});
+```
+
+- Add **`onDeleted?: () => void`** to the form's props and pass
+  `onDeleted={onClose}` from the registry's `editing` branch — a deleted record
+  must CLOSE the window, not fall back to a detail view.
+- ⚠️ **`onDeleted={onClose}` needs react-os-shell ≥ 4.74.1.** Before that, the
+  shell handed `entry.render()` the CHROME's guarded close, which converts any
+  close into "exit edit mode" while the window is editing and pristine — so the
+  wiring was silently swallowed (open Edit → Delete immediately = pristine =
+  swallowed; found live on the GL account delete, ros#158 fixed it). Browser-
+  verify a delete actually closes its window; unit gates can't see this.
+- **Keep the `(onDeleted ?? onSuccess)()` fallback.** List pages render the same
+  forms inside their own modal, where `onSuccess` *is* the close handler.
+- **Copy the invalidation set from wherever the action used to live.** A cancel
+  usually needs more than the list: receipts also invalidate `clients`,
+  `invoices`, `account-statement` and `statement`; a GRN cancel needs
+  `vendor-invoices`, `invoices` and `shipments`.
+
+## 🚨 Bug 2 — never add a local `onError` that toasts
+
+`App.tsx` installs a global `MutationCache.onError` that toasts **every**
+mutation failure. The axios interceptor marks only **403** and
+server-unreachable as `_toastHandled`, so a local
+`onError: apiErrorToast(err, toast.error, '…')` double-toasts a 409 or a
+validation error. `PartNumberDetail.deleteMut` documents this.
+
+A local `onError` is still right when it does something *other* than toast —
+e.g. `setFormErrors(parsed.fieldErrors)` on a save mutation.
+
+## 🚨 Bug 3 — a Detail rendered with a hardcoded `editing={false}`
+
+`ProjectDetail` takes an `editing` prop and the registry passes `editing={false}`
+literally, so its whole `{editing ? … }` branch — including a delete button — is
+**dead code**. Before "fixing" an action in a Detail, confirm the registry can
+actually reach it.
+
+## 🚨 Bug 4 — a bare `confirm(` has two failure modes, both invisible to tsc AND eslint
+
+```tsx
+// ✗ WRONG — no shell import, so this is window.confirm: the native browser popup
+<button type="button" onClick={() => { if (confirm('Delete this account?')) deleteMut.mutate(); }}>
+```
+
+- **Import missing** — a bare `confirm(…)` resolves to lib.dom's
+  `window.confirm(string): boolean`. It typechecks and lints clean, and ships
+  the native popup (`GLAccountForm` shipped exactly this; found 2026-08-14).
+- **Import present but not awaited** — the shell `confirm` returns
+  `Promise<boolean>`, so a sync `if (confirm(…))` is ALWAYS truthy and the
+  destructive action fires with **no confirmation at all**. Strictly worse than
+  the popup, and equally silent: the eslint config has no type-aware rules, so
+  `no-misused-promises` isn't there to catch it.
+
+```tsx
+// ✓ RIGHT
+onClick={async () => {
+  if (await confirmDestructive({
+    message: `Delete account ${account.account_number} ${account.name}? This cannot be undone.`,
+    confirmWord: 'Delete',
+  })) deleteMut.mutate();
+}}
+```
+
+Audit both modes in one pass — every bare hit must have the shell import AND
+an `await`:
+
+```bash
+grep -rnE "window\.(confirm|alert|prompt)|[^.a-zA-Z](confirm|prompt)\(" src/
+```
+
+As of 2026-08-14 the admin portal had 12 native-popup sites (`GLAccountForm`,
+`BillingPlans`, `ScorecardSettings`, `Tenants`, `TodoList`, `ContactSetup`,
+`ChatLinks`, `AssessmentDetailsForm`, `MarketplaceRepricing`,
+`MarketplaceListings`, `usePortalEnabled`, `RichTextEditor`); the customer,
+supplier and dealer portals were clean.
+
+
+## Auditing this yourself
+
+Grep-based scanning misses these three ways. All three bit during the audit:
+
+1. **`<[^>]+>` tag-stripping loses button labels.** A JSX opening `<button>` tag
+   contains `=>` and `>` inside expressions, so the regex truncates
+   mid-attribute. Scan for the first `>` at brace-depth 0 outside quotes.
+2. **`onClick={…}` alone misses over half the writes** — they also live in
+   `onDelete={…}`, `onSubmit={…}`, `onPark={…}`. Walk every `on[A-Z]\w*={…}`.
+3. **`apiClient.(patch|post|put|delete)` misses helper-routed writes** — most go
+   through a typed function in `src/api/*.ts` (`updateGoodsReceiptStatus`,
+   `deleteCustomer`). Resolve the writing helpers out of the api modules first,
+   then search for them awaited in a handler.
+
+Treat a handler as safe if it contains `invalidateQueries`, `setQueryData`,
+`refetch`, or delegates to a mutation.
+
+To decide authoritatively whether a component is a read view, parse
+`windowRegistry.tsx` for `if (editing) return <XForm …>` paired with
+`return <XDetail …>` — 23 such Detail components in the admin portal.
+
+
+---
+
+# Part IV — Base patterns and recipes
+
+## Buttons — submit skin, hotkeys, save-and-stay, duplicate
 
 ### Submit Buttons
 - Use the `.btn-submit` utility class (defined in `admin-portal/src/index.css`) — it consumes CSS vars that track the active theme's accent color (blue default, pink/emerald/grey/etc.). NEVER hardcode colors like `bg-green-600 hover:bg-green-700` — that ignores the active theme.
@@ -218,6 +897,7 @@ useModalDuplicate(useCallback(() => {
 }, [queryClient, onSuccess]));
 ```
 
+
 ### Action Button Layout
 - Delete/destructive: left-aligned, red text link (`text-red-600 hover:text-red-800`)
 - Primary action (Save/Create/Submit): right-aligned, blue button
@@ -252,65 +932,28 @@ useModalDuplicate(useCallback(() => {
 - Calculate Prices: `$ Calculate Prices` (with dollar symbol)
 - Add Line: `+ Add Line`
 
-## Form Rules
 
-### Searchable Dropdowns — ALL FK Fields
-- **Every ForeignKey field** in create/edit forms MUST use a searchable input (not `<select>`)
-- This applies to ALL FK relationships: Brand, Design, Manufacturer, Customer, Project, Sales Order, Purchase Order, Part Number, Mould, Category, etc.
-- The ONLY exception is simple enum/choice fields (e.g., status, currency) which use `<select>`
+## FK fields — SearchableSelect, never a hand-rolled dropdown
 
-### Searchable Dropdown Pattern
-```tsx
-// State
-const [xxxSearch, setXxxSearch] = useState('');
-const [xxxOpen, setXxxOpen] = useState(false);
-const currentXxx = watch('xxx') || '';
-const selectedXxxName = list.find(x => x.id === currentXxx)?.name || '';
-const filteredXxx = list.filter(x => !xxxSearch || x.name.toLowerCase().includes(xxxSearch.toLowerCase()));
+Every ForeignKey field in a create/edit form uses **`SearchableSelect`**
+(`className={inp}`) — see the Forms section above. Simple enum/choice
+fields (status, currency) keep the shell `Select`. The hand-rolled
+open/blur/onMouseDown dropdown pattern that predates `SearchableSelect`
+survives in older forms — understand it when editing them, but never
+write a new one.
 
-// JSX
-<div className="relative">
-  <label className={lbl}>Field Name</label>
-  <input type="hidden" {...register('xxx')} />
-  <div className="relative group">
-    <input type="text"
-      value={xxxOpen ? xxxSearch : selectedXxxName}
-      onChange={e => { setXxxSearch(e.target.value); setXxxOpen(true); }}
-      onFocus={() => { setXxxOpen(true); setXxxSearch(''); }}
-      onBlur={() => setTimeout(() => setXxxOpen(false), 150)}
-      placeholder="Search..." className={inp} />
-    {currentXxx && <button type="button" onClick={() => { setValue('xxx', ''); }}
-      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">&times;</button>}
-  </div>
-  {xxxOpen && (
-    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-auto">
-      {filteredXxx.map(x => (
-        <div key={x.id} onMouseDown={() => { setValue('xxx', x.id); setXxxOpen(false); }}
-          className="px-3 py-2 text-sm cursor-pointer hover:bg-blue-50">{x.name}</div>
-      ))}
-    </div>
-  )}
-</div>
-```
-
-### Searchable Dropdown Rules
-- Use `onMouseDown` (not `onClick`) on dropdown items to fire before `onBlur`
-- Use `onBlur={() => setTimeout(() => setOpen(false), 150)}` to allow click to register
-- Pre-fill display text on edit from the selected entity's display name
-- Show clear button (×) on hover using `group` + `group-hover:opacity-100`
-- For related FKs: filter by parent (e.g., designs filtered by selected brand)
-- For Part Number search in line items: use API search with debounce (300ms), show dropdown with PN + description, auto-fill description on select
-- Part Number search cell pattern (reusable component `PNSearchCell`):
+- Part Number search in line-item tables stays a special case — the
+  reusable `PNSearchCell`:
   - Input shows current value, switches to search on focus
   - API call to `/products/part-numbers/?search=X&page_size=10` with 300ms debounce
   - Dropdown shows `part_number` (mono) + `description` (truncated)
   - On select: fills part_number + description fields
-  - Table cell needs `style={{ overflow: 'visible' }}` and table container needs `overflow: visible`
-- For entity dropdowns: filter client-side from pre-fetched list (`useQuery` with `no_page: 'true'`)
+  - Table cell needs `style={{ overflow: 'visible' }}` and the table
+    container needs `overflow: visible` (a searchable dropdown inside an
+    `overflow-hidden` table clips)
+- For entity dropdowns: filter client-side from a pre-fetched list
+  (`useQuery` with `no_page: 'true'`)
 
-### Table Overflow
-- Line item tables with searchable dropdowns: use `style={{ overflow: 'visible' }}` instead of `overflow-hidden`
-- This prevents dropdown clipping
 
 ### Scrollable Item Tables in Modals
 When a modal/popup contains a list table (line items, allocated invoices, etc.), the scrollbar must be **only on the tbody rows**, not the thead or tfoot. The table header and footer stay fixed — the scrollbar starts BELOW the header row.
@@ -394,6 +1037,7 @@ When a form is too tall for the modal, the footer (submit buttons) MUST stay fix
 - Mark with `*` in label
 - Category is always required for Part Numbers
 
+
 ### File Upload / Upload Buttons
 
 **In detail popups (edit mode):**
@@ -420,6 +1064,7 @@ When a form is too tall for the modal, the footer (submit buttons) MUST stay fix
 
 **General:**
 - Generate server-side thumbnails (300x300 JPEG via Pillow) on upload
+
 
 ## Shared Component Rules
 
@@ -455,12 +1100,11 @@ When unsure, prefer shell — duplicated UI across portals is the failure mode t
 3. Import both in the page file
 4. The page file should only contain: list view, filter bar, and Modal wrappers
 
-## List Page Rules
 
-### Table Layout — ResizableTable
-- **Always use `<ResizableTable>`** for all list page tables (not raw `<table>`)
-- Columns are resizable (drag border), reorderable (drag header), and hideable (column picker)
-- Column config persists to user preferences in the backend
+## Under `EntityList` — the `ResizableTable` layer
+
+`EntityList` (Part II) is the mandatory entry point for every list; it
+renders through `ResizableTable`, whose knobs you still configure:
 
 ### Column Definitions
 - Define ALL available columns in a `COLUMNS` const array, even optional ones
@@ -509,45 +1153,6 @@ When unsure, prefer shell — duplicated UI across portals is the failure mode t
 - Style: `className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 shrink-0"`
 - Icon: inline SVG X mark (4×4)
 
-### Row Selection Checkboxes
-- **Every list page** MUST have a checkbox column as the first column
-- Header has a select-all checkbox; each row has an individual checkbox
-- Selected rows highlight with `bg-blue-50 hover:bg-blue-100`
-- Footer shows selection count **with aggregate statistics** when rows are selected:
-  - Compute totals from selected items (qty, amount, etc.) relevant to the entity
-  - Format: `{count} selected — {totalQty} pcs — {sym}{totalAmount} — {record count}`
-  - Use currency symbol from the first selected item
-  - Examples by entity:
-    - **Sales Orders**: `8 selected — 13,260 pcs — $1,386,800.00`
-    - **Purchase Orders**: `3 selected — 2,400 pcs — $45,600.00`
-    - **Invoices**: `5 selected — $234,500.00`
-    - **Shipments**: `2 selected — 1,800 pcs`
-  - Show whatever numeric columns are meaningful (qty, amount, weight, etc.)
-- Checkbox column definition:
-```tsx
-{ key: '_select', label: '', defaultWidth: 40, minWidth: 40,
-  headerNode: <input type="checkbox" checked={data.length > 0 && selected.size === data.length}
-    onChange={toggleAll} className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600" /> }
-```
-- State and helpers:
-```tsx
-const [selected, setSelected] = useState<Set<string>>(new Set());
-const toggleSelect = (id: string, e: React.MouseEvent) => {
-  e.stopPropagation();
-  setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-};
-const toggleAll = () => {
-  if (selected.size === data.length) setSelected(new Set());
-  else setSelected(new Set(data.map(d => d.id)));
-};
-```
-- Cell renderer: `_select: (item) => (<input type="checkbox" checked={selected.has(item.id)} onClick={e => toggleSelect(item.id, e)} readOnly className="h-3.5 w-3.5 rounded border-gray-300 text-blue-600" />)`
-- Row className: `` className={`cursor-pointer ${selected.has(item.id) ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}`} ``
-- Use `headerNode` prop on ColumnDef for custom header content (e.g., checkbox)
-
-### Row Actions
-- Click row to open detail popup
-- No inline edit/delete buttons on rows (do it in the detail popup)
 
 ### Keyboard Navigation — useTableNav
 Every list page MUST use the `useTableNav` hook for keyboard navigation:
@@ -589,33 +1194,25 @@ const focusIdx = useTableNav(
 - Uses constants from `Kbd.tsx` for platform-aware labels
 - **Discoverability**: A "? Shortcuts" text button is in every list page footer (inside `ResizableTable`, next to Reset). Clicking it opens the same overlay. This is built into `ResizableTable` — no per-page work needed.
 
-## Error Messages — Toast, Never alert()
-- **NEVER use `window.alert()` or `alert()`** for error messages
-- Use inline toast banners within the component (red bg, dismiss button):
-```tsx
-const [toastMsg, setToastMsg] = useState('');
-// In JSX:
-{toastMsg && (
-  <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
-    <span>{toastMsg}</span>
-    <button onClick={() => setToastMsg('')} className="text-red-400 hover:text-red-600 ml-4">&times;</button>
-  </div>
-)}
-```
-- **Always show WHY** the operation failed, not just "Failed":
-  - Bad: `"Failed to calculate prices."`
-  - Good: `"Please select a price sheet first."`, `"Missing net weight for 90318L6N38KTMBDDK2MZV"`
+
+## Error copy — always say WHY
+
+`window.alert()` is banned (shell confirm/toast family only — Part II).
+Error text always says why the operation failed, not just "Failed":
+
+- Bad: `"Failed to calculate prices."`
+- Good: `"Please select a price sheet first."`, `"Missing net weight for 90318L6N38KTMBDDK2MZV"`
 - For API errors, extract the detail: `e.response?.data?.error || e.response?.data?.detail || e.message`
-- For validation: check prerequisites before calling API (price sheet, exchange rate, etc.)
+- For validation: check prerequisites before calling the API (price sheet, exchange rate, etc.)
 - For per-item errors from batch operations, list which items failed and why
 
-## Price Calculation Breakdown (ⓘ icon)
+
 After "Calculate Prices" / "Recalculate Prices", show a clickable **ⓘ** icon next to each price. Clicking opens a popup with the full calculation.
 
 ### Sales Order (FOB price)
 ```
 Part Number: ANO05S1895511438SB
-Client: Canterbury Tyres Pty Ltd
+Customer: Canterbury Tyres Pty Ltd
 Price Sheet: CP#80010 — Anovia FOB
 
 Base Price              $57
@@ -640,7 +1237,7 @@ Data from API: `base`, `breakdown` (per-procedure), `subtotal`, `surcharge_pct`,
 ### Purchase Order (CNY + USD cost)
 ```
 Part Number: 13817K6N18KTM1MZV
-Vendor: DWM — Dare Wheel Manufacturing Co.,Ltd.
+Supplier: DWM — Dare Wheel Manufacturing Co.,Ltd.
 Price Sheet: VP#90005 — DWM Warrior
 
 Base Finish             BAS
@@ -674,17 +1271,8 @@ Data from API: `breakdown` object with `base_rate`, `kg_price`, `base_weight`, `
 - Popup: fixed overlay with `z-[60]`, `max-w-md`, click outside to close
 - Show `* Rounded to nearest $0.50` with `*` on final amount when surcharge_pct > 0
 
-## Permission Toast
-- Only show for write operations (POST/PUT/PATCH/DELETE), not GET
-- Show human-readable permission name: `Products -> Add Part Number`
-- All denials logged to activity log
 
-## Confirm Dialogs
-- Use `import { confirm } from '../components/ConfirmDialog'` (NOT native `window.confirm`)
-- `await confirm('message')` returns Promise<boolean>
-- Auto-detects delete messages and shows red/danger variant
 
-## Image Display & Lightbox
 
 ### Thumbnails
 - Always generate server-side thumbnails (300x300 JPEG via Pillow) on upload
@@ -703,7 +1291,8 @@ Data from API: `breakdown` object with `base_rate`, `kg_price`, `base_weight`, `
 - Caption shown below image if present
 - Click overlay to close, click image area to stay
 
-## DraggableWindow (Part Number Detail)
+
+
 
 ### When to use
 - Part Number detail views use `DraggableWindow` instead of `Modal`
@@ -749,13 +1338,13 @@ Data from API: `breakdown` object with `base_rate`, `kg_price`, `base_weight`, `
 - Breadcrumb: `· Brand Design · Wheel Finish`
 
 ### Footer content
-- Left: Brand · Category · Manufacturer
+- Left: Brand · Category · Supplier
 - Right: J/K prev/next nav (PartNumberList only) + Stock count
 - Footer is also a drag handle
 
 ### Content (PartNumberDetailPopup)
 - Description banner (blue-50 bg) with marketing finish swap
-- Identity table (PN, Brand, Category, Manufacturer)
+- Identity table (PN, Brand, Category, Supplier)
 - Product-type sections:
   - **Wheels**: Wheel Specs (design, mould, finish, size, PCD, ET, C/B, bolt pattern, etc.) + Weight & Packaging
   - **Tires**: Tire Specs (size, load, speed rating, UTQG, etc.) + Weight & Packaging
@@ -768,3 +1357,4 @@ Data from API: `breakdown` object with `base_rate`, `kg_price`, `base_weight`, `
 - `MinimizedWindowsProvider` — `admin-portal/src/components/MinimizedWindows.tsx` (wraps App)
 - `PartNumberLink` — `admin-portal/src/components/PartNumberLink.tsx` (clickable PN → DraggableWindow)
 - `PartNumberDetailPopup` — `admin-portal/src/components/PartNumberDetailPopup.tsx` (content)
+
