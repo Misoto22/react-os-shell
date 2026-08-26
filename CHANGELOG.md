@@ -9,6 +9,20 @@ All notable changes to this project will be documented in this file. The format 
   appearance without letting the menu escape beneath a window. The existing
   `side="bottom"` placement remains the default for toolbar and row actions.
 
+- **Searchable select menus keep their trigger's width.** The option menu no
+  longer grows to fit its widest option — long labels and sublabels truncate
+  inside the menu instead, so a long email address or reference can't resize
+  the control's dropdown.
+
+- **Rich radio labels stay inside their option card.** Radio label content can
+  now shrink and truncate inside a fixed-width card instead of long rendered
+  metadata escaping the option's boundary.
+
+- **Stepper stages sit in equal-width columns.** Every stage — first, middle,
+  and last — is centred in its own column, and the connectors anchor to the
+  circle centres regardless of label length. Completed/current/upcoming
+  colouring and connector behaviour are unchanged.
+
 ## 4.79.2
 
 - **A preview whose file arrives before its window no longer hangs on "LOADING
