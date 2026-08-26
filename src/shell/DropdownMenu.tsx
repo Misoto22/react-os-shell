@@ -16,6 +16,7 @@ import { PopupMenu, PopupMenuItem } from './PopupMenu';
 import { registerModalEscapeInterceptor } from './escapeInterceptors';
 
 export type DropdownMenuAlign = 'start' | 'end';
+export type DropdownMenuSide = 'top' | 'bottom';
 
 export interface DropdownMenuItem {
   key: string;
@@ -34,6 +35,9 @@ export interface DropdownMenuProps {
   /** Which edge the menu lines up with. `end` (the default) suits a menu at
    *  the right of a row, where a left-aligned one would run off the card. */
   align?: DropdownMenuAlign;
+  /** Which side of the trigger receives the menu. `bottom` is the default;
+   *  footer action bars should use `top` so the menu stays inside the window. */
+  side?: DropdownMenuSide;
   /** Names the trigger. Required in practice — the trigger is usually an icon. */
   'aria-label'?: string;
   className?: string;
@@ -41,7 +45,7 @@ export interface DropdownMenuProps {
 }
 
 export default function DropdownMenu({
-  trigger, items, align = 'end', 'aria-label': ariaLabel, className = '', disabled,
+  trigger, items, align = 'end', side = 'bottom', 'aria-label': ariaLabel, className = '', disabled,
 }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -162,7 +166,7 @@ export default function DropdownMenu({
 
       {open && (
         <div
-          className={`absolute top-full z-50 mt-1 ${align === 'end' ? 'right-0' : 'left-0'}`}
+          className={`absolute z-50 ${side === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'} ${align === 'end' ? 'right-0' : 'left-0'}`}
           onKeyDown={onMenuKeyDown}
         >
           {/* `portal: false` — the menu is positioned against the trigger by

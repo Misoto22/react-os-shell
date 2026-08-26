@@ -216,6 +216,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | `StartMenu` / `Desktop` / `WindowManagerProvider` | Used internally by `Layout`; rarely instantiated directly. |
 | `Modal`, `ModalActions`, `CopyButton`, `CancelButton` | Window primitive supporting standard / compact / widget styles. |
 | `PopupMenu`, `PopupMenuItem`, `PopupMenuDivider`, `PopupMenuLabel` | Right-click / context-menu primitive. |
+| `DropdownMenu` | Trigger-owned action menu with shared dismissal and keyboard behaviour. Use `side="top"` for a trigger in a bottom action bar; the default `side="bottom"` suits toolbar and row actions. |
 | `ConfirmProvider`, `confirm` | Imperative `confirm({ title, body })` returning a Promise<boolean>. |
 | `GlobalSearch` | Cmd-K command palette. Pass `providers: SearchProvider[]` to add results. |
 | `ShortcutHelp` | The keyboard cheatsheet shown on `?`. |
