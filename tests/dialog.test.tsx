@@ -279,6 +279,7 @@ test('a dropdown opened inside a dialog renders above it', () => {
   const modal = layerOf('shell/Dialog.tsx', /fixed inset-0 z-\[/);
   for (const [file, marker] of [
     ['forms/Select.tsx', /fixed z-\[\d+\] overflow-y-auto/],
+    ['forms/DatePicker.tsx', /fixed z-\[\d+\] w-72/],
     ['shell/SearchableSelect.tsx', /fixed z-\[\d+\] rounded-2xl/],
     ['forms/TagInput.tsx', /fixed z-\[\d+\] rounded-2xl/],
   ] as const) {

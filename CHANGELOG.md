@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.79.5
+
+- **Date pickers stay usable inside dialogs.** The portalled calendar now opens
+  above the dialog and its scrim instead of appearing dimmed behind them. This
+  brings `DatePicker` onto the same overlay layer already used by the shared
+  select and tag-input menus.
+
 ## 4.79.4
 
 - **PDF preview works with pdfjs-dist 6.x.** The Preview viewer called
