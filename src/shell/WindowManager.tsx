@@ -228,7 +228,7 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
   // fetch — the GET would always 404 — so skip the detail query, exactly as we
   // do for duplicate windows. The snapshot already drives the create form.
   const isDraft = typeof item.entityId === 'string' && item.entityId.startsWith('new-');
-  const { data: entity, isPending, isFetching, error, refetch } = useQuery({
+  const entityQuery = useQuery({
     queryKey: [qkPrefix, item.entityId],
     queryFn: () => apiClient.get(entityDetailUrl(entry.endpoint, String(item.entityId))).then(r => r.data),
     initialData: normaliseEntitySnapshot(item.entitySnapshot),
@@ -244,6 +244,11 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
     refetchIntervalInBackground: false,
     retry: shouldRetryEntityFetch,
   });
+  // A self-fetching registry entry owns this query key itself. Read only the
+  // stable data/refetch fields here so the shell does not subscribe to that
+  // owner's transient fetch/error state and cause an extra parent render.
+  const entity = entityQuery.data;
+  const refetch = entityQuery.refetch;
 
   // Refetch entity data whenever this modal is activated (brought to front)
   useEffect(() => {
@@ -311,9 +316,9 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
       <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
         <EntityWindowState
           entity={entity}
-          isPending={isPending}
-          isFetching={isFetching}
-          error={error}
+          isPending={entityQuery.isPending}
+          isFetching={entityQuery.isFetching}
+          error={entityQuery.error}
           onRetry={refetch}
         >
           {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
@@ -350,9 +355,9 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
           ) : (
             <EntityWindowState
               entity={entity}
-              isPending={isPending}
-              isFetching={isFetching}
-              error={error}
+              isPending={entityQuery.isPending}
+              isFetching={entityQuery.isFetching}
+              error={entityQuery.error}
               onRetry={refetch}
             >
               {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
