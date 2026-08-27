@@ -11,6 +11,7 @@ import WindowErrorBoundary, { WindowCrashedFallback } from './WindowErrorBoundar
 import { UndoProvider } from './UndoProvider';
 import PartNumberDetailPopup from './PartNumberDetailPopup';
 import LoadingSpinner from './LoadingSpinner';
+import EntityWindowState, { EntityWindowLoading, normaliseEntitySnapshot } from './EntityWindowState';
 import { navIcons } from '../shell-config/nav';
 
 
@@ -227,10 +228,10 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
   // fetch — the GET would always 404 — so skip the detail query, exactly as we
   // do for duplicate windows. The snapshot already drives the create form.
   const isDraft = typeof item.entityId === 'string' && item.entityId.startsWith('new-');
-  const { data: entity, isLoading, refetch } = useQuery({
+  const { data: entity, isPending, isFetching, error, refetch } = useQuery({
     queryKey: [qkPrefix, item.entityId],
     queryFn: () => apiClient.get(entityDetailUrl(entry.endpoint, String(item.entityId))).then(r => r.data),
-    initialData: item.entitySnapshot,
+    initialData: normaliseEntitySnapshot(item.entitySnapshot),
     initialDataUpdatedAt: 0, // Treat snapshot as stale so query refetches immediately
     enabled: !entry.selfFetching && !isDuplicate && !isDraft && isShellApiClientConfigured(),
     staleTime: 0,
@@ -295,18 +296,29 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
         </Suspense>
       );
     }
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        {isLoading && !entity ? (
-          <LoadingSpinner />
-        ) : entity ? (
-          entry.render(entity, onClose, item.entityId, editing, setEditing)
-        ) : (
+    if (entity != null) {
+      return (
+        <Suspense fallback={
           <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
-            <p className="text-sm text-gray-500 py-8 text-center">Not found.</p>
+            <EntityWindowLoading />
           </Modal>
-        )}
-      </Suspense>
+        }>
+          {entry.render(entity, onClose, item.entityId, editing, setEditing)}
+        </Suspense>
+      );
+    }
+    return (
+      <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
+        <EntityWindowState
+          entity={entity}
+          isPending={isPending}
+          isFetching={isFetching}
+          error={error}
+          onRetry={refetch}
+        >
+          {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
+        </EntityWindowState>
+      </Modal>
     );
   }
 
@@ -332,15 +344,19 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
       accentRgb={accentRgb}
     >
       <WindowDirtyContext.Provider value={registerDirty}>
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<EntityWindowLoading />}>
           {entry.selfFetching ? (
             entry.render(null, onClose, item.entityId, editing, setEditing)
-          ) : isLoading && !entity ? (
-            <LoadingSpinner />
-          ) : entity ? (
-            entry.render(entity, onClose, item.entityId, editing, setEditing)
           ) : (
-            <p className="text-sm text-gray-500 py-8 text-center">Not found.</p>
+            <EntityWindowState
+              entity={entity}
+              isPending={isPending}
+              isFetching={isFetching}
+              error={error}
+              onRetry={refetch}
+            >
+              {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
+            </EntityWindowState>
           )}
         </Suspense>
       </WindowDirtyContext.Provider>
@@ -928,7 +944,7 @@ export function WindowManagerProvider({ children, windowAccentForRoute }: {
       return [...prev, {
         id, type: 'modal' as const, label: label || entityId,
         route: route || window.location.pathname,
-        entityType, entityId, entitySnapshot: snapshot,
+        entityType, entityId, entitySnapshot: normaliseEntitySnapshot(snapshot),
         openedFrom,
       }];
     });

@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.81.0
+
+- **Entity windows no longer report a missing record while its request is
+  still running.** Snapshot-free opens, including Command K results, keep a
+  centred, labelled loading state until the detail request settles. Missing,
+  permission, authentication, retryable, and other client failures then render
+  distinct terminal states, and usable cached data stays on screen through a
+  background refresh.
+
+- **A window whose detail query never runs shows a terminal state instead.** A
+  disabled query reports `pending` forever, so a `new-` draft opened with no
+  snapshot, a duplicate, and every entity window on a host that never called
+  `setShellApiClient` would otherwise wait on a request that is never made.
+
 ## 4.80.0
 
 - **Start-menu labels stay on one row.** Desktop rows now reserve space for
