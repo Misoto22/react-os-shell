@@ -221,7 +221,9 @@ const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(function DatePi
           id={panelId}
           role="dialog"
           aria-label={ariaLabel ?? 'Choose a date'}
-          className="fixed z-[400] w-72 rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
+          // Portalled to <body>, so this must clear Dialog's z-[9999] layer.
+          // Otherwise the calendar is visible only behind the dialog scrim.
+          className="fixed z-[10000] w-72 rounded-xl border border-gray-200 bg-white p-3 shadow-lg"
           style={{
             left: pos?.left, right: pos?.right, top: pos?.top, bottom: pos?.bottom,
             // Hidden for the first paint until the layout effect measures the
