@@ -27,6 +27,8 @@ export interface PortalBrandingContextValue {
 export interface PortalBrandingProviderProps {
   load: (signal?: AbortSignal) => Promise<PublicPortalBranding>;
   fallback: PublicPortalBranding;
+  /** Consistent browser title derived from the hostname-scoped public identity. */
+  documentTitle?: (branding: PublicPortalBranding) => string;
   children: ReactNode;
 }
 
@@ -51,7 +53,12 @@ function applyFavicon(url: string | null) {
  * signed-in session. Consumers inject the HTTP adapter; the shared lifecycle,
  * fallback and document favicon behaviour stay consistent across portals.
  */
-export function PortalBrandingProvider({ load, fallback, children }: PortalBrandingProviderProps) {
+export function PortalBrandingProvider({
+  load,
+  fallback,
+  documentTitle,
+  children,
+}: PortalBrandingProviderProps) {
   const [branding, setBranding] = useState(fallback);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -83,6 +90,10 @@ export function PortalBrandingProvider({ load, fallback, children }: PortalBrand
   useEffect(() => {
     applyFavicon(branding.favicon_url);
   }, [branding.favicon_url]);
+
+  useEffect(() => {
+    if (documentTitle) document.title = documentTitle(branding);
+  }, [branding, documentTitle]);
 
   const value = useMemo(() => ({ branding, loading, error }), [branding, loading, error]);
   return <PortalBrandingContext.Provider value={value}>{children}</PortalBrandingContext.Provider>;

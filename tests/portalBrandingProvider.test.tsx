@@ -24,7 +24,15 @@ test('PortalBrandingProvider starts from fallback then applies the anonymous hos
     logo_square_url: '/neutral.png',
     favicon_url: null,
   };
-  const view = render(<PortalBrandingProvider load={load} fallback={fallback}><Probe /></PortalBrandingProvider>);
+  const view = render(
+    <PortalBrandingProvider
+      load={load}
+      fallback={fallback}
+      documentTitle={branding => `${branding.company_name} Dealer Portal`}
+    >
+      <Probe />
+    </PortalBrandingProvider>,
+  );
   assert.equal(view.container.querySelector('output')?.textContent, 'Dealer Portal|/neutral.png');
   assert.equal(view.container.querySelector('output')?.getAttribute('data-loading'), 'true');
 
@@ -35,6 +43,7 @@ test('PortalBrandingProvider starts from fallback then applies the anonymous hos
   assert.equal(view.container.querySelector('output')?.textContent, 'INOVIT Pty Ltd|/tenant.png');
   assert.equal(view.container.querySelector('output')?.getAttribute('data-loading'), 'false');
   assert.equal(document.head.querySelector<HTMLLinkElement>('link[data-portal-branding="favicon"]')?.href.endsWith('/favicon.png'), true);
+  assert.equal(document.title, 'INOVIT Pty Ltd Dealer Portal');
   view.unmount();
 });
 
