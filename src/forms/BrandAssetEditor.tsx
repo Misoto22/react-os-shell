@@ -7,6 +7,10 @@ export interface BrandAssetPreview {
   label: string;
   slot: BrandMarkSlot;
   surface?: BrandMarkSurface;
+  kind?: 'brand-slot' | 'browser-tab' | 'search-result';
+  title?: string;
+  url?: string;
+  description?: string;
 }
 
 export interface BrandAssetEditorProps {
@@ -162,24 +166,56 @@ export default function BrandAssetEditor({
         <div className="rounded-lg border border-gray-200 bg-white p-4" aria-label={`${assetName} previews`}>
           <h3 className="text-sm font-semibold text-gray-900">Preview</h3>
           <div className="mt-3 grid gap-3">
-            {previews.map(preview => (
-              <div
-                key={`${preview.label}-${preview.slot}-${preview.surface ?? 'light'}`}
-                data-brand-preview
-                className={[
-                  'flex items-center gap-3 rounded-md border border-gray-200 p-3',
-                  preview.surface === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900',
-                ].join(' ')}
-              >
+            {previews.map(preview => {
+              const mark = (
                 <BrandMark
                   src={visibleUrl}
                   alt={`${subjectName} ${assetName}`}
                   slot={preview.slot}
                   surface={preview.surface}
+                  size={preview.kind === 'browser-tab' ? 16 : undefined}
                 />
-                <span className="text-sm">{preview.label}</span>
-              </div>
-            ))}
+              );
+              return (
+                <div
+                  key={`${preview.label}-${preview.slot}-${preview.surface ?? 'light'}`}
+                  data-brand-preview
+                  className={preview.surface === 'dark' ? 'text-white' : 'text-gray-900'}
+                >
+                  <div className="mb-2 text-xs font-medium text-gray-500">{preview.label}</div>
+                  {preview.kind === 'browser-tab' ? (
+                    <div className="flex items-end gap-1 border-b border-gray-200">
+                      <div className="flex max-w-[220px] items-center gap-2 rounded-t-lg border border-b-0 border-gray-200 bg-white px-3 py-2">
+                        {mark}
+                        <span className="truncate text-xs text-gray-700">{preview.title ?? subjectName}</span>
+                        <span className="text-gray-400">×</span>
+                      </div>
+                      <span className="mb-1 ml-1 text-gray-400">+</span>
+                    </div>
+                  ) : preview.kind === 'search-result' ? (
+                    <div className="rounded-lg border border-gray-200 bg-white p-3">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50">{mark}</span>
+                        <div className="min-w-0 leading-tight">
+                          <div className="truncate text-xs font-medium text-gray-700">{preview.title ?? subjectName}</div>
+                          {preview.url && <div className="truncate text-xs text-gray-400">{preview.url}</div>}
+                        </div>
+                      </div>
+                      <div className="mt-1.5 text-sm font-medium text-blue-700">{preview.title ?? subjectName}</div>
+                      {preview.description && <div className="text-xs text-gray-500">{preview.description}</div>}
+                    </div>
+                  ) : (
+                    <div className={[
+                      'flex items-center gap-3 rounded-md border border-gray-200 p-3',
+                      preview.surface === 'dark' ? 'bg-gray-900 text-white' : 'bg-white text-gray-900',
+                    ].join(' ')}>
+                      {mark}
+                      <span className="text-sm">{preview.title ?? preview.label}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

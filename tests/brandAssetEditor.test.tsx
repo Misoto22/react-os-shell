@@ -67,12 +67,14 @@ test('BrandAssetEditor previews the same staged asset in requested portal slots'
       onSave={() => {}}
       onRemove={() => {}}
       previews={[
-        { label: 'Browser tab', slot: 'favicon' },
+        { label: 'Browser tab', slot: 'favicon', kind: 'browser-tab', title: 'INOVIT Wheels' },
+        { label: 'Search result', slot: 'favicon', kind: 'search-result', title: 'INOVIT Wheels', url: 'https://inovit.com.au' },
         { label: 'Portal menu', slot: 'compact', surface: 'dark' },
       ]}
     />,
   );
-  assert.equal(view.container.querySelectorAll('[data-brand-preview]').length, 2);
-  assert.equal(view.container.querySelectorAll('img[src="/icon.png"]').length, 3);
+  assert.equal(view.container.querySelectorAll('[data-brand-preview]').length, 3);
+  assert.equal(view.container.querySelectorAll('img[src="/icon.png"]').length, 4);
+  assert.match(view.container.textContent ?? '', /https:\/\/inovit\.com\.au/);
   view.unmount();
 });
