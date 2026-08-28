@@ -23,6 +23,8 @@ test('PortalBrandingProvider starts from fallback then applies the anonymous hos
     logo_on_dark_url: null,
     logo_square_url: '/neutral.png',
     favicon_url: null,
+    logo_has_alpha: null,
+    logo_is_light: null,
   };
   const view = render(
     <PortalBrandingProvider
@@ -51,6 +53,7 @@ test('PortalBrandingProvider keeps fallback identity when public branding fails'
   const fallback: PublicPortalBranding = {
     portal: 'supplier', company_name: 'Supplier Portal', logo_url: null,
     logo_on_dark_url: null, logo_square_url: null, favicon_url: null,
+    logo_has_alpha: null, logo_is_light: null,
   };
   const view = render(
     <PortalBrandingProvider load={async () => { throw new Error('offline'); }} fallback={fallback}>

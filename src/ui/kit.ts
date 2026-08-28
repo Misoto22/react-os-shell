@@ -65,8 +65,13 @@ export { default as Label } from '../forms/Label';
 export type { LabelProps } from '../forms/Label';
 export { default as MediaUploadField, mediaFileName } from '../forms/MediaUploadField';
 export type { MediaUploadFieldProps } from '../forms/MediaUploadField';
-export { default as BrandMark } from '../forms/BrandMark';
-export type { BrandMarkProps, BrandMarkSlot, BrandMarkSurface } from '../forms/BrandMark';
+export { default as BrandMark, resolveBrandMarkTreatment } from '../forms/BrandMark';
+export type {
+  BrandMarkProps,
+  BrandMarkSlot,
+  BrandMarkSurface,
+  BrandMarkTreatment,
+} from '../forms/BrandMark';
 export { default as BrandAssetEditor } from '../forms/BrandAssetEditor';
 export type { BrandAssetEditorProps, BrandAssetPreview } from '../forms/BrandAssetEditor';
 export { PortalBrandingProvider, usePortalBranding } from '../branding/PortalBrandingProvider';

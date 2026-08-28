@@ -58,6 +58,32 @@ test('BrandAssetEditor rejects an oversized file before save', async () => {
   view.unmount();
 });
 
+test('BrandAssetEditor rejects a file omitted from the configured accept contract', async () => {
+  let saves = 0;
+  const view = render(
+    <BrandAssetEditor
+      committedUrl={null}
+      subjectName="INOVIT Pty Ltd"
+      assetName="Primary logo"
+      accept="image/png,image/jpeg"
+      acceptHint="PNG · JPG"
+      onSave={() => { saves += 1; }}
+      onRemove={() => {}}
+    />,
+  );
+  const input = view.container.querySelector('input[type=file]') as HTMLInputElement;
+  Object.defineProperty(input, 'files', {
+    configurable: true,
+    value: [new File(['<svg/>'], 'logo.svg', { type: 'image/svg+xml' })],
+  });
+  await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
+  assert.match(view.container.textContent ?? '', /supported image \(PNG · JPG\)/i);
+  const save = [...view.container.querySelectorAll('button')].find(button => button.textContent === 'Save logo');
+  assert.equal(save?.hasAttribute('disabled'), true);
+  assert.equal(saves, 0);
+  view.unmount();
+});
+
 test('BrandAssetEditor previews the same staged asset in requested portal slots', () => {
   const view = render(
     <BrandAssetEditor

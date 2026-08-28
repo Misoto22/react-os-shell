@@ -16,6 +16,8 @@ export interface PublicPortalBranding {
   logo_on_dark_url: string | null;
   logo_square_url: string | null;
   favicon_url: string | null;
+  logo_has_alpha: boolean | null;
+  logo_is_light: boolean | null;
 }
 
 export interface PortalBrandingContextValue {

@@ -37,6 +37,17 @@ function actionNoun(assetName: string) {
   return words.at(-1) || 'image';
 }
 
+function acceptsFile(file: File, accept: string) {
+  const fileName = file.name.toLocaleLowerCase();
+  const fileType = file.type.toLocaleLowerCase();
+  return accept.split(',').map(value => value.trim().toLocaleLowerCase()).some(rule => {
+    if (!rule) return false;
+    if (rule.startsWith('.')) return fileName.endsWith(rule);
+    if (rule.endsWith('/*')) return fileType.startsWith(rule.slice(0, -1));
+    return fileType === rule;
+  });
+}
+
 /**
  * Shared staged-upload surface for portal branding. Network and persistence
  * remain consumer-owned through onSave/onRemove; validation, preview and file
@@ -77,8 +88,8 @@ export default function BrandAssetEditor({
 
   const stage = (file?: File) => {
     if (!file || disabled) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Choose an image file.');
+    if (!acceptsFile(file, accept)) {
+      setError(`Choose a supported image (${acceptHint}).`);
       return;
     }
     if (file.size > maxBytes) {
@@ -176,6 +187,7 @@ export default function BrandAssetEditor({
                   alt={`${subjectName} ${assetName}`}
                   slot={preview.slot}
                   surface={preview.surface}
+                  adaptive
                   size={preview.kind === 'browser-tab' ? 16 : undefined}
                 />
               );

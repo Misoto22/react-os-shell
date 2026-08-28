@@ -34,3 +34,41 @@ test('BrandMark renders a neutral monogram when no image URL exists', () => {
   assert.equal(fallback.getAttribute('aria-label'), 'Regis Design');
   view.unmount();
 });
+
+test('BrandMark gives a transparent dark mark a light plate on a dark surface', () => {
+  const view = render(
+    <BrandMark
+      src="/dark-mark.png"
+      alt="Dealer"
+      surface="dark"
+      adaptive
+      hasAlpha
+      isLight={false}
+    />,
+  );
+  const frame = view.container.querySelector('[data-brand-treatment]') as HTMLElement;
+  assert.equal(frame.dataset.brandTreatment, 'plate-light');
+  assert.equal(frame.style.background, 'rgb(255, 255, 255)');
+  view.unmount();
+});
+
+test('BrandMark leaves a contrasting transparent mark bare', () => {
+  const view = render(
+    <BrandMark src="/light-mark.png" alt="Dealer" surface="dark" adaptive hasAlpha isLight />,
+  );
+  const frame = view.container.querySelector('[data-brand-treatment]') as HTMLElement;
+  assert.equal(frame.dataset.brandTreatment, 'bare');
+  assert.equal(frame.style.background, '');
+  view.unmount();
+});
+
+test('BrandMark does not alter an authoritative surface-specific variant', () => {
+  const view = render(
+    <BrandMark src="/on-dark.png" alt="Dealer" surface="dark" hasAlpha isLight={false} />,
+  );
+  assert.equal(
+    view.container.querySelector('[data-brand-treatment]')?.getAttribute('data-brand-treatment'),
+    'bare',
+  );
+  view.unmount();
+});
