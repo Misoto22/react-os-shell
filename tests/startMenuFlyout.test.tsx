@@ -241,11 +241,104 @@ test('a compact menu label stays on one row without hiding the full name', () =>
     const row = [...view.container.querySelectorAll('button')]
       .find(button => button.textContent?.trim() === menuLabel);
     assert.ok(row, 'the menu renders the explicit compact label');
-    assert.equal(row.getAttribute('aria-label'), fullLabel);
-    assert.equal(row.getAttribute('title'), fullLabel);
+    // The accessible name has to START with what is on screen, or voice
+    // control ("click Customer Txn Summary") no longer matches the row.
+    assert.equal(row.getAttribute('aria-label'), `${menuLabel}, ${fullLabel}`);
     assert.match(row.className, /\bwhitespace-nowrap\b/);
     assert.match(row.className, /\boverflow-hidden\b/);
-    assert.match(row.querySelector('span')?.className ?? '', /\btruncate\b/);
+    const label = row.querySelector('[data-menu-label]');
+    assert.ok(label, 'the visible name is its own element');
+    assert.match(label.className, /\btruncate\b/);
+    // Abbreviated, so the full name is reachable without measuring anything.
+    assert.equal(label.getAttribute('title'), fullLabel);
+  } finally {
+    view.unmount();
+  }
+});
+
+
+test('an ordinary row is not given a name or a tooltip it does not need', () => {
+  // Titling every row hangs a native tooltip off short, fully-visible labels —
+  // and hovering a row is also what opens its flyout, so the two fight. A row
+  // whose text content already IS its full name needs no aria-label either.
+  const nav: (NavSection | NavItem)[] = [
+    { label: 'Sales', items: [{ to: '/orders', label: 'Orders' }] },
+  ];
+  const view = render(
+    <StartMenu
+      open
+      onClose={() => {}}
+      openPage={() => {}}
+      openWindows={[]}
+      profile={{}}
+      user={{}}
+      onLogout={() => {}}
+      onNavigate={() => {}}
+      taskbarPosition="bottom"
+      taskbarH={48}
+      navSections={nav}
+      categories={{ erp: ['Sales'], system: [] }}
+    />,
+  );
+
+  try {
+    const section = [...view.container.querySelectorAll('button')]
+      .find(button => button.textContent?.trim() === 'Sales');
+    assert.ok(section);
+    assert.equal(section.getAttribute('aria-label'), null);
+    act(() => { section.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+
+    const row = [...view.container.querySelectorAll('button')]
+      .find(button => button.textContent?.trim() === 'Orders');
+    assert.ok(row);
+    assert.equal(row.getAttribute('aria-label'), null);
+    assert.equal(row.querySelector('[data-menu-label]')?.getAttribute('title'), null);
+  } finally {
+    view.unmount();
+  }
+});
+
+test('search matches the full label even when the row shows a compact one', () => {
+  // The compact form is a display concern. Typing the words a user knows the
+  // report by has to keep finding it, or `menuLabel` would hide entries.
+  const nav: (NavSection | NavItem)[] = [
+    {
+      label: 'Sales',
+      items: [{ to: '/reports/ar', label: 'Accounts Receivable Report', menuLabel: 'AR Report' }],
+    },
+  ];
+  const view = render(
+    <StartMenu
+      open
+      onClose={() => {}}
+      openPage={() => {}}
+      openWindows={[]}
+      profile={{}}
+      user={{}}
+      onLogout={() => {}}
+      onNavigate={() => {}}
+      taskbarPosition="bottom"
+      taskbarH={48}
+      navSections={nav}
+      categories={{ erp: ['Sales'], system: [] }}
+    />,
+  );
+
+  try {
+    const search = view.container.querySelector('input');
+    assert.ok(search);
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype, 'value',
+      )?.set;
+      setter?.call(search, 'Accounts Receivable');
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    const hit = [...view.container.querySelectorAll('button')]
+      .find(button => button.textContent?.includes('AR Report'));
+    assert.ok(hit, 'the full label matched even though the row reads "AR Report"');
+    assert.equal(hit.getAttribute('aria-label'), 'AR Report, Accounts Receivable Report');
   } finally {
     view.unmount();
   }
