@@ -29,6 +29,7 @@ import {
 import { visibleChildren, isReachable, navVisible } from './nav-types';
 import { useAuth } from '../contexts/AuthContext';
 import { glassStyle, GLASS_INPUT_BG } from '../utils/glass';
+import BrandMark from '../forms/BrandMark';
 
 interface SidebarProps {
   width: number;
@@ -43,6 +44,9 @@ interface SidebarProps {
   categories?: StartMenuCategories;
   productName?: string;
   productIcon?: string;
+  adaptiveLogo?: boolean;
+  logoHasAlpha?: boolean | null;
+  logoIsLight?: boolean | null;
 }
 
 export default function Sidebar({
@@ -58,6 +62,9 @@ export default function Sidebar({
   categories = defaultCategories,
   productName,
   productIcon,
+  adaptiveLogo = false,
+  logoHasAlpha = null,
+  logoIsLight = null,
 }: SidebarProps) {
   const { hasAnyPerm } = useAuth();
   const erpLabels = new Set(categories.erp);
@@ -260,7 +267,20 @@ export default function Sidebar({
     >
       {/* Brand */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/15 shrink-0">
-        {productIcon && <img src={productIcon} alt="" className="h-5 w-5 shrink-0 opacity-80" />}
+        {productIcon && (
+          <BrandMark
+            src={productIcon}
+            alt=""
+            slot="compact"
+            surface="light"
+            adaptive={adaptiveLogo}
+            hasAlpha={logoHasAlpha}
+            isLight={logoIsLight}
+            size={20}
+            decorative
+            className="opacity-80"
+          />
+        )}
         <span className="text-sm font-semibold text-gray-800 truncate">{productName ?? 'Apps'}</span>
       </div>
 

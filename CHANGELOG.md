@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.82.0
+
+- **Tenant portal branding has one shared lifecycle.** `BrandMark` renders
+  compact icons and wordmarks without stretching or cropping, falls back
+  cleanly when an asset fails, keeps the slot size stable, and uses server
+  transparency/tone hints to add a contrast plate only when arbitrary tenant
+  artwork would disappear into its surface. The new `PortalBrandingProvider`
+  loads hostname-scoped public identity once, before sign-in, and applies the
+  browser title and favicon from it.
+
+- **Brand asset settings reuse one editor.** `BrandAssetEditor` owns staged
+  upload, drag-and-drop, type/size validation, save/remove states, inherited
+  fallback previews, and standard browser-tab, search-result, and shell-slot
+  previews while leaving persistence to each product adapter. Programmatic and
+  drag-and-drop selection enforce the same configured MIME/extension allow-list
+  as the native file picker — including the several media types a browser
+  reports for a `.ico` file.
+
 ## 4.81.0
 
 - **Entity windows no longer report a missing record while its request is

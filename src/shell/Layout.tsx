@@ -39,6 +39,7 @@ import {
 } from '../shell-config/nav';
 import { WINDOW_REGISTRY, isPageEntry, type PageRegistryEntry } from '../windowRegistry/types';
 import type { ReactNode } from 'react';
+import BrandMark from '../forms/BrandMark';
 
 // Transitional re-exports — go away after each consumer migrates to importing
 // nav data from their own shell-config rather than from <Layout>.
@@ -63,6 +64,12 @@ export interface ShellBranding {
   productName?: string;
   /** Logo URL — start-menu button, splash and logout covers. Defaults to `/favicon.svg`. */
   logo?: string;
+  /** Apply the shared contrast treatment to arbitrary tenant artwork. */
+  adaptiveLogo?: boolean;
+  /** Server-detected transparency hint for `logo`. */
+  logoHasAlpha?: boolean | null;
+  /** Server-detected tone hint for `logo`. */
+  logoIsLight?: boolean | null;
   /** Line under the product name on the splash and logout covers —
    *  typically the company name. */
   tagline?: string;
@@ -761,6 +768,9 @@ export default function Layout({
   const brandName = branding?.productName ?? productName;
   const brandIcon = branding?.logo ?? productIcon;
   const brandTagline = branding?.tagline;
+  const brandAdaptive = branding?.adaptiveLogo ?? false;
+  const brandHasAlpha = branding?.logoHasAlpha ?? null;
+  const brandIsLight = branding?.logoIsLight ?? null;
   const host = useDesktopHost();
   const { user, logout, hasAnyPerm } = useAuth();
   const { openPage, openEntity, openWindows } = useWindowManager();
@@ -972,8 +982,8 @@ export default function Layout({
     <div className="flex flex-col h-screen">
       {/* Reopen last session's windows — see SessionRestore.tsx. */}
       <SessionWindowRestore />
-      {showStartup && <StartupAnimation onComplete={() => setShowStartup(false)} ready={!!profile} productName={brandName} logo={brandIcon} subtitle={brandTagline} />}
-      {showLogout && <LogoutAnimation onComplete={() => { sessionStorage.removeItem('erp_startup_shown'); logout(); }} logo={brandIcon} subtitle={brandTagline} />}
+      {showStartup && <StartupAnimation onComplete={() => setShowStartup(false)} ready={!!profile} productName={brandName} logo={brandIcon} subtitle={brandTagline} adaptiveLogo={brandAdaptive} logoHasAlpha={brandHasAlpha} logoIsLight={brandIsLight} />}
+      {showLogout && <LogoutAnimation onComplete={() => { sessionStorage.removeItem('erp_startup_shown'); logout(); }} logo={brandIcon} subtitle={brandTagline} adaptiveLogo={brandAdaptive} logoHasAlpha={brandHasAlpha} logoIsLight={brandIsLight} />}
       {/* Start Menu — suppressed in sidebar mode (Sidebar replaces it). */}
       {!sidebarMode && (
         <StartMenu
@@ -1016,6 +1026,9 @@ export default function Layout({
             categories={categories}
             productName={brandName}
             productIcon={brandIcon}
+            adaptiveLogo={brandAdaptive}
+            logoHasAlpha={brandHasAlpha}
+            logoIsLight={brandIsLight}
           />
         </Suspense>
       )}
@@ -1043,6 +1056,9 @@ export default function Layout({
             <MobileAppLanding
               productName={brandName}
               productIcon={brandIcon}
+              adaptiveLogo={brandAdaptive}
+              logoHasAlpha={brandHasAlpha}
+              logoIsLight={brandIsLight}
               config={mobileApp}
               wallpaperStyle={wallpaperStyle}
             />
@@ -1101,7 +1117,20 @@ export default function Layout({
             onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = ''; }}>
             <span className="absolute inset-0 opacity-0 group-hover/erp:opacity-100 transition-opacity duration-200 pointer-events-none"
               style={{ background: 'radial-gradient(circle 60px at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.25) 0%, transparent 100%)' }} />
-            {brandIcon && <img src={brandIcon} alt="" className="relative z-10 h-3.5 w-3.5 shrink-0 opacity-60" />}
+            {brandIcon && (
+              <BrandMark
+                src={brandIcon}
+                alt=""
+                slot="compact"
+                surface="light"
+                adaptive={brandAdaptive}
+                hasAlpha={brandHasAlpha}
+                isLight={brandIsLight}
+                size={14}
+                decorative
+                className="relative z-10 opacity-60"
+              />
+            )}
             <span className="relative z-10 truncate">{brandName}</span>
           </button>
         </div>}

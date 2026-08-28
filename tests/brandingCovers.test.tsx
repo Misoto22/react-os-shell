@@ -30,6 +30,20 @@ test('LogoutAnimation shows the branded logo and tagline', () => {
   assert.match(markup, />Regis Design</);
 });
 
+test('tenant cover logos use the shared contrast treatment on dark surfaces', () => {
+  const markup = renderToStaticMarkup(
+    <StartupAnimation
+      onComplete={() => {}}
+      logo="/dark-tenant.png"
+      adaptiveLogo
+      logoHasAlpha
+      logoIsLight={false}
+    />,
+  );
+  assert.match(markup, /data-brand-treatment="plate-light"/);
+  assert.match(markup, /bg-white/);
+});
+
 test('without branding, both covers render exactly the old defaults', () => {
   const startup = renderToStaticMarkup(<StartupAnimation onComplete={() => {}} />);
   assert.match(startup, /src="\/favicon\.svg"/);

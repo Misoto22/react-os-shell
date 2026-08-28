@@ -228,6 +228,8 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | Export | Purpose |
 |---|---|
 | `Layout` | Top-level shell — desktop + taskbar + start menu. Mount once inside your providers. `branding={{ productName, logo, tagline }}` sets the visual identity in one object — start-menu button, startup splash, logout cover, mobile landing; its fields win over the older loose `productName`/`productIcon` props. The About dialog and What's New changelog stay on `DesktopHostConfig`. |
+| `BrandMark` | Aspect-preserving tenant mark for favicon, compact-icon and wordmark slots, with load-failure fallback, neutral monogram behaviour and optional tone-aware contrast treatment. |
+| `BrandAssetEditor` | Shared staged upload/remove lifecycle with one enforced file contract and standard browser, search-result and shell-slot previews. Persistence is injected through `onSave` and `onRemove`. |
 | `StartMenu` / `Desktop` / `WindowManagerProvider` | Used internally by `Layout`; rarely instantiated directly. |
 | `Modal`, `ModalActions`, `CopyButton`, `CancelButton` | Window primitive supporting standard / compact / widget styles. |
 | `PopupMenu`, `PopupMenuItem`, `PopupMenuDivider`, `PopupMenuLabel` | Right-click / context-menu primitive. |
@@ -269,6 +271,7 @@ All exports are named — `import { Modal, ... } from 'react-os-shell'`.
 | `<BugReportConfigProvider value={{ submit, list?, resolve? }}>` | Wire the bug-report flow to your backend. |
 | `<DesktopHostProvider value={{ stickyResolver?, saveShortcuts?, … }}>` | Sticky-note ref resolver + persistence callbacks. |
 | `<StatusBadgeProvider groups={{ status: 'success' \| ... }}>` | Status string → semantic group. |
+| `<PortalBrandingProvider load={...} fallback={...}>` | Loads public hostname-scoped Company Profile identity before authentication, applies its favicon and optional derived document title, and exposes it through `usePortalBranding()`. |
 | `setShellApiClient(axios)` | Module-level: register your axios instance once. |
 | `setShellAuthBridge({ user, logout })` | Module-level: register user identity / logout handler. |
 | `setShellWindowRegistry(registry)` | Module-level: register your composed `WindowRegistry`. |
