@@ -69,7 +69,10 @@ test('BrandMark gives a transparent dark mark a light plate on a dark surface', 
   );
   const frame = view.container.querySelector('[data-brand-treatment]') as HTMLElement;
   assert.equal(frame.dataset.brandTreatment, 'plate-light');
-  assert.equal(frame.style.background, 'rgb(255, 255, 255)');
+  // The plate is painted by class, so it follows the theme like the rest of
+  // the component; only the tunable radius/padding stay inline.
+  assert.match(frame.className, /\bbg-white\b/);
+  assert.equal(frame.style.background, '');
   view.unmount();
 });
 
@@ -80,6 +83,7 @@ test('BrandMark leaves a contrasting transparent mark bare', () => {
   const frame = view.container.querySelector('[data-brand-treatment]') as HTMLElement;
   assert.equal(frame.dataset.brandTreatment, 'bare');
   assert.equal(frame.style.background, '');
+  assert.doesNotMatch(frame.className, /\bbg-white\b|\bbg-neutral-900\b/);
   view.unmount();
 });
 

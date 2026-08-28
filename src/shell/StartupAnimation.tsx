@@ -55,10 +55,12 @@ export default function StartupAnimation({ onComplete, ready = false, productNam
       </div>
 
       {/* Logo */}
-      <div
-        className={`relative transition-all duration-700 ease-out ${phase === 'logo' ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`}
-        style={{ animation: 'spin-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
-      >
+      {/* The animation stays on the MARK, where it has always been. This
+          wrapper owns the phase transition, and `spin-in` sets `transform`
+          AND `opacity` with a forwards fill — animation declarations outrank
+          normal ones, so putting it here would pin both at the 100% frame and
+          leave the wrapper's scale/opacity classes doing nothing. */}
+      <div className={`relative transition-all duration-700 ease-out ${phase === 'logo' ? 'scale-75 opacity-0' : 'scale-100 opacity-100'}`}>
         <BrandMark
           src={logo}
           alt=""
@@ -70,6 +72,7 @@ export default function StartupAnimation({ onComplete, ready = false, productNam
           isLight={logoIsLight}
           decorative
           className="drop-shadow-[0_0_30px_rgba(124,58,237,0.5)]"
+          style={{ animation: 'spin-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}
         />
       </div>
 

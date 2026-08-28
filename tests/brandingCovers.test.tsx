@@ -41,7 +41,7 @@ test('tenant cover logos use the shared contrast treatment on dark surfaces', ()
     />,
   );
   assert.match(markup, /data-brand-treatment="plate-light"/);
-  assert.match(markup, /background:#ffffff/);
+  assert.match(markup, /bg-white/);
 });
 
 test('without branding, both covers render exactly the old defaults', () => {

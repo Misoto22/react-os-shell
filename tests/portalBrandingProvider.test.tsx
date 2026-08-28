@@ -2,12 +2,26 @@ import './dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { act, render } from './dom';
+import { useState } from 'react';
 import {
   PortalBrandingProvider,
   resolvePortalBrandAsset,
   usePortalBranding,
   type PublicPortalBranding,
-} from '../src/branding/PortalBrandingProvider';
+} from '../src/contexts/PortalBrandingProvider';
+
+const BLANK: PublicPortalBranding = {
+  portal: 'dealer',
+  company_name: null,
+  logo_url: null,
+  logo_on_dark_url: null,
+  logo_square_url: null,
+  favicon_url: null,
+  logo_has_alpha: null,
+  logo_is_light: null,
+  logo_square_has_alpha: null,
+  logo_square_is_light: null,
+};
 
 function Probe() {
   const { branding, loading } = usePortalBranding();
@@ -85,4 +99,44 @@ test('resolvePortalBrandAsset keeps compact metadata with the compact asset', ()
   assert.deepEqual(resolvePortalBrandAsset(branding, { surface: 'dark' }), {
     src: '/dark.png', hasAlpha: null, isLight: null, adaptive: false,
   });
+});
+
+
+test('an unrelated ancestor render does not restart the branding load', () => {
+  // `load` and `fallback` come from the consumer, and the natural way to mount
+  // this passes an inline arrow and an inline object — new identities every
+  // render of the app root. With those in the dependency list, any ancestor
+  // render (a route change, an auth refresh) aborted the in-flight request and
+  // started another, resetting `branding` to the fallback on the way: the
+  // tenant's title, favicon and logo visibly reverted and re-resolved. Three
+  // ancestor renders used to mean four loads and three aborts.
+  let loads = 0;
+  let aborts = 0;
+  let bump: (n: number) => void = () => {};
+
+  const App = () => {
+    const [tick, setTick] = useState(0);
+    bump = setTick;
+    return (
+      <PortalBrandingProvider
+        load={async signal => {
+          loads += 1;
+          signal?.addEventListener('abort', () => { aborts += 1; });
+          return { ...BLANK, company_name: 'INOVIT' };
+        }}
+        fallback={{ ...BLANK }}
+      >
+        <span>{tick}</span>
+      </PortalBrandingProvider>
+    );
+  };
+
+  const view = render(<App />);
+  try {
+    for (const n of [1, 2, 3]) act(() => { bump(n); });
+    assert.equal(loads, 1, 'the identity is loaded once');
+    assert.equal(aborts, 0, 'and nothing in flight is thrown away');
+  } finally {
+    view.unmount();
+  }
 });

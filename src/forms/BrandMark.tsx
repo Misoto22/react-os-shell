@@ -62,35 +62,25 @@ export function resolveBrandMarkTreatment(
   return surface === 'dark' ? 'plate-light' : 'bare';
 }
 
+/** The plate's colour and border are classes, so they follow the theme like
+ *  the rest of the file; only the caller-tunable radius and padding are
+ *  inline, because those arrive as numbers. */
+const TREATMENT_CLASS: Record<BrandMarkTreatment, string> = {
+  'plate-light': 'bg-white shadow-[0_2px_12px_rgba(0,0,0,0.18)]',
+  'plate-dark': 'bg-neutral-900 shadow-[0_2px_12px_rgba(0,0,0,0.25)]',
+  framed: 'border border-black/10 shadow-[0_2px_12px_rgba(0,0,0,0.18)]',
+  bare: '',
+};
+
 function treatmentStyle(
   treatment: BrandMarkTreatment,
   radius: number,
   padding: number | string,
 ): CSSProperties {
-  switch (treatment) {
-    case 'plate-light':
-      return {
-        background: '#ffffff',
-        borderRadius: radius,
-        padding,
-        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.18)',
-      };
-    case 'plate-dark':
-      return {
-        background: '#1f1f1f',
-        borderRadius: radius,
-        padding,
-        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
-      };
-    case 'framed':
-      return {
-        borderRadius: radius,
-        border: '1px solid rgba(0, 0, 0, 0.08)',
-        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.18)',
-      };
-    case 'bare':
-      return {};
-  }
+  if (treatment === 'bare') return {};
+  return treatment === 'framed'
+    ? { borderRadius: radius }
+    : { borderRadius: radius, padding };
 }
 
 /**
@@ -126,12 +116,6 @@ export default function BrandMark({
     setActiveSrc(src || fallbackSrc || '');
   }, [src, fallbackSrc]);
 
-  const frameClass = [
-    'inline-flex shrink-0 items-center justify-center overflow-hidden',
-    size == null && width == null && height == null ? SLOT_CLASS[slot] : '',
-    surface === 'dark' ? 'text-white' : 'text-gray-700',
-    className,
-  ].filter(Boolean).join(' ');
   const usingFallback = Boolean(
     fallbackSrc && activeSrc === fallbackSrc && activeSrc !== src,
   );
@@ -141,6 +125,13 @@ export default function BrandMark({
   const treatment = activeAdaptive
     ? resolveBrandMarkTreatment(activeHasAlpha, activeIsLight, surface)
     : 'bare';
+  const frameClass = [
+    'inline-flex shrink-0 items-center justify-center overflow-hidden',
+    size == null && width == null && height == null ? SLOT_CLASS[slot] : '',
+    surface === 'dark' ? 'text-white' : 'text-gray-700',
+    TREATMENT_CLASS[treatment],
+    className,
+  ].filter(Boolean).join(' ');
   const frameStyle: CSSProperties = {
     ...treatmentStyle(treatment, treatmentRadius, treatmentPadding),
     ...(size == null ? { width, height } : { width: size, height: size }),

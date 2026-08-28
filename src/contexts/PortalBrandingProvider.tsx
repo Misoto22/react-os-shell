@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -107,13 +108,26 @@ export function PortalBrandingProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Held in refs, not in the dependency list. `load` and `fallback` come from
+  // the consumer, and the natural way to mount this provider passes an inline
+  // arrow and an inline object literal — new identities on every render of the
+  // app root. Depending on them made ANY unrelated ancestor render (a route
+  // change, an auth refresh) abort the in-flight request and start another,
+  // resetting `branding` to the fallback on the way: the tenant's title,
+  // favicon and logo visibly reverted and re-resolved each time. Measured at
+  // 4 loads and 3 aborts for 3 ancestor renders.
+  const loadRef = useRef(load);
+  const fallbackRef = useRef(fallback);
+  loadRef.current = load;
+  fallbackRef.current = fallback;
+
   useEffect(() => {
     const controller = new AbortController();
     let current = true;
-    setBranding(fallback);
+    setBranding(fallbackRef.current);
     setLoading(true);
     setError(null);
-    load(controller.signal).then(
+    loadRef.current(controller.signal).then(
       result => {
         if (!current) return;
         setBranding(result);
@@ -129,10 +143,13 @@ export function PortalBrandingProvider({
       current = false;
       controller.abort();
     };
-  }, [load, fallback]);
+  }, []);
 
   useEffect(() => {
     applyFavicon(branding.favicon_url);
+    // Only the link this provider owns is removed — the host's own static
+    // <link rel="icon"> is never touched, so unmounting restores it.
+    return () => applyFavicon(null);
   }, [branding.favicon_url]);
 
   useEffect(() => {

@@ -68,7 +68,10 @@ export default function BrandAssetEditor({
   assetName,
   onSave,
   onRemove,
-  accept = 'image/png,image/x-icon,image/svg+xml,image/jpeg,image/webp',
+  // `image/x-icon` alone rejects most real .ico files: browsers report them as
+  // `image/vnd.microsoft.icon`, and some report nothing at all — hence the
+  // extension rule, which `acceptsFile` matches on the file name.
+  accept = 'image/png,image/x-icon,image/vnd.microsoft.icon,.ico,image/svg+xml,image/jpeg,image/webp',
   acceptHint = 'PNG · ICO · SVG · JPG · WEBP',
   maxBytes = 5 * 1024 * 1024,
   previews = [],
@@ -224,7 +227,7 @@ export default function BrandAssetEditor({
                   ) : preview.kind === 'search-result' ? (
                     <div className="rounded-lg border border-gray-200 bg-white p-3">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-gray-50">{mark}</span>
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-gray-50">{mark}</span>
                         <div className="min-w-0 leading-tight">
                           <div className="truncate text-xs font-medium text-gray-700">{preview.title ?? subjectName}</div>
                           {preview.url && <div className="truncate text-xs text-gray-400">{preview.url}</div>}

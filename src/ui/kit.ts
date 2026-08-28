@@ -78,14 +78,14 @@ export {
   PortalBrandingProvider,
   resolvePortalBrandAsset,
   usePortalBranding,
-} from '../branding/PortalBrandingProvider';
+} from '../contexts/PortalBrandingProvider';
 export type {
   PortalBrandingContextValue,
   PortalBrandingProviderProps,
   PublicPortal,
   PublicPortalBranding,
   ResolvedPortalBrandAsset,
-} from '../branding/PortalBrandingProvider';
+} from '../contexts/PortalBrandingProvider';
 export { default as MediaUploadGrid } from '../forms/MediaUploadGrid';
 export type { MediaUploadGridProps, MediaUploadGridItem } from '../forms/MediaUploadGrid';
 export { default as DateRangePicker, toISODate } from '../forms/DateRangePicker';
