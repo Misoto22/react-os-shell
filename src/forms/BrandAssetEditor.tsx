@@ -15,6 +15,8 @@ export interface BrandAssetPreview {
 
 export interface BrandAssetEditorProps {
   committedUrl?: string | null;
+  /** Read-only inherited asset shown until this surface saves an override. */
+  fallbackUrl?: string | null;
   subjectName: string;
   assetName: string;
   onSave: (file: File) => void | Promise<void>;
@@ -42,6 +44,7 @@ function actionNoun(assetName: string) {
  */
 export default function BrandAssetEditor({
   committedUrl,
+  fallbackUrl,
   subjectName,
   assetName,
   onSave,
@@ -60,7 +63,7 @@ export default function BrandAssetEditor({
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState(false);
   const noun = actionNoun(assetName);
-  const visibleUrl = stagedUrl || committedUrl || '';
+  const visibleUrl = stagedUrl || committedUrl || fallbackUrl || '';
 
   useEffect(() => () => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
