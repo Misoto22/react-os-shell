@@ -11,6 +11,7 @@ import WindowErrorBoundary, { WindowCrashedFallback } from './WindowErrorBoundar
 import { UndoProvider } from './UndoProvider';
 import PartNumberDetailPopup from './PartNumberDetailPopup';
 import LoadingSpinner from './LoadingSpinner';
+import EntityWindowState, { EntityWindowFallback, EntityWindowLoading, normaliseEntitySnapshot } from './EntityWindowState';
 import { navIcons } from '../shell-config/nav';
 
 
@@ -227,12 +228,16 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
   // fetch — the GET would always 404 — so skip the detail query, exactly as we
   // do for duplicate windows. The snapshot already drives the create form.
   const isDraft = typeof item.entityId === 'string' && item.entityId.startsWith('new-');
-  const { data: entity, isLoading, refetch } = useQuery({
+  // Hoisted: the no-data states need it too. A disabled query stays
+  // `isPending` forever, so without it they cannot tell a request still in
+  // flight from one that is never going to be made.
+  const fetchesDetail = !entry.selfFetching && !isDuplicate && !isDraft && isShellApiClientConfigured();
+  const entityQuery = useQuery({
     queryKey: [qkPrefix, item.entityId],
     queryFn: () => apiClient.get(entityDetailUrl(entry.endpoint, String(item.entityId))).then(r => r.data),
-    initialData: item.entitySnapshot,
+    initialData: normaliseEntitySnapshot(item.entitySnapshot),
     initialDataUpdatedAt: 0, // Treat snapshot as stale so query refetches immediately
-    enabled: !entry.selfFetching && !isDuplicate && !isDraft && isShellApiClientConfigured(),
+    enabled: fetchesDetail,
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
@@ -243,6 +248,14 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
     refetchIntervalInBackground: false,
     retry: shouldRetryEntityFetch,
   });
+  // A self-fetching registry entry owns this query key itself. `data` and
+  // `refetch` are read unconditionally; the transient fetch/error fields are
+  // read ONLY inside the branches that render the shell's own no-data states,
+  // which a self-fetching entry never reaches. TanStack tracks what a render
+  // actually touches, so that entry does not subscribe to its own query
+  // through us and re-render this parent on every fetch tick.
+  const entity = entityQuery.data;
+  const refetch = entityQuery.refetch;
 
   // Refetch entity data whenever this modal is activated (brought to front)
   useEffect(() => {
@@ -295,18 +308,27 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
         </Suspense>
       );
     }
-    return (
-      <Suspense fallback={<LoadingSpinner />}>
-        {isLoading && !entity ? (
-          <LoadingSpinner />
-        ) : entity ? (
-          entry.render(entity, onClose, item.entityId, editing, setEditing)
-        ) : (
+    if (entity != null) {
+      return (
+        <Suspense fallback={
           <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
-            <p className="text-sm text-gray-500 py-8 text-center">Not found.</p>
+            <EntityWindowLoading />
           </Modal>
-        )}
-      </Suspense>
+        }>
+          {entry.render(entity, onClose, item.entityId, editing, setEditing)}
+        </Suspense>
+      );
+    }
+    return (
+      <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
+        <EntityWindowFallback
+          isPending={entityQuery.isPending}
+          isFetching={entityQuery.isFetching}
+          enabled={fetchesDetail}
+          error={entityQuery.error}
+          onRetry={refetch}
+        />
+      </Modal>
     );
   }
 
@@ -332,15 +354,20 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
       accentRgb={accentRgb}
     >
       <WindowDirtyContext.Provider value={registerDirty}>
-        <Suspense fallback={<LoadingSpinner />}>
+        <Suspense fallback={<EntityWindowLoading />}>
           {entry.selfFetching ? (
             entry.render(null, onClose, item.entityId, editing, setEditing)
-          ) : isLoading && !entity ? (
-            <LoadingSpinner />
-          ) : entity ? (
-            entry.render(entity, onClose, item.entityId, editing, setEditing)
           ) : (
-            <p className="text-sm text-gray-500 py-8 text-center">Not found.</p>
+            <EntityWindowState
+              entity={entity}
+              isPending={entityQuery.isPending}
+              isFetching={entityQuery.isFetching}
+              enabled={fetchesDetail}
+              error={entityQuery.error}
+              onRetry={refetch}
+            >
+              {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
+            </EntityWindowState>
           )}
         </Suspense>
       </WindowDirtyContext.Provider>
@@ -928,7 +955,7 @@ export function WindowManagerProvider({ children, windowAccentForRoute }: {
       return [...prev, {
         id, type: 'modal' as const, label: label || entityId,
         route: route || window.location.pathname,
-        entityType, entityId, entitySnapshot: snapshot,
+        entityType, entityId, entitySnapshot: normaliseEntitySnapshot(snapshot),
         openedFrom,
       }];
     });

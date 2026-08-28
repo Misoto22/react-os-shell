@@ -1175,7 +1175,7 @@ export default function Layout({
           here keeps the desktop behaviour identical. */}
       <GlobalSearch
         {...search}
-        onSelect={result => openEntity(result.entity_type, result.entity_id, null, result.label)}
+        onSelect={result => openEntity(result.entity_type, result.entity_id, undefined, result.label)}
       />
       <ShortcutHelp />
     </div>

@@ -38,6 +38,12 @@ export const ENTITY_FETCH_MAX_RETRIES = 3;
  *  the primary update path; this only covers the socket being unavailable. */
 export const ENTITY_REFETCH_INTERVAL_MS = 60_000;
 
+/** Numeric HTTP status carried by an Axios-shaped entity fetch error. */
+export function entityFetchStatus(error: unknown): number | undefined {
+  const status = (error as { response?: { status?: unknown } } | null | undefined)?.response?.status;
+  return typeof status === 'number' ? status : undefined;
+}
+
 /**
  * Whether `error` is a client error that repeating cannot fix (4xx, except the
  * explicitly retryable ones).
@@ -47,8 +53,8 @@ export const ENTITY_REFETCH_INTERVAL_MS = 60_000;
  * NOT permanent: those are exactly the cases retrying exists for.
  */
 export function isPermanentClientError(error: unknown): boolean {
-  const status = (error as { response?: { status?: unknown } } | null | undefined)?.response?.status;
-  if (typeof status !== 'number') return false;
+  const status = entityFetchStatus(error);
+  if (status == null) return false;
   return status >= 400 && status < 500 && !RETRYABLE_CLIENT_STATUSES.has(status);
 }
 
