@@ -44,6 +44,9 @@ interface SidebarProps {
   categories?: StartMenuCategories;
   productName?: string;
   productIcon?: string;
+  adaptiveLogo?: boolean;
+  logoHasAlpha?: boolean | null;
+  logoIsLight?: boolean | null;
 }
 
 export default function Sidebar({
@@ -59,6 +62,9 @@ export default function Sidebar({
   categories = defaultCategories,
   productName,
   productIcon,
+  adaptiveLogo = false,
+  logoHasAlpha = null,
+  logoIsLight = null,
 }: SidebarProps) {
   const { hasAnyPerm } = useAuth();
   const erpLabels = new Set(categories.erp);
@@ -266,6 +272,10 @@ export default function Sidebar({
             src={productIcon}
             alt=""
             slot="compact"
+            surface="light"
+            adaptive={adaptiveLogo}
+            hasAlpha={logoHasAlpha}
+            isLight={logoIsLight}
             size={20}
             decorative
             className="opacity-80"

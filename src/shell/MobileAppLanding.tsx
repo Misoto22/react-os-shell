@@ -12,6 +12,7 @@
  */
 import type { CSSProperties } from 'react';
 import { glassStyle } from '../utils/glass';
+import BrandMark from '../forms/BrandMark';
 
 export interface MobileAppConfig {
   /** Link the primary button opens — a native deep link, an App Store /
@@ -29,6 +30,9 @@ export interface MobileAppConfig {
 interface MobileAppLandingProps {
   productName: string;
   productIcon: string;
+  adaptiveLogo?: boolean;
+  logoHasAlpha?: boolean | null;
+  logoIsLight?: boolean | null;
   /** Consumer-wired mobile-app link + copy. */
   config?: MobileAppConfig;
   /** Wallpaper / background style computed by Layout so the user's chosen
@@ -39,6 +43,9 @@ interface MobileAppLandingProps {
 export default function MobileAppLanding({
   productName,
   productIcon,
+  adaptiveLogo = false,
+  logoHasAlpha = null,
+  logoIsLight = null,
   config,
   wallpaperStyle,
 }: MobileAppLandingProps) {
@@ -65,7 +72,17 @@ export default function MobileAppLanding({
         style={glassStyle()}
       >
         <div className="h-20 w-20 rounded-2xl overflow-hidden bg-white/60 flex items-center justify-center shadow-sm mb-5">
-          <img src={productIcon} alt="" className="h-full w-full object-contain p-3" />
+          <BrandMark
+            src={productIcon}
+            alt=""
+            slot="compact"
+            surface="light"
+            size={56}
+            adaptive={adaptiveLogo}
+            hasAlpha={logoHasAlpha}
+            isLight={logoIsLight}
+            decorative
+          />
         </div>
 
         <h1 className="text-xl font-semibold text-gray-900 leading-snug">{heading}</h1>

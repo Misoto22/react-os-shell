@@ -64,6 +64,12 @@ export interface ShellBranding {
   productName?: string;
   /** Logo URL — start-menu button, splash and logout covers. Defaults to `/favicon.svg`. */
   logo?: string;
+  /** Apply the shared contrast treatment to arbitrary tenant artwork. */
+  adaptiveLogo?: boolean;
+  /** Server-detected transparency hint for `logo`. */
+  logoHasAlpha?: boolean | null;
+  /** Server-detected tone hint for `logo`. */
+  logoIsLight?: boolean | null;
   /** Line under the product name on the splash and logout covers —
    *  typically the company name. */
   tagline?: string;
@@ -762,6 +768,9 @@ export default function Layout({
   const brandName = branding?.productName ?? productName;
   const brandIcon = branding?.logo ?? productIcon;
   const brandTagline = branding?.tagline;
+  const brandAdaptive = branding?.adaptiveLogo ?? false;
+  const brandHasAlpha = branding?.logoHasAlpha ?? null;
+  const brandIsLight = branding?.logoIsLight ?? null;
   const host = useDesktopHost();
   const { user, logout, hasAnyPerm } = useAuth();
   const { openPage, openEntity, openWindows } = useWindowManager();
@@ -973,8 +982,8 @@ export default function Layout({
     <div className="flex flex-col h-screen">
       {/* Reopen last session's windows — see SessionRestore.tsx. */}
       <SessionWindowRestore />
-      {showStartup && <StartupAnimation onComplete={() => setShowStartup(false)} ready={!!profile} productName={brandName} logo={brandIcon} subtitle={brandTagline} />}
-      {showLogout && <LogoutAnimation onComplete={() => { sessionStorage.removeItem('erp_startup_shown'); logout(); }} logo={brandIcon} subtitle={brandTagline} />}
+      {showStartup && <StartupAnimation onComplete={() => setShowStartup(false)} ready={!!profile} productName={brandName} logo={brandIcon} subtitle={brandTagline} adaptiveLogo={brandAdaptive} logoHasAlpha={brandHasAlpha} logoIsLight={brandIsLight} />}
+      {showLogout && <LogoutAnimation onComplete={() => { sessionStorage.removeItem('erp_startup_shown'); logout(); }} logo={brandIcon} subtitle={brandTagline} adaptiveLogo={brandAdaptive} logoHasAlpha={brandHasAlpha} logoIsLight={brandIsLight} />}
       {/* Start Menu — suppressed in sidebar mode (Sidebar replaces it). */}
       {!sidebarMode && (
         <StartMenu
@@ -1017,6 +1026,9 @@ export default function Layout({
             categories={categories}
             productName={brandName}
             productIcon={brandIcon}
+            adaptiveLogo={brandAdaptive}
+            logoHasAlpha={brandHasAlpha}
+            logoIsLight={brandIsLight}
           />
         </Suspense>
       )}
@@ -1044,6 +1056,9 @@ export default function Layout({
             <MobileAppLanding
               productName={brandName}
               productIcon={brandIcon}
+              adaptiveLogo={brandAdaptive}
+              logoHasAlpha={brandHasAlpha}
+              logoIsLight={brandIsLight}
               config={mobileApp}
               wallpaperStyle={wallpaperStyle}
             />
@@ -1107,6 +1122,10 @@ export default function Layout({
                 src={brandIcon}
                 alt=""
                 slot="compact"
+                surface="light"
+                adaptive={brandAdaptive}
+                hasAlpha={brandHasAlpha}
+                isLight={brandIsLight}
                 size={14}
                 decorative
                 className="relative z-10 opacity-60"

@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
 import { playLogout } from '../utils/sounds';
 import { useShellStrings } from './strings';
+import BrandMark from '../forms/BrandMark';
 
-export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon.svg' }: { onComplete: () => void; subtitle?: string; logo?: string }) {
+interface LogoutAnimationProps {
+  onComplete: () => void;
+  subtitle?: string;
+  logo?: string;
+  adaptiveLogo?: boolean;
+  logoHasAlpha?: boolean | null;
+  logoIsLight?: boolean | null;
+}
+
+export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon.svg', adaptiveLogo = false, logoHasAlpha = null, logoIsLight = null }: LogoutAnimationProps) {
   // 'show' → greeting visible; 'out' → logo/title spin and fade away. The
   // full-screen cover itself stays opaque the whole time — it never fades to
   // transparent — so the desktop underneath is never revealed. onComplete
@@ -39,7 +49,18 @@ export default function LogoutAnimation({ onComplete, subtitle, logo = '/favicon
       {/* Logo — spins out */}
       <div className={`relative transition-all duration-1000 ease-in ${phase === 'out' ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
         style={phase === 'out' ? { transform: 'scale(0) rotate(180deg)' } : undefined}>
-        <img src={logo} alt="" className="h-20 w-20 drop-shadow-[0_0_30px_rgba(124,58,237,0.5)]" />
+        <BrandMark
+          src={logo}
+          alt=""
+          slot="compact"
+          surface="dark"
+          size={80}
+          adaptive={adaptiveLogo}
+          hasAlpha={logoHasAlpha}
+          isLight={logoIsLight}
+          decorative
+          className="drop-shadow-[0_0_30px_rgba(124,58,237,0.5)]"
+        />
       </div>
 
       {/* Title — fades down */}
