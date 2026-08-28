@@ -46,6 +46,10 @@ const PANEL_GAP = 4;
  *  across sibling rows and the gap on its way into the panel. */
 const CLOSE_DELAY = 200;
 
+type MenuLabelled = { label: string; menuLabel?: string };
+
+const visibleMenuLabel = (entry: MenuLabelled) => entry.menuLabel ?? entry.label;
+
 /**
  * One flyout panel — the same component at every depth.
  *
@@ -213,19 +217,11 @@ export default function StartMenu({
           </div>
         </div>
 
-        {/* Flat list. Every scroll region in this file names BOTH axes and
-            carries `wrap-anywhere`. `overflow-y-auto` on its own makes the
-            other axis compute to `auto` too, so one nav label with no break
-            opportunity in it — 110px past a 174px flyout, measured — hangs a
-            horizontal scrollbar on a panel of fixed width.
-
-            `wrap-anywhere`, not `break-words`: the label is a flex item, so it
-            refuses to shrink below its min-content size, and `overflow-wrap:
-            break-word` does not change min-content. `anywhere` does, so the row
-            shrinks and the label wraps rather than being clipped by the axis
-            now pinned shut. Ordinary labels already wrapped at their spaces and
-            are untouched. */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere">
+        {/* Mobile rows follow the same one-line naming contract as desktop;
+            the full semantic label remains available to accessibility APIs and
+            the native tooltip. Both scroll axes are named so an unbroken label
+            can never add a horizontal scrollbar. */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {filtered.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-12">No matching apps</p>
           ) : (
@@ -235,6 +231,8 @@ export default function StartMenu({
                 <button
                   key={`${item.to}-${i}`}
                   onClick={() => handleClick(item.to)}
+                  aria-label={item.label}
+                  title={item.label}
                   className="w-full flex items-center gap-3 px-4 py-3 active:bg-gray-100 border-b border-gray-100 text-left"
                 >
                   <span className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
@@ -243,7 +241,7 @@ export default function StartMenu({
                       : null}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-gray-900 truncate">{item.label}</div>
+                    <div className="text-sm font-medium text-gray-900 truncate">{visibleMenuLabel(item)}</div>
                     {sectionLabel && <div className="text-[11px] text-gray-500 truncate">{sectionLabel}</div>}
                   </div>
                 </button>
@@ -311,13 +309,13 @@ export default function StartMenu({
 
   const iconEl = (path: string) => {
     const icon = navIcons[path];
-    if (icon && isValidElement(icon)) return cloneElement(icon as ReactElement, { className: 'h-4 w-4' });
+    if (icon && isValidElement(icon)) return cloneElement(icon as ReactElement, { className: 'h-4 w-4 shrink-0' });
     return null;
   };
 
   const secIcon = (label: string) => {
     const icon = sectionIcons[label];
-    if (icon && isValidElement(icon)) return cloneElement(icon as ReactElement, { className: 'h-4 w-4' });
+    if (icon && isValidElement(icon)) return cloneElement(icon as ReactElement, { className: 'h-4 w-4 shrink-0' });
     return null;
   };
 
@@ -348,7 +346,8 @@ export default function StartMenu({
   };
   const sizeConfig = sizeConfigByDensity[density][size];
   const menuGlass = glassStyle();
-  const itemCls = `w-full flex items-center gap-2 rounded-lg ${sizeConfig.px} ${sizeConfig.py} ${sizeConfig.text}`;
+  const itemCls = `w-full min-w-0 overflow-hidden whitespace-nowrap flex items-center gap-2 rounded-lg ${sizeConfig.px} ${sizeConfig.py} ${sizeConfig.text}`;
+  const itemLabelCls = 'min-w-0 flex-1 truncate text-left';
 
   // The usable vertical span for a panel: the screen minus the taskbar edge and
   // an 8px gutter, so a flyout can never sit over the taskbar or run off the
@@ -407,7 +406,7 @@ export default function StartMenu({
   };
 
   const chevron = (
-    <svg className="h-3.5 w-3.5 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+    <svg className="h-3.5 w-3.5 shrink-0 ml-auto text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
   );
 
   const renderSection = (section: NavSection, isErp: boolean) => {
@@ -417,9 +416,13 @@ export default function StartMenu({
     const isHovered = hoveredSection === section.label;
     return (
       <div key={section.label} onMouseEnter={e => openSubmenu(0, section.label, e)}>
-        <button className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
+        <button
+          aria-label={section.label}
+          title={section.label}
+          className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
+        >
           {secIcon(section.label)}
-          <span className={isErp ? 'font-medium' : ''}>{section.label}</span>
+          <span className={`${itemLabelCls} ${isErp ? 'font-medium' : ''}`}>{visibleMenuLabel(section)}</span>
           {chevron}
         </button>
         {section.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
@@ -432,9 +435,13 @@ export default function StartMenu({
     const isHovered = hoveredSection === v.label;
     return (
       <div key={v.label} onMouseEnter={e => openSubmenu(0, v.label, e)}>
-        <button className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
-          {v.icon}
-          <span>{v.label}</span>
+        <button
+          aria-label={v.label}
+          title={v.label}
+          className={`${itemCls} transition-colors ${isHovered ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}
+        >
+          <span className="shrink-0">{v.icon}</span>
+          <span className={itemLabelCls}>{visibleMenuLabel(v)}</span>
           {chevron}
         </button>
       </div>
@@ -477,30 +484,34 @@ export default function StartMenu({
           </div>
 
           {search.length >= 2 ? (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere px-1 pb-2 max-h-[400px]">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2 max-h-[400px]">
               {searchResults.length === 0 ? (
                 <p className="text-xs text-gray-400 text-center py-4">No results</p>
               ) : searchResults.map((r, i) => (
                 <button key={i} onClick={() => handleClick(r.to)}
                   onMouseEnter={() => setSearchIdx(i)}
+                  aria-label={r.label}
+                  title={r.label}
                   className={`${itemCls} transition-colors ${i === searchIdx ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
                   {iconEl(r.to)}
-                  <span>{r.label}</span>
-                  {r.section && <span className="text-[10px] text-gray-400 ml-auto">{r.section}</span>}
+                  <span className={itemLabelCls}>{visibleMenuLabel(r)}</span>
+                  {r.section && <span className="max-w-[40%] shrink-0 truncate text-[10px] text-gray-400 ml-auto">{r.section}</span>}
                 </button>
               ))}
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto overflow-x-hidden wrap-anywhere px-1 pb-1 flex flex-col">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 pb-1 flex flex-col">
               {isVertical && (<>
                 {/* Reversed column → profile sits at the top, so footer items +
                     sections render first to stay pinned next to it. */}
                 {footerItems.map(item => (
                   <button key={item.to} onClick={() => handleClick(item.to)}
                     onMouseEnter={() => scheduleClose(0)}
+                    aria-label={item.label}
+                    title={item.label}
                     className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                     {iconEl(item.to)}
-                    <span>{item.label}</span>
+                    <span className={itemLabelCls}>{visibleMenuLabel(item)}</span>
                   </button>
                 ))}
                 {footerSections.map(s => renderSection(s as NavSection, false))}
@@ -512,9 +523,11 @@ export default function StartMenu({
                 {topItems.map(item => (
                   <div key={item.to} onMouseEnter={() => scheduleClose(0)}>
                     <button onClick={() => handleClick(item.to)}
+                      aria-label={item.label}
+                      title={item.label}
                       className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                       {iconEl(item.to)}
-                      <span>{item.label}</span>
+                      <span className={itemLabelCls}>{visibleMenuLabel(item)}</span>
                     </button>
                     {item.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
                   </div>
@@ -527,9 +540,11 @@ export default function StartMenu({
                 {topItems.map(item => (
                   <div key={item.to} onMouseEnter={() => scheduleClose(0)}>
                     <button onClick={() => handleClick(item.to)}
+                      aria-label={item.label}
+                      title={item.label}
                       className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                       {iconEl(item.to)}
-                      <span>{item.label}</span>
+                      <span className={itemLabelCls}>{visibleMenuLabel(item)}</span>
                     </button>
                     {item.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}
                   </div>
@@ -543,9 +558,11 @@ export default function StartMenu({
                 {footerItems.map(item => (
                   <button key={item.to} onClick={() => handleClick(item.to)}
                     onMouseEnter={() => scheduleClose(0)}
+                    aria-label={item.label}
+                    title={item.label}
                     className={`${itemCls} text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors`}>
                     {iconEl(item.to)}
-                    <span>{item.label}</span>
+                    <span className={itemLabelCls}>{visibleMenuLabel(item)}</span>
                   </button>
                 ))}
               </>)}
@@ -597,7 +614,7 @@ export default function StartMenu({
             onMouseEnter={() => scheduleClose(i + 1)}
             onMouseLeave={() => scheduleClose(i)}
           >
-            <div className="py-1 px-1 overflow-y-auto overflow-x-hidden wrap-anywhere overscroll-contain" style={{ maxHeight: availH }}>
+            <div className="py-1 px-1 overflow-y-auto overflow-x-hidden overscroll-contain" style={{ maxHeight: availH }}>
               {items.map(item => {
                 const kids = submenuItems(item);
                 const isOpen = openPath[i + 1]?.key === item.to;
@@ -610,9 +627,11 @@ export default function StartMenu({
                          the same thing hovering it does, instead of closing the
                          menu on a route that does not exist. */
                       onClick={kids.length > 0 ? e => openSubmenu(i + 1, item.to, e) : () => handleClick(item.to)}
+                      aria-label={item.label}
+                      title={item.label}
                       className={`${itemCls} transition-colors ${isOpen ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'}`}>
                       {iconEl(item.to)}
-                      <span>{item.label}</span>
+                      <span className={itemLabelCls}>{visibleMenuLabel(item)}</span>
                       {kids.length > 0 && chevron}
                     </button>
                     {item.dividerAfter && <div className="border-t border-white/20 my-1.5 mx-2" />}

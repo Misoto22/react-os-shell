@@ -144,10 +144,18 @@ const navSections = [
   { to: '/', label: 'Home' },
   { label: 'Clients', items: [
     { to: '/orders', label: 'Sales Orders', perms: ['view_order'] },
+    { to: '/reports/ar', label: 'Accounts Receivable Report', menuLabel: 'AR Report' },
     { to: '/clients', label: 'Clients' },
   ]},
 ];
 ```
+
+Start-menu rows are always one line. Keep `label` as the full semantic name;
+when it does not fit the narrowest menu size, supply `menuLabel` with an
+established domain abbreviation such as `AR`, `AP`, `PO`, or `GRNI`. The shell
+uses the compact wording visually, keeps the full label for search and the
+accessible name, and truncates as a final overflow guard. Do not invent a new
+acronym merely to make a row shorter.
 
 Items with `perms` are filtered through `<ShellAuthProvider value={{ hasAnyPerm }}>`.
 

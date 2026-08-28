@@ -199,3 +199,54 @@ test('a group row opens its submenu instead of navigating nowhere', async () => 
     view.unmount();
   }
 });
+
+test('a compact menu label stays on one row without hiding the full name', () => {
+  const fullLabel = 'Customer Transactions Summary';
+  const menuLabel = 'Customer Txn Summary';
+  const nav: (NavSection | NavItem)[] = [
+    {
+      label: 'Sales',
+      items: [
+        {
+          to: '/reports/sales/customer-transactions-summary',
+          label: fullLabel,
+          menuLabel,
+        },
+      ],
+    },
+  ];
+  const view = render(
+    <StartMenu
+      open
+      onClose={() => {}}
+      openPage={() => {}}
+      openWindows={[]}
+      profile={{}}
+      user={{}}
+      onLogout={() => {}}
+      onNavigate={() => {}}
+      taskbarPosition="bottom"
+      taskbarH={48}
+      navSections={nav}
+      categories={{ erp: ['Sales'], system: [] }}
+    />,
+  );
+
+  try {
+    const section = [...view.container.querySelectorAll('button')]
+      .find(button => button.textContent?.trim() === 'Sales');
+    assert.ok(section);
+    act(() => { section.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); });
+
+    const row = [...view.container.querySelectorAll('button')]
+      .find(button => button.textContent?.trim() === menuLabel);
+    assert.ok(row, 'the menu renders the explicit compact label');
+    assert.equal(row.getAttribute('aria-label'), fullLabel);
+    assert.equal(row.getAttribute('title'), fullLabel);
+    assert.match(row.className, /\bwhitespace-nowrap\b/);
+    assert.match(row.className, /\boverflow-hidden\b/);
+    assert.match(row.querySelector('span')?.className ?? '', /\btruncate\b/);
+  } finally {
+    view.unmount();
+  }
+});
