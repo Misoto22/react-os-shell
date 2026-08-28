@@ -29,6 +29,7 @@ import {
 import { visibleChildren, isReachable, navVisible } from './nav-types';
 import { useAuth } from '../contexts/AuthContext';
 import { glassStyle, GLASS_INPUT_BG } from '../utils/glass';
+import BrandMark from '../forms/BrandMark';
 
 interface SidebarProps {
   width: number;
@@ -260,7 +261,16 @@ export default function Sidebar({
     >
       {/* Brand */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/15 shrink-0">
-        {productIcon && <img src={productIcon} alt="" className="h-5 w-5 shrink-0 opacity-80" />}
+        {productIcon && (
+          <BrandMark
+            src={productIcon}
+            alt=""
+            slot="compact"
+            size={20}
+            decorative
+            className="opacity-80"
+          />
+        )}
         <span className="text-sm font-semibold text-gray-800 truncate">{productName ?? 'Apps'}</span>
       </div>
 

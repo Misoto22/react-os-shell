@@ -39,6 +39,7 @@ import {
 } from '../shell-config/nav';
 import { WINDOW_REGISTRY, isPageEntry, type PageRegistryEntry } from '../windowRegistry/types';
 import type { ReactNode } from 'react';
+import BrandMark from '../forms/BrandMark';
 
 // Transitional re-exports — go away after each consumer migrates to importing
 // nav data from their own shell-config rather than from <Layout>.
@@ -1101,7 +1102,16 @@ export default function Layout({
             onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.borderColor = ''; }}>
             <span className="absolute inset-0 opacity-0 group-hover/erp:opacity-100 transition-opacity duration-200 pointer-events-none"
               style={{ background: 'radial-gradient(circle 60px at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.25) 0%, transparent 100%)' }} />
-            {brandIcon && <img src={brandIcon} alt="" className="relative z-10 h-3.5 w-3.5 shrink-0 opacity-60" />}
+            {brandIcon && (
+              <BrandMark
+                src={brandIcon}
+                alt=""
+                slot="compact"
+                size={14}
+                decorative
+                className="relative z-10 opacity-60"
+              />
+            )}
             <span className="relative z-10 truncate">{brandName}</span>
           </button>
         </div>}
