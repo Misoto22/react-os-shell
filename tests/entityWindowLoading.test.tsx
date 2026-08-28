@@ -47,6 +47,16 @@ function OpenEntityFromSearch() {
   return <div id="taskbar-windows" />;
 }
 
+function OpenDraftEntity() {
+  const { openEntity } = useWindowManager();
+  useEffect(() => {
+    // A create window whose caller passed no snapshot. `openEntity` mints the
+    // `new-` id; the detail query is deliberately never enabled for one.
+    openEntity(ENTITY_TYPE, 'new-1783415283039', undefined, 'New design');
+  }, [openEntity]);
+  return <div id="taskbar-windows" />;
+}
+
 function OpenSelfFetchingEntity() {
   const { openEntity } = useWindowManager();
   useEffect(() => {
@@ -141,6 +151,43 @@ test('the shell does not interfere with a self-fetching owner retry', async () =
   await queryClient.invalidateQueries({ queryKey: ['self-fetching-owner', ENTITY_ID] });
   await flush();
   assert.equal(calls, 2);
+
+  await act(async () => { view.unmount(); });
+  queryClient.clear();
+});
+
+
+test('a window whose detail query never runs does not wait on it forever', async () => {
+  // A disabled TanStack query is `status: "pending"` / `fetchStatus: "idle"`,
+  // so `isPending` stays true for a request that is never going to be made.
+  // A draft with no snapshot is one of the three windows opened that way (a
+  // duplicate and an unconfigured api client are the others), and reading
+  // that as "still loading" strands it on a spinner with no way out.
+  let requests = 0;
+  setShellApiClient({
+    get: () => { requests += 1; return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config: {} }); },
+  } as unknown as AxiosInstance);
+  localStorage.setItem('erp_open_windows', '[]');
+
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: 0 } },
+  });
+  const view = render(
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <WindowManagerProvider>
+          <OpenDraftEntity />
+        </WindowManagerProvider>
+      </QueryClientProvider>
+    </MemoryRouter>,
+  );
+
+  await flush();
+  await flush();
+
+  assert.equal(requests, 0, 'a draft id is never fetched');
+  assert.doesNotMatch(document.body.textContent ?? '', /Loading record/);
+  assert.match(document.body.textContent ?? '', /Record not found/);
 
   await act(async () => { view.unmount(); });
   queryClient.clear();

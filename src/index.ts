@@ -64,8 +64,8 @@ export {
   DocFavStar,
   getActiveWindowRoute,
 } from './shell/WindowManager';
-export { default as EntityWindowState, EntityWindowLoading } from './shell/EntityWindowState';
-export type { EntityWindowStateProps } from './shell/EntityWindowState';
+export { default as EntityWindowState, EntityWindowFallback, EntityWindowLoading } from './shell/EntityWindowState';
+export type { EntityWindowStateProps, EntityWindowFallbackProps } from './shell/EntityWindowState';
 
 // ── Desktop host config (sticky resolver, persistence) ──
 export {

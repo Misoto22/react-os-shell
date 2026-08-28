@@ -11,7 +11,7 @@ import WindowErrorBoundary, { WindowCrashedFallback } from './WindowErrorBoundar
 import { UndoProvider } from './UndoProvider';
 import PartNumberDetailPopup from './PartNumberDetailPopup';
 import LoadingSpinner from './LoadingSpinner';
-import EntityWindowState, { EntityWindowLoading, normaliseEntitySnapshot } from './EntityWindowState';
+import EntityWindowState, { EntityWindowFallback, EntityWindowLoading, normaliseEntitySnapshot } from './EntityWindowState';
 import { navIcons } from '../shell-config/nav';
 
 
@@ -228,12 +228,16 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
   // fetch — the GET would always 404 — so skip the detail query, exactly as we
   // do for duplicate windows. The snapshot already drives the create form.
   const isDraft = typeof item.entityId === 'string' && item.entityId.startsWith('new-');
+  // Hoisted: the no-data states need it too. A disabled query stays
+  // `isPending` forever, so without it they cannot tell a request still in
+  // flight from one that is never going to be made.
+  const fetchesDetail = !entry.selfFetching && !isDuplicate && !isDraft && isShellApiClientConfigured();
   const entityQuery = useQuery({
     queryKey: [qkPrefix, item.entityId],
     queryFn: () => apiClient.get(entityDetailUrl(entry.endpoint, String(item.entityId))).then(r => r.data),
     initialData: normaliseEntitySnapshot(item.entitySnapshot),
     initialDataUpdatedAt: 0, // Treat snapshot as stale so query refetches immediately
-    enabled: !entry.selfFetching && !isDuplicate && !isDraft && isShellApiClientConfigured(),
+    enabled: fetchesDetail,
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: 'always',
@@ -244,9 +248,12 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
     refetchIntervalInBackground: false,
     retry: shouldRetryEntityFetch,
   });
-  // A self-fetching registry entry owns this query key itself. Read only the
-  // stable data/refetch fields here so the shell does not subscribe to that
-  // owner's transient fetch/error state and cause an extra parent render.
+  // A self-fetching registry entry owns this query key itself. `data` and
+  // `refetch` are read unconditionally; the transient fetch/error fields are
+  // read ONLY inside the branches that render the shell's own no-data states,
+  // which a self-fetching entry never reaches. TanStack tracks what a render
+  // actually touches, so that entry does not subscribe to its own query
+  // through us and re-render this parent on every fetch tick.
   const entity = entityQuery.data;
   const refetch = entityQuery.refetch;
 
@@ -314,15 +321,13 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
     }
     return (
       <Modal open={true} onClose={onClose} title={item.label} size={(entry.size || '2xl') as any}>
-        <EntityWindowState
-          entity={entity}
+        <EntityWindowFallback
           isPending={entityQuery.isPending}
           isFetching={entityQuery.isFetching}
+          enabled={fetchesDetail}
           error={entityQuery.error}
           onRetry={refetch}
-        >
-          {current => entry.render(current, onClose, item.entityId, editing, setEditing)}
-        </EntityWindowState>
+        />
       </Modal>
     );
   }
@@ -357,6 +362,7 @@ function RestoredRegistryModal({ item, onClose, onMinimize, accentRgb }: { item:
               entity={entity}
               isPending={entityQuery.isPending}
               isFetching={entityQuery.isFetching}
+              enabled={fetchesDetail}
               error={entityQuery.error}
               onRetry={refetch}
             >

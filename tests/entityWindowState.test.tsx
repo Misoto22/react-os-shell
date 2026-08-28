@@ -123,3 +123,73 @@ test('a non-retryable client error does not offer a retry that cannot help', () 
   assert.match(html, /Couldn(?:'|&#x27;)t load record/);
   assert.doesNotMatch(html, /Try again|not found/i);
 });
+
+
+test('a query that will never run is a terminal state, not a spinner', () => {
+  // A DISABLED TanStack query reports `status: "pending"` / `fetchStatus:
+  // "idle"` — so `isPending` is true forever for a request that is never
+  // going to be made. Three windows are opened that way: a `new-` draft with
+  // no snapshot, a duplicate, and any window at all when the host never
+  // called `setShellApiClient`. Reading `isPending` as "still loading" strands
+  // every one of them on a spinner they cannot leave. `isLoading`
+  // (`isPending && isFetching`) is the pair that already accounted for this,
+  // which is why the inline check this component replaced did not have it.
+  const html = renderToStaticMarkup(
+    <EntityWindowState
+      entity={null}
+      isPending
+      isFetching={false}
+      enabled={false}
+      error={null}
+      onRetry={() => {}}
+    >
+      {() => <div>never</div>}
+    </EntityWindowState>,
+  );
+  assert.match(html, /Record not found/);
+  assert.doesNotMatch(html, /Loading record/);
+});
+
+test('the same pending flags with the query switched ON are still loading', () => {
+  const html = renderToStaticMarkup(
+    <EntityWindowState
+      entity={null}
+      isPending
+      isFetching={false}
+      enabled
+      error={null}
+      onRetry={() => {}}
+    >
+      {() => <div>never</div>}
+    </EntityWindowState>,
+  );
+  assert.match(html, /Loading record/);
+  assert.doesNotMatch(html, /not found/i);
+});
+
+test('enabled defaults to on, so an omitted flag never hides a live fetch', () => {
+  const html = renderToStaticMarkup(
+    <EntityWindowState entity={null} isPending isFetching={false} error={null} onRetry={() => {}}>
+      {() => <div>never</div>}
+    </EntityWindowState>,
+  );
+  assert.match(html, /Loading record/);
+});
+
+test('a disabled query that already failed still shows the failure', () => {
+  // Disabling only means "do not start another one" — an error already in the
+  // cache is still the truthful thing to show.
+  const html = renderToStaticMarkup(
+    <EntityWindowState
+      entity={null}
+      isPending
+      isFetching={false}
+      enabled={false}
+      error={{ response: { status: 403 } }}
+      onRetry={() => {}}
+    >
+      {() => <div>never</div>}
+    </EntityWindowState>,
+  );
+  assert.doesNotMatch(html, /Loading record|Record not found/);
+});
