@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.80.0
+
+- **Start-menu labels stay on one row.** Desktop rows now reserve space for
+  their icon and chevron and keep the visible label on a single truncated
+  line. A row carries a native tooltip only where the text you can read is not
+  the whole name — an explicit compact label, or a label the row had to clip —
+  so an ordinary row gains no hover chrome it did not have before.
+
+- **Nav entries can carry a compact `menuLabel`.** `NavItem`, `NavSection` and
+  `VirtualSection` take an optional `menuLabel`, used only inside menus, so a
+  long report name can show an established abbreviation without shortening the
+  page or window title. Search still matches the full label, and an abbreviated
+  row is named "<compact>, <full>" to assistive technology — the accessible
+  name still starts with the text on screen, which is what voice control acts
+  on.
+
 ## 4.79.5
 
 - **Date pickers stay usable inside dialogs.** The portalled calendar now opens

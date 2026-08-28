@@ -144,10 +144,25 @@ const navSections = [
   { to: '/', label: 'Home' },
   { label: 'Clients', items: [
     { to: '/orders', label: 'Sales Orders', perms: ['view_order'] },
+    { to: '/reports/ar', label: 'Accounts Receivable Report', menuLabel: 'AR Report' },
     { to: '/clients', label: 'Clients' },
   ]},
 ];
 ```
+
+Start-menu rows are always one line. Keep `label` as the full semantic name;
+when it does not fit the narrowest menu size, supply `menuLabel` with an
+established domain abbreviation such as `AR`, `AP`, `PO`, or `GRNI`. The shell
+shows the compact wording, keeps matching search against the full `label`, and
+truncates as a final overflow guard. Do not invent a new acronym merely to make
+a row shorter.
+
+An abbreviated row is named `"<menuLabel>, <label>"` to assistive technology —
+that order matters, because an accessible name must *contain* the text on
+screen for voice control to act on it (WCAG 2.5.3). A row showing its own full
+`label` gets no `aria-label` at all; its text content already is the name. The
+native tooltip appears only where the visible text is not the whole name: an
+explicit `menuLabel`, or a label the row had to clip.
 
 Items with `perms` are filtered through `<ShellAuthProvider value={{ hasAnyPerm }}>`.
 

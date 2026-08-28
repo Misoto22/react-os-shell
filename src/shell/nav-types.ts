@@ -8,6 +8,9 @@ import type { ReactNode } from 'react';
 export interface NavItem {
   to: string;
   label: string;
+  /** Optional compact wording used only inside navigation menus. Keep `label`
+   *  as the full semantic name for windows, search and assistive technology. */
+  menuLabel?: string;
   perms?: string[];
   /** Permissions the user must hold EVERY one of, unlike `perms` which needs
    *  only one. For an entry whose page is gated on a narrower permission than
@@ -23,6 +26,8 @@ export interface NavItem {
 
 export interface NavSection {
   label: string;
+  /** Optional compact wording used only inside navigation menus. */
+  menuLabel?: string;
   items: NavItem[];
   perms?: string[];
   /** Same all-of rule as `NavItem.allPerms`, for a whole section. */
@@ -40,6 +45,8 @@ export interface NavSection {
 
 export interface VirtualSection {
   label: string;
+  /** Optional compact wording used only inside navigation menus. */
+  menuLabel?: string;
   items: NavItem[];
   icon?: ReactNode;
 }
