@@ -15,8 +15,12 @@ export interface BrandAssetPreview {
 
 export interface BrandAssetEditorProps {
   committedUrl?: string | null;
+  committedHasAlpha?: boolean | null;
+  committedIsLight?: boolean | null;
   /** Read-only inherited asset shown until this surface saves an override. */
   fallbackUrl?: string | null;
+  fallbackHasAlpha?: boolean | null;
+  fallbackIsLight?: boolean | null;
   subjectName: string;
   assetName: string;
   onSave: (file: File) => void | Promise<void>;
@@ -55,7 +59,11 @@ function acceptsFile(file: File, accept: string) {
  */
 export default function BrandAssetEditor({
   committedUrl,
+  committedHasAlpha = null,
+  committedIsLight = null,
   fallbackUrl,
+  fallbackHasAlpha = null,
+  fallbackIsLight = null,
   subjectName,
   assetName,
   onSave,
@@ -75,6 +83,10 @@ export default function BrandAssetEditor({
   const [removing, setRemoving] = useState(false);
   const noun = actionNoun(assetName);
   const visibleUrl = stagedUrl || committedUrl || fallbackUrl || '';
+  const visibleHasAlpha = stagedFile
+    ? null : committedUrl ? committedHasAlpha : fallbackHasAlpha;
+  const visibleIsLight = stagedFile
+    ? null : committedUrl ? committedIsLight : fallbackIsLight;
 
   useEffect(() => () => {
     if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -188,6 +200,8 @@ export default function BrandAssetEditor({
                   slot={preview.slot}
                   surface={preview.surface}
                   adaptive
+                  hasAlpha={visibleHasAlpha}
+                  isLight={visibleIsLight}
                   size={preview.kind === 'browser-tab' ? 16 : undefined}
                 />
               );

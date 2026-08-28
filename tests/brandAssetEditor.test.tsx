@@ -121,3 +121,25 @@ test('BrandAssetEditor can preview an inherited fallback without offering to rem
   assert.equal([...view.container.querySelectorAll('button')].some(button => button.textContent === 'Remove icon'), false);
   view.unmount();
 });
+
+test('BrandAssetEditor previews the treatment metadata owned by the visible asset', () => {
+  const view = render(
+    <BrandAssetEditor
+      committedUrl="/dark-icon.png"
+      committedHasAlpha
+      committedIsLight={false}
+      fallbackUrl="/light-wordmark.png"
+      fallbackHasAlpha
+      fallbackIsLight
+      subjectName="INOVIT Pty Ltd"
+      assetName="Compact icon"
+      onSave={() => {}}
+      onRemove={() => {}}
+      previews={[{ label: 'Portal menu', slot: 'compact', surface: 'dark' }]}
+    />,
+  );
+  const treatments = [...view.container.querySelectorAll('[data-brand-treatment]')]
+    .map(node => node.getAttribute('data-brand-treatment'));
+  assert.deepEqual(treatments, ['plate-light']);
+  view.unmount();
+});

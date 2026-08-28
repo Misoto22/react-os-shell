@@ -12,15 +12,24 @@ export interface BrandMarkProps {
   surface?: BrandMarkSurface;
   /** Override the square slot size in pixels for compact shell chrome. */
   size?: number;
+  /** Override a natural-aspect slot width without forcing square dimensions. */
+  width?: number | string;
+  /** Override a natural-aspect slot height without forcing square dimensions. */
+  height?: number | string;
   /** Mark the image decorative when the adjacent text already names it. */
   decorative?: boolean;
+  /** Hide the slot after load failure when surrounding UI owns the fallback. */
+  fallbackMode?: 'monogram' | 'none';
   /** Keep an arbitrary tenant mark readable without recolouring the artwork. */
   adaptive?: boolean;
-  /** Server-detected transparency hint for the primary tenant mark. */
+  /** Server-detected transparency hint for the selected asset. */
   hasAlpha?: boolean | null;
-  /** Server-detected tone hint for the primary tenant mark. */
+  /** Server-detected tone hint for the selected asset. */
   isLight?: boolean | null;
+  treatmentPadding?: number | string;
+  treatmentRadius?: number;
   className?: string;
+  style?: CSSProperties;
 }
 
 const SLOT_CLASS: Record<BrandMarkSlot, string> = {
@@ -50,25 +59,29 @@ export function resolveBrandMarkTreatment(
   return surface === 'dark' ? 'plate-light' : 'bare';
 }
 
-function treatmentStyle(treatment: BrandMarkTreatment): CSSProperties {
+function treatmentStyle(
+  treatment: BrandMarkTreatment,
+  radius: number,
+  padding: number | string,
+): CSSProperties {
   switch (treatment) {
     case 'plate-light':
       return {
         background: '#ffffff',
-        borderRadius: 8,
-        padding: 4,
+        borderRadius: radius,
+        padding,
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.18)',
       };
     case 'plate-dark':
       return {
         background: '#1f1f1f',
-        borderRadius: 8,
-        padding: 4,
+        borderRadius: radius,
+        padding,
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.25)',
       };
     case 'framed':
       return {
-        borderRadius: 8,
+        borderRadius: radius,
         border: '1px solid rgba(0, 0, 0, 0.08)',
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.18)',
       };
@@ -89,11 +102,17 @@ export default function BrandMark({
   slot = 'compact',
   surface = 'light',
   size,
+  width,
+  height,
   decorative = false,
+  fallbackMode = 'monogram',
   adaptive = false,
   hasAlpha = null,
   isLight = null,
+  treatmentPadding = 4,
+  treatmentRadius = 8,
   className = '',
+  style,
 }: BrandMarkProps) {
   const [activeSrc, setActiveSrc] = useState(src || fallbackSrc || '');
 
@@ -103,7 +122,7 @@ export default function BrandMark({
 
   const frameClass = [
     'inline-flex shrink-0 items-center justify-center overflow-hidden',
-    size == null ? SLOT_CLASS[slot] : '',
+    size == null && width == null && height == null ? SLOT_CLASS[slot] : '',
     surface === 'dark' ? 'text-white' : 'text-gray-700',
     className,
   ].filter(Boolean).join(' ');
@@ -111,11 +130,13 @@ export default function BrandMark({
     ? resolveBrandMarkTreatment(hasAlpha, isLight, surface)
     : 'bare';
   const frameStyle: CSSProperties = {
-    ...(size == null ? {} : { width: size, height: size }),
-    ...treatmentStyle(treatment),
+    ...treatmentStyle(treatment, treatmentRadius, treatmentPadding),
+    ...(size == null ? { width, height } : { width: size, height: size }),
+    ...style,
   };
 
   if (!activeSrc) {
+    if (fallbackMode === 'none') return null;
     return (
       <span
         data-brand-fallback

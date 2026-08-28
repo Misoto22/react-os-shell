@@ -18,6 +18,48 @@ export interface PublicPortalBranding {
   favicon_url: string | null;
   logo_has_alpha: boolean | null;
   logo_is_light: boolean | null;
+  logo_square_has_alpha: boolean | null;
+  logo_square_is_light: boolean | null;
+}
+
+export interface ResolvedPortalBrandAsset {
+  src: string | null;
+  hasAlpha: boolean | null;
+  isLight: boolean | null;
+  adaptive: boolean;
+}
+
+/**
+ * Select one tenant-owned asset and its matching display metadata. Compact
+ * hints must never be borrowed from the primary wordmark; a dedicated dark
+ * variant is authoritative for that surface and therefore needs no treatment.
+ */
+export function resolvePortalBrandAsset(
+  branding: PublicPortalBranding,
+  options: { preferSquare?: boolean; surface?: 'light' | 'dark' } = {},
+): ResolvedPortalBrandAsset {
+  if (options.preferSquare && branding.logo_square_url) {
+    return {
+      src: branding.logo_square_url,
+      hasAlpha: branding.logo_square_has_alpha,
+      isLight: branding.logo_square_is_light,
+      adaptive: true,
+    };
+  }
+  if (options.surface === 'dark' && branding.logo_on_dark_url) {
+    return {
+      src: branding.logo_on_dark_url,
+      hasAlpha: null,
+      isLight: null,
+      adaptive: false,
+    };
+  }
+  return {
+    src: branding.logo_url,
+    hasAlpha: branding.logo_has_alpha,
+    isLight: branding.logo_is_light,
+    adaptive: true,
+  };
 }
 
 export interface PortalBrandingContextValue {

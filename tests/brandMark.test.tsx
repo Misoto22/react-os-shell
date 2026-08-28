@@ -72,3 +72,35 @@ test('BrandMark does not alter an authoritative surface-specific variant', () =>
   );
   view.unmount();
 });
+
+test('BrandMark can hide after load failure when the caller owns fallback content', () => {
+  const view = render(
+    <BrandMark src="/missing.svg" alt="Dealer" fallbackMode="none" />,
+  );
+  const image = view.container.querySelector('img')!;
+  act(() => { image.dispatchEvent(new Event('error', { bubbles: true })); });
+  assert.equal(view.container.querySelector('[data-brand-fallback]'), null);
+  assert.equal(view.container.querySelector('img'), null);
+  view.unmount();
+});
+
+test('BrandMark supports natural-aspect dimensions without the default slot size', () => {
+  const view = render(
+    <BrandMark
+      src="/tenant-wide.svg"
+      alt="Dealer"
+      width="100%"
+      height={32}
+      treatmentPadding={2}
+      treatmentRadius={6}
+      adaptive
+    />,
+  );
+  const frame = view.container.querySelector('[data-brand-treatment]') as HTMLElement;
+  assert.equal(frame.style.width, '100%');
+  assert.equal(frame.style.height, '32px');
+  assert.equal(frame.style.padding, '2px');
+  assert.equal(frame.style.borderRadius, '6px');
+  assert.doesNotMatch(frame.className, /h-10|w-10/);
+  view.unmount();
+});

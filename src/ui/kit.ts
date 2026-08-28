@@ -74,12 +74,17 @@ export type {
 } from '../forms/BrandMark';
 export { default as BrandAssetEditor } from '../forms/BrandAssetEditor';
 export type { BrandAssetEditorProps, BrandAssetPreview } from '../forms/BrandAssetEditor';
-export { PortalBrandingProvider, usePortalBranding } from '../branding/PortalBrandingProvider';
+export {
+  PortalBrandingProvider,
+  resolvePortalBrandAsset,
+  usePortalBranding,
+} from '../branding/PortalBrandingProvider';
 export type {
   PortalBrandingContextValue,
   PortalBrandingProviderProps,
   PublicPortal,
   PublicPortalBranding,
+  ResolvedPortalBrandAsset,
 } from '../branding/PortalBrandingProvider';
 export { default as MediaUploadGrid } from '../forms/MediaUploadGrid';
 export type { MediaUploadGridProps, MediaUploadGridItem } from '../forms/MediaUploadGrid';

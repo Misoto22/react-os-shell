@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { act, render } from './dom';
 import {
   PortalBrandingProvider,
+  resolvePortalBrandAsset,
   usePortalBranding,
   type PublicPortalBranding,
 } from '../src/branding/PortalBrandingProvider';
@@ -25,6 +26,8 @@ test('PortalBrandingProvider starts from fallback then applies the anonymous hos
     favicon_url: null,
     logo_has_alpha: null,
     logo_is_light: null,
+    logo_square_has_alpha: null,
+    logo_square_is_light: null,
   };
   const view = render(
     <PortalBrandingProvider
@@ -54,6 +57,7 @@ test('PortalBrandingProvider keeps fallback identity when public branding fails'
     portal: 'supplier', company_name: 'Supplier Portal', logo_url: null,
     logo_on_dark_url: null, logo_square_url: null, favicon_url: null,
     logo_has_alpha: null, logo_is_light: null,
+    logo_square_has_alpha: null, logo_square_is_light: null,
   };
   const view = render(
     <PortalBrandingProvider load={async () => { throw new Error('offline'); }} fallback={fallback}>
@@ -64,4 +68,21 @@ test('PortalBrandingProvider keeps fallback identity when public branding fails'
   assert.equal(view.container.querySelector('output')?.textContent, 'Supplier Portal|');
   assert.equal(view.container.querySelector('output')?.getAttribute('data-loading'), 'false');
   view.unmount();
+});
+
+test('resolvePortalBrandAsset keeps compact metadata with the compact asset', () => {
+  const branding: PublicPortalBranding = {
+    portal: 'dealer', company_name: 'Dealer', logo_url: '/primary.png',
+    logo_on_dark_url: '/dark.png', logo_square_url: '/compact.png',
+    favicon_url: '/favicon.png', logo_has_alpha: true, logo_is_light: true,
+    logo_square_has_alpha: true, logo_square_is_light: false,
+  };
+  assert.deepEqual(resolvePortalBrandAsset(branding, {
+    preferSquare: true, surface: 'dark',
+  }), {
+    src: '/compact.png', hasAlpha: true, isLight: false, adaptive: true,
+  });
+  assert.deepEqual(resolvePortalBrandAsset(branding, { surface: 'dark' }), {
+    src: '/dark.png', hasAlpha: null, isLight: null, adaptive: false,
+  });
 });
