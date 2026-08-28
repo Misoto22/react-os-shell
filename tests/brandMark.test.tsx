@@ -27,6 +27,27 @@ test('BrandMark changes to the fallback when the primary image cannot load', () 
   view.unmount();
 });
 
+test('BrandMark changes treatment metadata with the fallback asset', () => {
+  const view = render(
+    <BrandMark
+      src="/missing.svg"
+      fallbackSrc="/neutral.svg"
+      fallbackHasAlpha={false}
+      fallbackIsLight={false}
+      fallbackAdaptive
+      alt="Dealer"
+      surface="dark"
+      adaptive={false}
+    />,
+  );
+  const image = view.container.querySelector('img')!;
+  assert.equal(image.parentElement?.dataset.brandTreatment, 'bare');
+  act(() => { image.dispatchEvent(new Event('error', { bubbles: true })); });
+  assert.equal(image.getAttribute('src'), '/neutral.svg');
+  assert.equal(image.parentElement?.dataset.brandTreatment, 'framed');
+  view.unmount();
+});
+
 test('BrandMark renders a neutral monogram when no image URL exists', () => {
   const view = render(<BrandMark alt="Regis Design" slot="favicon" />);
   const fallback = view.container.querySelector('[data-brand-fallback]')!;

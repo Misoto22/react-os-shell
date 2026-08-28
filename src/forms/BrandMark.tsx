@@ -7,6 +7,9 @@ export type BrandMarkTreatment = 'plate-light' | 'plate-dark' | 'framed' | 'bare
 export interface BrandMarkProps {
   src?: string | null;
   fallbackSrc?: string | null;
+  fallbackHasAlpha?: boolean | null;
+  fallbackIsLight?: boolean | null;
+  fallbackAdaptive?: boolean;
   alt: string;
   slot?: BrandMarkSlot;
   surface?: BrandMarkSurface;
@@ -98,6 +101,9 @@ function treatmentStyle(
 export default function BrandMark({
   src,
   fallbackSrc,
+  fallbackHasAlpha = null,
+  fallbackIsLight = null,
+  fallbackAdaptive,
   alt,
   slot = 'compact',
   surface = 'light',
@@ -126,8 +132,14 @@ export default function BrandMark({
     surface === 'dark' ? 'text-white' : 'text-gray-700',
     className,
   ].filter(Boolean).join(' ');
-  const treatment = adaptive
-    ? resolveBrandMarkTreatment(hasAlpha, isLight, surface)
+  const usingFallback = Boolean(
+    fallbackSrc && activeSrc === fallbackSrc && activeSrc !== src,
+  );
+  const activeAdaptive = usingFallback ? fallbackAdaptive ?? adaptive : adaptive;
+  const activeHasAlpha = usingFallback ? fallbackHasAlpha : hasAlpha;
+  const activeIsLight = usingFallback ? fallbackIsLight : isLight;
+  const treatment = activeAdaptive
+    ? resolveBrandMarkTreatment(activeHasAlpha, activeIsLight, surface)
     : 'bare';
   const frameStyle: CSSProperties = {
     ...treatmentStyle(treatment, treatmentRadius, treatmentPadding),
