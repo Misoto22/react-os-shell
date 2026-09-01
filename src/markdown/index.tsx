@@ -331,16 +331,30 @@ function Markdown({
     [variant, resolveImageSrc, components],
   );
 
-  const base =
-    variant === 'article'
-      ? 'max-w-3xl break-words text-sm text-gray-800'
-      : 'text-sm text-gray-800 break-words space-y-1.5';
+  // `className` wins over the variant's own ink and type size.
+  //
+  // Both are ordinary utilities on the same element, so the one that wins is
+  // decided by the order Tailwind emits them, not by the order they appear in
+  // the attribute — a host asking for `text-green-900` on a green panel would
+  // be gambling. The alternative is an important utility at every call site,
+  // and the two syntaxes for that (v3's `!text-green-900`, v4's
+  // `text-green-900!`) are each silently INERT in the other version, which is
+  // a bad thing to ask a caller to get right for a colour.
+  //
+  // So: a host that names one simply gets it.
+  const named = ` ${className} `;
+  const ink = /\stext-(?:[a-z]+-\d{2,3}(?:\/\d+)?|black|white|inherit)\s/.test(named)
+    ? ''
+    : 'text-gray-800';
+  const size = /\stext-(?:xs|sm|base|[2-9]?xl|\[[^\]]+\])\s/.test(named) ? '' : 'text-sm';
 
   return (
     <div
       ref={ref}
       className={[
-        base,
+        variant === 'article' ? 'max-w-3xl break-words' : 'break-words space-y-1.5',
+        size,
+        ink,
         clamp ? 'rosmd-clamp' : '',
         clamp && overflowing ? 'rosmd-fade' : '',
         className,

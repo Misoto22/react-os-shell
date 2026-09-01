@@ -87,6 +87,28 @@ test('clamp adds its classes only when asked', () => {
   assert.match(html('x', { clamp: true }), /rosmd-clamp/);
 });
 
+test('a colour or size named in className wins over the variant default', () => {
+  // Both are plain utilities on one element, so which one wins is decided by
+  // Tailwind's emit order, not by the attribute — a host on a green panel
+  // asking for text-green-900 would be gambling, and the important-utility
+  // escape hatch has two mutually inert syntaxes across Tailwind 3 and 4.
+  const green = html('x', { className: 'text-green-900' });
+  assert.ok(green.includes('text-green-900'));
+  assert.ok(!green.includes('text-gray-800'), 'the default ink was applied anyway');
+
+  const big = html('x', { className: 'text-base' });
+  assert.ok(!/\btext-sm\b/.test(big), 'the default size was applied anyway');
+
+  // …and a host that names neither still gets both.
+  const plain = html('x', { className: 'mt-2' });
+  assert.ok(plain.includes('text-gray-800') && plain.includes('text-sm'));
+
+  // A utility that merely CONTAINS the word must not be mistaken for one:
+  // text-ellipsis is neither an ink nor a size.
+  const ellipsis = html('x', { className: 'text-ellipsis' });
+  assert.ok(ellipsis.includes('text-gray-800') && ellipsis.includes('text-sm'));
+});
+
 test('resolveImageSrc rewrites an article image', () => {
   const markup = html('![screenshot: the panel](images/a.png)', {
     variant: 'article',
