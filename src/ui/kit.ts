@@ -303,5 +303,36 @@ export { default as Meter } from '../charts/Meter';
 export { default as StatTile } from '../charts/StatTile';
 export type { RankedBarsProps, RankedBarsRow, MeterProps, StatTileProps } from '../charts/types';
 
+// ── Chart chrome and the cartesian family ──
+export { default as ChartFrame } from '../charts/ChartFrame';
+export { default as ChartTooltip } from '../charts/ChartTooltip';
+export { default as ChartSkeleton } from '../charts/ChartSkeleton';
+export { default as ChartDot } from '../charts/ChartDot';
+export { default as ChartBrush } from '../charts/ChartBrush';
+export { default as CartesianPlot } from '../charts/CartesianPlot';
+export type { PlotGeometry, CartesianPlotProps } from '../charts/CartesianPlot';
+export { default as TimeSeriesChart } from '../charts/TimeSeriesChart';
+export { default as ColumnChart } from '../charts/ColumnChart';
+export { default as ScatterChart, SCATTER_SERIES_CAP } from '../charts/ScatterChart';
+export { default as RangeChart } from '../charts/RangeChart';
+export { default as WaterfallChart } from '../charts/WaterfallChart';
+export { default as HistogramChart } from '../charts/HistogramChart';
+export { default as BoxPlotChart } from '../charts/BoxPlotChart';
+export { default as CandlestickChart } from '../charts/CandlestickChart';
+export { default as HeatmapChart } from '../charts/HeatmapChart';
+export type {
+  ChartLegendEntry, ChartLegendSwatch, ChartFrameProps, ChartTooltipProps, ChartTooltipRow,
+  ChartSkeletonProps, ChartDotProps, ChartDotVariant, ChartBrushProps, ChartRange,
+  ChartReferenceLine, TimeSeriesChartProps, TimeSeriesSeries,
+  ColumnChartProps, ColumnSeries,
+  ScatterChartProps, ScatterPoint, ScatterSeries,
+  RangeChartProps, RangeRow,
+  WaterfallChartProps, WaterfallStep,
+  HistogramChartProps, HistogramBin,
+  BoxPlotChartProps, BoxPlotBox,
+  CandlestickChartProps, Candle,
+  HeatmapChartProps,
+} from '../charts/types';
+
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';

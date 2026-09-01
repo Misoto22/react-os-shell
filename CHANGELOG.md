@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.86.0
+
+- **Charts you can read values off, not just glance at.** The four charts this
+  package shipped are decorative on purpose — a stretched `0 0 100 100` viewBox,
+  `aria-hidden`, no axis, the numbers living as text somewhere else on the page.
+  That is right for a dashboard tile and wrong for anything an operator reads a
+  value off, so every consumer that needed one built its own axes, its own
+  tooltip and its own colours. `ChartFrame`, `ChartTooltip`, `ChartSkeleton`,
+  `ChartDot`, `ChartBrush` and `CartesianPlot` are that missing chrome, and nine
+  charts sit on it: `TimeSeriesChart`, `ColumnChart`, `ScatterChart`,
+  `RangeChart`, `WaterfallChart`, `HistogramChart`, `BoxPlotChart`,
+  `CandlestickChart`, `HeatmapChart`. Still dependency-free SVG.
+
+- **`TimeSeriesChart` has a `step` mode, and no second y-axis.** A value that
+  can only land on a known level — a histogram-derived percentile, a tier, a
+  discrete state — is not a sample of a continuous signal, and joining two
+  levels with a sloped segment draws a transition that never happened. Pair
+  `mode: 'step'` with `levels` and the y-axis becomes the level ladder, spaced
+  evenly per rung, with the levels themselves as the ticks.
+
+  There is no prop for a second y-scale and there will not be one: the alignment
+  between two scales is arbitrary, and the crossing point it produces is a
+  correlation the data does not contain. `mode: 'column'` puts volume behind a
+  rate in one chart — the Combination form — still on ONE shared axis.
+
+- **`referenceLines` draws a threshold.** Dashed, and above the series: a dash
+  reads as "a line someone drew" rather than "a value the data reached".
+
+- **A missing value in a tooltip is an em dash, never a zero.** "No data for
+  this bucket" and "zero in this bucket" are different facts, and printing 0 for
+  both lies about one of them. Tooltip rows read in stack order, bottom segment
+  first, because that is the order a stacked column is read in.
+
 ## 4.85.0
 
 - **Inline marks: `RankedBars`, `Meter`, `StatTile`.** The small forms that
