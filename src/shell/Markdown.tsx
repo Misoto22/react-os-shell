@@ -4,13 +4,21 @@ import type { ReactNode } from 'react';
  * Dependency-free Markdown renderer for help / documentation bodies.
  *
  * Supports the subset used by in-app articles: ATX headings (`##`–`####`),
- * **bold**, *italic*, `inline code`, [links](url), bullet and numbered lists
- * (with wrapped continuation lines), GitHub-style pipe **tables**, `>`
- * blockquote **callouts**, `---` rules, paragraphs, and image syntax
- * `![alt](src)` — which renders as a labelled *screenshot placeholder* box
- * (manual images may not exist yet). Unrecognised syntax degrades to plain
+ * **bold**, *italic*, `inline code`, fenced code blocks, [links](url), bullet
+ * and numbered lists (with wrapped continuation lines), GitHub-style pipe
+ * **tables**, `>` blockquote **callouts**, `---` rules, paragraphs, and image
+ * syntax `![alt](src)` — which renders as a labelled *screenshot placeholder*
+ * box (manual images may not exist yet). Unrecognised syntax degrades to plain
  * text, so author-written articles never break the page. No raw HTML is
  * interpreted.
+ *
+ * Everything here is line- and paragraph-shaped on purpose — there is no
+ * nesting, because a regex renderer cannot have any. A body that needs more
+ * than this subset (nested lists, task lists, footnotes, autolink literals)
+ * wants `react-os-shell/markdown`, which runs a real CommonMark parser behind
+ * an optional peer. This one exists so `react-os-shell/ui` can render prose
+ * while importing nothing but React — see `src/ui/kit.ts` and the two tests
+ * that hold that line.
  */
 
 const INLINE_RE =
@@ -50,9 +58,16 @@ function renderInline(text: string): ReactNode[] {
       );
     } else if (m[6] !== undefined) {
       out.push(
+        // bg-gray-200, not bg-gray-100. Both are on the dark-mode allowlist in
+        // ui.css, so neither looks wrong in review — but `bg-gray-100` remaps
+        // to `--surface`, which is what `bg-white` remaps to as well, and every
+        // host that draws this component draws it on a `bg-white` panel
+        // (HelpCenter's own `<main>` among them). The chip was therefore the
+        // exact colour of the surface behind it in dark mode: present, styled,
+        // invisible. `bg-gray-200` is `--surface-raised`, one step up.
         <code
           key={key++}
-          className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em] text-gray-800"
+          className="rounded bg-gray-200 px-1 py-0.5 font-mono text-[0.85em] text-gray-800"
         >
           {m[6]}
         </code>,
@@ -229,21 +244,102 @@ function renderBlock(block: string, key: number): ReactNode {
   return <p key={key}>{renderInline(lines.join(' '))}</p>;
 }
 
+/** A fenced code block: its info string and its lines, delimiters removed. */
+interface Fence {
+  lang: string;
+  code: string;
+}
+
+/** A block in source order — a fence, or a paragraph-shaped run of text. */
+type Block = { fence: Fence } | { text: string };
+
+/** An opening or closing fence: three or more backticks or tildes alone on the
+ *  line. The second capture is the info string — a language tag on an opener,
+ *  which CommonMark forbids on a closer, and that is how the two are told
+ *  apart without tracking which one we are looking for. */
+const FENCE_RE = /^(`{3,}|~{3,})[ \t]*([^\s`]*)[ \t]*$/;
+
+/**
+ * Split the source into blocks, lifting fences out BEFORE anything is split on
+ * blank lines.
+ *
+ * The order is the whole of the bug this fixes. Splitting on blank lines first
+ * tore a fence that contained one into pieces, and every piece fell through to
+ * the paragraph branch — which joins its lines with a space. A YAML block came
+ * back as a single long line, its opening ``` read as an empty code span and
+ * its language tag beginning another, with two bare backticks printed to the
+ * reader. Fences are line-shaped, so they have to be found by walking lines.
+ */
+function splitBlocks(source: string): Block[] {
+  const lines = source.replace(/\r\n/g, '\n').split('\n');
+  const blocks: Block[] = [];
+  let buf: string[] = [];
+
+  /** Paragraph-split whatever plain text has accumulated, in source order. */
+  const flush = () => {
+    for (const para of buf.join('\n').split(/\n{2,}/)) {
+      const text = para.replace(/\s+$/, '');
+      if (text.trim() !== '') blocks.push({ text });
+    }
+    buf = [];
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const open = FENCE_RE.exec(lines[i]);
+    if (!open) {
+      buf.push(lines[i]);
+      continue;
+    }
+    flush();
+    const [, marker, lang] = open;
+    const code: string[] = [];
+    for (i += 1; i < lines.length; i += 1) {
+      const close = FENCE_RE.exec(lines[i]);
+      const closes =
+        close !== null &&
+        close[1][0] === marker[0] &&
+        close[1].length >= marker.length &&
+        close[2] === '';
+      if (closes) break;
+      code.push(lines[i]);
+    }
+    // An unclosed fence runs to the end of the document. That is CommonMark's
+    // rule, and it is also the kind one: in a live preview, a half-typed fence
+    // shows the rest as code rather than folding it into a paragraph and
+    // reflowing the page under the author's cursor.
+    blocks.push({ fence: { lang, code: code.join('\n') } });
+  }
+  flush();
+  return blocks;
+}
+
+function renderFence({ lang, code }: Fence, key: number): ReactNode {
+  return (
+    <pre
+      key={key}
+      // No syntax highlighting, deliberately: a highlighter costs more bytes
+      // than this entire package's UI kit, in a component whose reason to
+      // exist is importing nothing. The language is kept as a data attribute
+      // so a host that wants highlighting can find these and add it itself.
+      data-language={lang || undefined}
+      className="my-1 overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-3 font-mono text-xs text-gray-800"
+    >
+      <code>{code}</code>
+    </pre>
+  );
+}
+
 export interface MarkdownProps {
   children: string;
   className?: string;
 }
 
 export default function Markdown({ children, className }: MarkdownProps) {
-  const blocks = (children ?? '')
-    .replace(/\r\n/g, '\n')
-    .split(/\n{2,}/)
-    .map(b => b.replace(/\s+$/, ''))
-    .filter(b => b.trim() !== '');
-
   return (
     <div className={`space-y-3 text-sm leading-relaxed text-gray-700 ${className ?? ''}`.trim()}>
-      {blocks.map((block, i) => renderBlock(block, i))}
+      {splitBlocks(children ?? '').map((block, i) =>
+        'fence' in block ? renderFence(block.fence, i) : renderBlock(block.text, i),
+      )}
     </div>
   );
 }
