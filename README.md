@@ -401,6 +401,61 @@ what stops a mail-merge line holding `{{first_name}}` and `{{last_name}}` from
 italicising everything between them — checked with plain character tests, never a
 lookbehind, which is a parse error on Safari below 16.4.
 
+### Markdown — `react-os-shell/markdown`
+
+CommonMark + GFM for a body a person or a service WROTE: a note, a chat message,
+a bug report, a help article. React elements out; no HTML string exists at any
+point in the pipeline.
+
+**Its own subpath, for the mirror image of `markup`'s reason.** It is the one
+module in this package that needs a third-party runtime, so `react-markdown`,
+`remark-gfm` and `remark-breaks` are declared **optional** peers and only a
+consumer who imports this subpath ever installs them. The package's
+`dependencies` stay empty. Cost when you do take it: ~46 KB gzipped.
+
+```bash
+npm i react-markdown remark-gfm remark-breaks
+```
+
+```tsx
+import Markdown from 'react-os-shell/markdown';
+import 'react-os-shell/ui.css';
+
+<Markdown>{report.description}</Markdown>
+<Markdown variant="article" resolveImageSrc={s => `/media/help/${s}`}>{doc.body}</Markdown>
+```
+
+| Prop | Notes |
+|---|---|
+| `variant` | `note` (default) — typed copy inside a card: headings cap one step above body text, a single newline is a line break. `article` — authored documentation: full heading scale, soft wraps, callout blockquotes, screenshot placeholders, capped measure. |
+| `clamp` | Collapses to ~6 text lines with a mask fade. The fade appears only when the content actually overflows, measured after layout. The "Show more" control is yours. |
+| `resolveImageSrc` | Rewrites a relative image `src` before fetch — article bodies name screenshots by a path only the host can serve. |
+| `components` | Per-element overrides, merged over the variant's set. |
+
+**Four constructs are disabled**, each because a body that predates markdown
+would otherwise render surprisingly: a four-space-indented paste (a quoted
+email) does not become a code block; `<John>` renders as the text it is rather
+than being silently DROPPED as a raw-HTML node; and `Title` over `----` stays a
+paragraph and a rule. Fenced blocks and `<https://…>` autolinks are untouched.
+
+**No sanitiser, deliberately** — there is nothing to sanitise. Raw HTML is never
+parsed and `javascript:` URLs are neutralised, so the output cannot carry markup
+a writer did not intend. Adding `rehype-raw` would undo exactly that.
+
+**No syntax highlighting**, for the same reason as the bundle budget above: a
+highlighter costs more than this package's whole UI kit. Code blocks are
+monospace with their own horizontal scroll, and the fence's info string is
+passed through as `data-language` so a host can light them up itself.
+
+#### `MarkdownLite` — when you cannot afford a parser
+
+`react-os-shell/ui` exports `MarkdownLite`, a regex renderer that imports
+nothing. It covers headings, emphasis, links, inline code, fenced blocks, flat
+lists, pipe tables, callouts and rules — and it cannot nest, because a regex
+cannot. It is why the till can render prose at all. Reach for it when the bundle
+is the constraint and the body is short; reach for `react-os-shell/markdown`
+when someone else wrote the text.
+
 ### Misc
 
 | Export | Notes |

@@ -13,7 +13,21 @@ export default defineConfig({
   // in chunks both entries import, which is what keeps `toast`'s container, the
   // Escape-interceptor Set and `useIsMobile`'s store to ONE instance for an app
   // importing from both. A separate build would silently duplicate all three.
-  entry: ['src/index.ts', 'src/apps/index.ts', 'src/markup/index.ts', 'src/ui/index.ts'],
+  // `src/markdown` is its own entry for the mirror-image reason to `src/markup`:
+  // it is the one module in the package that needs a THIRD-PARTY runtime (a
+  // CommonMark parser), and the package's promise is an empty `dependencies`.
+  // As its own entry behind its own `exports` subpath, react-markdown is an
+  // OPTIONAL peer that only a consumer who imports this module ever installs —
+  // the till and the storefront never resolve it. It must not be reachable from
+  // `src/index.ts` or `src/ui/index.ts`; `scripts/verify-dist.mjs` checks both
+  // directions against the built output.
+  entry: [
+    'src/index.ts',
+    'src/apps/index.ts',
+    'src/markup/index.ts',
+    'src/ui/index.ts',
+    'src/markdown/index.tsx',
+  ],
   format: ['esm'],
   dts: true,
   splitting: true,
@@ -36,6 +50,13 @@ export default defineConfig({
     '@heroicons/react/24/solid',
     '@heroicons/react/20/solid',
     'tailwindcss',
+    // The markdown entry's peers. External, so the parser is resolved from the
+    // consumer's own install rather than inlined here — inlining it would put a
+    // second copy of micromark in every bundle and defeat the optional-peer
+    // arrangement entirely.
+    'react-markdown',
+    'remark-gfm',
+    'remark-breaks',
     'pdfjs-dist',
     'dxf-viewer',
     'mammoth',

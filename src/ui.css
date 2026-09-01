@@ -624,6 +624,26 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .text-black { color: var(--ink-strongest) !important; }
 [data-theme="dark"] .hover\:text-black:hover { color: #ffffff !important; }
 
+/* Markdown — the clamped note (react-os-shell/markdown, `clamp`).
+
+   The fade MASKS the text rather than laying a coloured gradient over it. A
+   gradient has to know what colour to fade to, and there is no answer that
+   survives a tinted accent theme or dark mode — it shows as a pale band across
+   the bottom of the note. A mask fades the ink itself and needs to know
+   nothing about the surface.
+
+   `.rosmd-fade` is applied only when the clamped content actually OVERFLOWS,
+   measured after layout in the component: a note that is long in characters
+   but short on screen would otherwise get a fade under nothing. */
+.rosmd-clamp {
+  max-height: 8rem;
+  overflow: hidden;
+}
+.rosmd-fade {
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 1.75rem), transparent);
+  mask-image: linear-gradient(to bottom, black calc(100% - 1.75rem), transparent);
+}
+
 /* Scrollbar */
 /* Force visible scrollbars on editable grids (macOS hides them by default) */
 .grid-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
