@@ -290,7 +290,10 @@ export type { TreemapItem, TreemapTile } from '../charts/treemapLayout';
 export { ChartDefs, MOTION, stagger, fillFor, dashFor, fillId, glowId, maskId, groundId } from '../charts/effects';
 export type { ChartDefsProps, FillVariant, StrokeVariant, RevealDirection, BackgroundVariant } from '../charts/effects';
 export { ChartHighlightProvider, useHighlight, highlightOpacity } from '../charts/highlight';
-export type { ChartStatusTone, ChartCurve } from '../charts/types';
+export type {
+  ChartStatusTone, ChartCurve,
+  ChartFillVariant, ChartStrokeVariant, ChartRevealDirection, ChartBackgroundVariant,
+} from '../charts/types';
 
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';
