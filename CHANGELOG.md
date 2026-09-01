@@ -2,6 +2,173 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.87.1
+
+Review follow-ups across the 4.84.0–4.87.0 chart tier, before anything ships
+to npm.
+
+- **Escape goes through the modal seam.** `CartesianPlot` and `TimeSeriesChart`
+  handled Escape on the svg itself, where `Modal`'s window-capture listener
+  wins: inside a shell window the crosshair stayed lit and the WINDOW closed —
+  the same defect fixed in Tooltip (4.30.1), DropdownMenu (4.54.0) and
+  DatePicker (4.66.0). Both now register `registerModalEscapeInterceptor`
+  while a band is active, and an idle chart leaves Escape to the window.
+- **Signed columns.** Grouped columns foot on the zero line, not the plot
+  floor, and stacked series stack positives up and negatives down from zero —
+  a negative segment used to be clamped away entirely.
+- **Series colour is pinned to the caller's order.** A series dropped for
+  having no data no longer shifts its neighbours' colours out from under a
+  caller-built legend (TimeSeriesChart, ColumnChart).
+- **Histogram `bins` honours explicit boundaries.** An edge list was collapsed
+  to a bin COUNT and re-spread evenly over the data's own range — backend
+  latency buckets silently redrew the distribution.
+- **Hostile data cannot take a chart down.** `binValues` skips non-finite
+  observations instead of crashing; a NaN `RankedBars` row draws as missing
+  (em dash) rather than as the widest bar; a `RadarChart` axis with an
+  explicit `max` of 0 no longer erases the polygon; a ragged `ChordChart`
+  matrix degrades to zeros; `ScatterChart` no longer crashes when a polling
+  caller shrinks the data mid-hover.
+- **Dark mode kept its marks.** The RankedBars/Meter tracks moved off
+  `bg-gray-100` (which collapses into the host card's `--surface`) to
+  `bg-gray-200`, and Meter's objective marker moved off unmapped `bg-gray-600`
+  onto the axis ink.
+- **Reduced motion hides the shimmer and the ping** instead of freezing them
+  fully lit — their resting state is invisible, so the entrance treatment
+  (freeze at `opacity: 1`) was exactly wrong for them.
+- **Degenerate radial input stays legible.** The sunburst depth ramp is
+  floored before it crosses into invalid negative `color-mix()` shares (deep
+  rings painted black); `ChordChart` defaults `maxNodes` to the palette's
+  eight slots and documents that the tail is DROPPED, not folded;
+  `RadialBarChart` track mode draws the rows that fit rather than walking its
+  radii negative.
+- **Tooltips keep the missing-versus-zero contract everywhere.** RangeChart
+  and HeatmapChart printed 0 for an absent row or ragged cell.
+- **ChartBrush drags by pointer capture alone** — no window listeners to leak
+  on unmount mid-drag, `pointercancel` ends a drag, and `touch-action: none`
+  keeps touch drags from being stolen for scrolling.
+- **API before it becomes permanent:** the three stray `colour` props
+  (`ChartDefsProps.fills`, `ChartDotProps`, `ChartBrushProps`) renamed to
+  `color` to match every other prop in the kit; `usePlotWidth` and
+  `autoHighlightIndex` are exported; the `ChartCurve`/`ChartStatusTone`
+  unions are now aliases of their source-of-truth definitions instead of
+  second copies.
+
+## 4.87.0
+
+- **The radial, hierarchical and flow families.** `RadarChart`, `PieChart`,
+  `RadialBarChart`, `FunnelChart`, `TreemapChart`, `SunburstChart`,
+  `SankeyChart`, `ChordChart` — completing the tier begun in 4.84.0.
+
+- **Radius is square-rooted wherever a radial mark encodes a quantity.** Area is
+  what the eye reads, so scaling the radius linearly overstates a large value by
+  its square.
+
+- **`SankeyChart` does not run crossing-minimisation.** The iterative relaxation
+  a full implementation does is several hundred lines that mostly matter above
+  about thirty nodes, and a caller who orders its nodes sensibly gets a clean
+  diagram without it. Node ordering is therefore part of the contract rather
+  than something the component quietly rearranges. Ribbons use the same `bump`
+  curve the line family does — flat where they leave a node, flat where they
+  arrive — rather than the private copy the first draft inlined.
+
+- **`TreemapChart` uses the squarified layout** (Bruls–Huizing–van Wijk), so
+  tiles stay close to square and their areas remain comparable by eye.
+
+## 4.86.0
+
+- **Charts you can read values off, not just glance at.** The four charts this
+  package shipped are decorative on purpose — a stretched `0 0 100 100` viewBox,
+  `aria-hidden`, no axis, the numbers living as text somewhere else on the page.
+  That is right for a dashboard tile and wrong for anything an operator reads a
+  value off, so every consumer that needed one built its own axes, its own
+  tooltip and its own colours. `ChartFrame`, `ChartTooltip`, `ChartSkeleton`,
+  `ChartDot`, `ChartBrush` and `CartesianPlot` are that missing chrome, and nine
+  charts sit on it: `TimeSeriesChart`, `ColumnChart`, `ScatterChart`,
+  `RangeChart`, `WaterfallChart`, `HistogramChart`, `BoxPlotChart`,
+  `CandlestickChart`, `HeatmapChart`. Still dependency-free SVG.
+
+- **`TimeSeriesChart` has a `step` mode, and no second y-axis.** A value that
+  can only land on a known level — a histogram-derived percentile, a tier, a
+  discrete state — is not a sample of a continuous signal, and joining two
+  levels with a sloped segment draws a transition that never happened. Pair
+  `mode: 'step'` with `levels` and the y-axis becomes the level ladder, spaced
+  evenly per rung, with the levels themselves as the ticks.
+
+  There is no prop for a second y-scale and there will not be one: the alignment
+  between two scales is arbitrary, and the crossing point it produces is a
+  correlation the data does not contain. `mode: 'column'` puts volume behind a
+  rate in one chart — the Combination form — still on ONE shared axis.
+
+- **`referenceLines` draws a threshold.** Dashed, and above the series: a dash
+  reads as "a line someone drew" rather than "a value the data reached".
+
+- **A missing value in a tooltip is an em dash, never a zero.** "No data for
+  this bucket" and "zero in this bucket" are different facts, and printing 0 for
+  both lies about one of them. Tooltip rows read in stack order, bottom segment
+  first, because that is the order a stacked column is read in.
+
+## 4.85.0
+
+- **Inline marks: `RankedBars`, `Meter`, `StatTile`.** The small forms that
+  belong inside a table cell or a summary card, where a full chart frame would
+  cost more room than the number is worth. They sit on the 4.84.0 primitives, so
+  a meter and a chart on the same page carry the same status token rather than
+  two hand-picked greens.
+
+  `RankedBars` colours by status or by an explicit series slot, never by
+  position in the list. Cycling tones down a list makes colour look like it
+  encodes something when it encodes nothing.
+
+## 4.84.0
+
+- **Chart primitives, on their own.** The layer every chart is built from, split
+  out and exported before any chart that uses it: `palette`, `curve`, `scale`,
+  `treemapLayout`, the fill/motion `effects` and the `highlight` coordination.
+  A consumer with a chart type this package does not cover can now compose one
+  instead of forking one.
+
+- **A chart palette, at last.** There was no series token anywhere in `ui.css`
+  or `themes.css`, so `currentColor` was the only answer and each portal picked
+  hues by hand. Eight categorical `--viz-series-*` slots, a reserved
+  `--viz-good`/`neutral`/`warning`/`serious`/`critical` status set, and the
+  chart inks now ship as tokens, validated for colour-vision separation against
+  this package's own surfaces in both themes. Slots are assigned in fixed order
+  and never cycled: a ninth series gets the de-emphasis ink rather than a hue
+  indistinguishable from an existing one.
+
+  These tokens are deliberately NOT remapped by `themes.css`. Every other accent
+  in the package follows the user's chosen theme; a series colour must not,
+  because "4xx is amber" is an identity encoding and an identity that changes
+  with a cosmetic preference has stopped being one.
+
+- **Five curve types, and the choice is a claim about the data.** `monotone` is
+  the curved one to reach for: Fritsch-Carlson interpolation, which cannot
+  overshoot between two samples. If the data rises from A to B so does the
+  curve — no invented peak, no bump nobody measured.
+
+  It carries a guard the textbook magnitude test does not imply: at a local
+  extremum the two neighbouring secants disagree in sign, and any non-zero
+  tangent there is an overshoot by construction. That test squares its terms, so
+  it throws away exactly the sign that would catch it, and the tangent has to be
+  flattened before it runs. Without that, a traffic series that peaks and falls
+  draws a burst above the peak that never happened.
+
+  `spline` is the looser Catmull-Rom variant, converted to cubic Bézier so it
+  passes through every point, and clamped to the series range because a smooth
+  curve through 0, 10, 0 otherwise dips below zero and draws negative requests.
+  It can still bulge past an interior point on the way to the next one — that is
+  the difference between the two, kept for when the rounder shape is wanted
+  knowingly. `step` holds the value, `bump` is flat at each point and curved
+  between them, and `linear` remains the default and the only unarguable option
+  when the samples are all you know.
+
+- **Fills are named variants backed by patterns**, borrowed from
+  [EvilCharts](https://github.com/legions-developer/evilcharts) (MIT) —
+  `gradient`, `gradient-reverse`, `solid`, `dotted`, `lines`, `hatched`. Texture
+  is first-class rather than a hack, and a hatch is exactly what a colour-vision
+  or forced-colors reader needs when hue alone stops separating two series.
+  Every entrance animation is disabled under `prefers-reduced-motion`.
+
 ## 4.83.2
 
 - **A missing wasm decoder is now reported instead of quietly ignored.** The
