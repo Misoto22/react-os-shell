@@ -149,6 +149,137 @@ html.rosh-reduce-transparency *::after {
   --ink-strongest: #cdd6f4;
 }
 
+/* ── Chart tokens ───────────────────────────────────────────────────────────
+ * Eight categorical slots, a reserved status set, and the chart inks. Declared
+ * BELOW the neutral ramp on purpose: the dark chart inks read the ramp, so a
+ * consumer restyling its greys moves the grid and axis with them.
+ *
+ * Deliberately NOT remapped by themes.css. Every other accent token in this
+ * package follows the user's chosen theme; these must not. A series colour is
+ * an identity encoding — "4xx is amber" — and an identity that changes when
+ * someone picks the pink theme has stopped being one. See charts/palette.ts
+ * for the slot-order rule and the colour-vision validation these steps passed.
+ *
+ * The light steps are validated against white, the dark ones against
+ * `--surface`. They are the same eight hues re-stepped for the darker band,
+ * not a second palette. */
+:root {
+  --viz-series-1: #2a78d6;
+  --viz-series-2: #eb6834;
+  --viz-series-3: #1baf7a;
+  --viz-series-4: #eda100;
+  --viz-series-5: #e87ba4;
+  --viz-series-6: #008300;
+  --viz-series-7: #4a3aa7;
+  --viz-series-8: #e34948;
+
+  --viz-good: #1baf7a;
+  --viz-neutral: #6b7280;
+  --viz-warning: #eda100;
+  --viz-serious: #eb6834;
+  --viz-critical: #e34948;
+
+  --viz-grid: #e5e7eb;
+  --viz-axis: #d1d5db;
+  --viz-label: #6b7280;
+  --viz-muted: #9ca3af;
+  --viz-surface: #ffffff;
+}
+
+[data-theme="dark"] {
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+  --viz-series-3: #199e70;
+  --viz-series-4: #c98500;
+  --viz-series-5: #d55181;
+  --viz-series-6: #008300;
+  --viz-series-7: #9085e9;
+  --viz-series-8: #e66767;
+
+  --viz-good: #199e70;
+  --viz-neutral: #7f849c;
+  --viz-warning: #c98500;
+  --viz-serious: #d95926;
+  --viz-critical: #e66767;
+
+  --viz-grid: var(--line-subtle);
+  --viz-axis: var(--line-strong);
+  --viz-label: var(--ink-faint);
+  --viz-muted: var(--ink-faintest);
+  --viz-surface: var(--surface);
+}
+
+/* ── Chart motion ───────────────────────────────────────────────────────────
+ * Every animation the chart family uses, as classes, so no chart implements
+ * motion itself and none of them can forget the reduced-motion rule below.
+ *
+ * The intro reveal is a WIPE: a white rect inside an SVG <mask>, scaled from
+ * nothing to full. Everything under the mask — fill, stroke and point markers
+ * alike — appears as it passes, which is what stops a chart assembling in
+ * pieces the way a stroke-dashoffset reveal does (that one can only animate
+ * strokes, so the fill and the dots arrive on their own schedule).
+ *
+ * The mask uses objectBoundingBox units, so the rect is 0–1 and one keyframe
+ * set works at every chart size.
+ *
+ * `fill-mode: both` matters on every rule: with a stagger delay the mark would
+ * otherwise render at its FINAL state, jump back to the start when its delay
+ * elapsed, and animate from there. */
+@keyframes rosh-viz-wipe { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rosh-viz-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes rosh-viz-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes rosh-viz-sweep { from { opacity: 0; transform: rotate(-14deg) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes rosh-viz-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rosh-viz-march { to { stroke-dashoffset: -24; } }
+/* The loading sweep. Translated by twice its own width so the band clears the
+   plot at both ends rather than popping at the edges. */
+@keyframes rosh-viz-shimmer { from { transform: translateX(0); } to { transform: translateX(200%); } }
+/* The live-reading ping. Fades as it grows, so the halo is gone before it is
+   large enough to reach the neighbouring point. */
+@keyframes rosh-viz-ping { from { transform: scale(1); opacity: 0.45; } to { transform: scale(3.2); opacity: 0; } }
+
+.rosh-viz-wipe,
+.rosh-viz-wipe-rtl,
+.rosh-viz-wipe-center {
+  transform-box: fill-box;
+  animation: rosh-viz-wipe 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.rosh-viz-wipe { transform-origin: left; }
+.rosh-viz-wipe-rtl { transform-origin: right; }
+.rosh-viz-wipe-center { transform-origin: center; }
+
+/* Grow from the baseline, not the centre — a bar that expands both ways reads
+   as a range rather than as a quantity. `fill-box` puts the origin on the rect
+   itself rather than on the viewport. */
+.rosh-viz-rise { transform-box: fill-box; transform-origin: bottom; animation: rosh-viz-rise 640ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* A horizontal bar grows from its label edge, which is where the eye starts. */
+.rosh-viz-grow { transform-origin: left; animation: rosh-viz-grow 620ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rosh-viz-sweep { transform-box: fill-box; transform-origin: center; animation: rosh-viz-sweep 620ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.rosh-viz-fade { animation: rosh-viz-fade 700ms ease-out both; }
+.rosh-viz-march { animation: rosh-viz-march 1s linear infinite; }
+.rosh-viz-shimmer { animation: rosh-viz-shimmer 1.8s ease-in-out infinite; }
+.rosh-viz-ping { transform-box: fill-box; transform-origin: center; animation: rosh-viz-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
+
+/* Hover emphasis is a TRANSITION, not a jump. A mark that snaps to grey the
+   instant the pointer crosses a band reads as a glitch; 160ms is long enough to
+   register as a response and short enough not to lag the pointer. Transitioning
+   `filter` too is what makes the glow arrive with the colour rather than after
+   it. */
+.rosh-viz-mark { transition: fill 160ms ease-out, fill-opacity 160ms ease-out, opacity 160ms ease-out, filter 200ms ease-out; }
+
+/* One rule covers the whole family, present and future. A chart cannot opt out
+   of this, because no chart wrote the animation in the first place. */
+@media (prefers-reduced-motion: reduce) {
+  .rosh-viz-mark { transition: none !important; }
+  .rosh-viz-wipe, .rosh-viz-wipe-rtl, .rosh-viz-wipe-center,
+  .rosh-viz-rise, .rosh-viz-grow, .rosh-viz-sweep, .rosh-viz-fade,
+  .rosh-viz-march, .rosh-viz-shimmer, .rosh-viz-ping {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 /* Backgrounds */
 [data-theme="dark"] .bg-white { background-color: var(--surface) !important; }
 [data-theme="dark"] .bg-gray-50 { background-color: var(--surface-sunken) !important; }

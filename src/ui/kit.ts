@@ -272,5 +272,25 @@ export { default as useClickOutside } from '../hooks/useClickOutside';
 export { useIsMobile } from '../shell/useIsMobile';
 export { ALT_SHIFT_E, ALT_SHIFT_D, ALT_SHIFT_N, CMD_ENTER, CMD_S, CMD_K, CMD_DOT, CMD_A, MOD, ALT, SHIFT, ENTER, isMac } from '../shell/Kbd';
 
+// ── Chart primitives ──
+// The layer every chart is built from, exported on its own so a consumer with
+// a chart type the package does not cover composes one rather than forking one.
+// The palette is here so a legend swatch or a status pill can carry the same
+// token the chart used, instead of guessing a hex.
+export {
+  SERIES_VARS, SERIES_SLOT_COUNT, STATUS_VARS, CHART_INK,
+  seriesColor, resolveSeriesColor,
+} from '../charts/palette';
+export { linearScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../charts/scale';
+export type { LinearScale, BandScale, LadderScale, AngleScale, Range } from '../charts/scale';
+export { curvePath, monotonePath, splinePath, bumpPath, stepPath, linearPath, areaFrom, areaBetween, arcPath, polygonPoints } from '../charts/curve';
+export type { Curve, Point } from '../charts/curve';
+export { squarify } from '../charts/treemapLayout';
+export type { TreemapItem, TreemapTile } from '../charts/treemapLayout';
+export { ChartDefs, MOTION, stagger, fillFor, dashFor, fillId, glowId, maskId, groundId } from '../charts/effects';
+export type { ChartDefsProps, FillVariant, StrokeVariant, RevealDirection, BackgroundVariant } from '../charts/effects';
+export { ChartHighlightProvider, useHighlight, highlightOpacity } from '../charts/highlight';
+export type { ChartStatusTone, ChartCurve } from '../charts/types';
+
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';

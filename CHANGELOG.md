@@ -2,6 +2,56 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.84.0
+
+- **Chart primitives, on their own.** The layer every chart is built from, split
+  out and exported before any chart that uses it: `palette`, `curve`, `scale`,
+  `treemapLayout`, the fill/motion `effects` and the `highlight` coordination.
+  A consumer with a chart type this package does not cover can now compose one
+  instead of forking one.
+
+- **A chart palette, at last.** There was no series token anywhere in `ui.css`
+  or `themes.css`, so `currentColor` was the only answer and each portal picked
+  hues by hand. Eight categorical `--viz-series-*` slots, a reserved
+  `--viz-good`/`neutral`/`warning`/`serious`/`critical` status set, and the
+  chart inks now ship as tokens, validated for colour-vision separation against
+  this package's own surfaces in both themes. Slots are assigned in fixed order
+  and never cycled: a ninth series gets the de-emphasis ink rather than a hue
+  indistinguishable from an existing one.
+
+  These tokens are deliberately NOT remapped by `themes.css`. Every other accent
+  in the package follows the user's chosen theme; a series colour must not,
+  because "4xx is amber" is an identity encoding and an identity that changes
+  with a cosmetic preference has stopped being one.
+
+- **Five curve types, and the choice is a claim about the data.** `monotone` is
+  the curved one to reach for: Fritsch-Carlson interpolation, which cannot
+  overshoot between two samples. If the data rises from A to B so does the
+  curve — no invented peak, no bump nobody measured.
+
+  It carries a guard the textbook magnitude test does not imply: at a local
+  extremum the two neighbouring secants disagree in sign, and any non-zero
+  tangent there is an overshoot by construction. That test squares its terms, so
+  it throws away exactly the sign that would catch it, and the tangent has to be
+  flattened before it runs. Without that, a traffic series that peaks and falls
+  draws a burst above the peak that never happened.
+
+  `spline` is the looser Catmull-Rom variant, converted to cubic Bézier so it
+  passes through every point, and clamped to the series range because a smooth
+  curve through 0, 10, 0 otherwise dips below zero and draws negative requests.
+  It can still bulge past an interior point on the way to the next one — that is
+  the difference between the two, kept for when the rounder shape is wanted
+  knowingly. `step` holds the value, `bump` is flat at each point and curved
+  between them, and `linear` remains the default and the only unarguable option
+  when the samples are all you know.
+
+- **Fills are named variants backed by patterns**, borrowed from
+  [EvilCharts](https://github.com/legions-developer/evilcharts) (MIT) —
+  `gradient`, `gradient-reverse`, `solid`, `dotted`, `lines`, `hatched`. Texture
+  is first-class rather than a hack, and a hatch is exactly what a colour-vision
+  or forced-colors reader needs when hue alone stops separating two series.
+  Every entrance animation is disabled under `prefers-reduced-motion`.
+
 ## 4.83.2
 
 - **A missing wasm decoder is now reported instead of quietly ignored.** The
