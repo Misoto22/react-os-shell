@@ -162,6 +162,28 @@ const NOTE_COMPONENTS: Components = {
   ),
 };
 
+/** The note variant's set, with `resolveImageSrc` wired the same way the
+ *  article's is — a resolver that silently applied to one variant and not the
+ *  other was a broken image with no signal. */
+function noteComponents(resolveImageSrc?: (src: string) => string): Components {
+  if (!resolveImageSrc) return NOTE_COMPONENTS;
+  return {
+    ...NOTE_COMPONENTS,
+    img: ({ node: _n, src, alt, ...props }) => {
+      const raw = typeof src === 'string' ? src : undefined;
+      return (
+        <img
+          {...props}
+          src={raw ? resolveImageSrc(raw) : raw}
+          alt={alt ?? ''}
+          loading="lazy"
+          className="max-w-full max-h-64 rounded-lg border border-gray-200"
+        />
+      );
+    },
+  };
+}
+
 // ── variant: article ───────────────────────────────────────────────────────
 
 /**
@@ -325,7 +347,7 @@ function Markdown({
 
   const resolved = useMemo<Components>(
     () => ({
-      ...(variant === 'article' ? articleComponents(resolveImageSrc) : NOTE_COMPONENTS),
+      ...(variant === 'article' ? articleComponents(resolveImageSrc) : noteComponents(resolveImageSrc)),
       ...components,
     }),
     [variant, resolveImageSrc, components],
@@ -346,7 +368,7 @@ function Markdown({
   const ink = /\stext-(?:[a-z]+-\d{2,3}(?:\/\d+)?|black|white|inherit)\s/.test(named)
     ? ''
     : 'text-gray-800';
-  const size = /\stext-(?:xs|sm|base|[2-9]?xl|\[[^\]]+\])\s/.test(named) ? '' : 'text-sm';
+  const size = /\stext-(?:xs|sm|base|lg|[2-9]?xl|\[[^\]]+\])\s/.test(named) ? '' : 'text-sm';
 
   return (
     <div

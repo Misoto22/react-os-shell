@@ -150,3 +150,40 @@ test('no surface the renderer paints collapses into the panel behind it', () => 
       'panel in dark mode:\n  ' + collapsed.join('\n  '),
   );
 });
+
+// ── Review follow-ups ──────────────────────────────────────────────────────
+
+test('a multi-word info string is still a fence, and the first word is the language', () => {
+  // CommonMark allows ` ```ruby startline=3 ` — the old single-token regex
+  // read the opener as prose and the block fell back into the flattening
+  // path this file exists to prevent.
+  const markup = html(['```ruby startline=3', 'a = 1', '', 'b = 2', '```'].join('\n'));
+  assert.equal(fenceText(markup), 'a = 1\n\nb = 2');
+  assert.match(markup, /data-language="ruby"/, 'the language is the first word alone');
+});
+
+test('a fence indented up to three spaces opens, and its indent is stripped', () => {
+  const markup = html(['  ```', '  code', '  ```'].join('\n'));
+  assert.equal(fenceText(markup), 'code');
+});
+
+test('a tilde fence may carry backticks in its info string; a backtick fence may not', () => {
+  const tilde = html(['~~~a`b', 'x', '~~~'].join('\n'));
+  assert.equal(fenceText(tilde), 'x', 'the tilde fence opened');
+  // For a backtick marker the same line is prose with code spans in it.
+  const backtick = html('```a`b');
+  assert.equal(fenceText(backtick), null, 'the backtick line stayed prose');
+});
+
+test('a javascript: link renders disarmed', () => {
+  // The full renderer neutralises these through react-markdown's default
+  // urlTransform; the Lite one must hold the same line — it renders in
+  // admin surfaces fed by low-trust text.
+  const markup = renderToStaticMarkup(<Markdown>{'[click](javascript:alert(1))'}</Markdown>);
+  assert.ok(!/href="javascript:/i.test(markup), 'the scheme reached an href');
+  assert.match(markup, />click</, 'the label still renders');
+  const safe = renderToStaticMarkup(<Markdown>{'[ok](https://example.com) [rel](/docs) [mail](mailto:x@y.z)'}</Markdown>);
+  for (const href of ['href="https://example.com"', 'href="/docs"', 'href="mailto:x@y.z"']) {
+    assert.ok(safe.includes(href), `${href} must survive`);
+  }
+});

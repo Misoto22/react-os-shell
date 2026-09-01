@@ -176,3 +176,14 @@ test('ui.css carries the clamp rules the component names', () => {
   assert.match(css, /\.rosmd-clamp\s*\{/);
   assert.match(css, /\.rosmd-fade\s*\{/);
 });
+
+test('raw HTML in BLOCK position is also text, and an image src cannot carry a script scheme', () => {
+  // The htmlFlow disable is what covers a tag alone on its line — the
+  // inline-position pin above cannot prove it.
+  const block = html(['before', '', '<div onclick="x()">boom</div>', '', 'after'].join('\n'));
+  assert.ok(!/<div onclick/i.test(block), 'the block-position tag was parsed');
+  assert.match(block, /&lt;div onclick=/, 'it renders as the text it is');
+
+  const img = html('![x](javascript:alert(1))');
+  assert.ok(!/src="javascript:/i.test(img), 'urlTransform must cover src, not just href');
+});

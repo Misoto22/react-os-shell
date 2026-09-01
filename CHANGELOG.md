@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 4.84.0
+## 4.88.0
 
 - **A fenced code block is now rendered as one, instead of being flattened into
   a paragraph.** `Markdown` split its input on blank lines before looking for
@@ -48,6 +48,18 @@ All notable changes to this project will be documented in this file. The format 
 - **`Markdown` is renamed `MarkdownLite`** (`MarkdownProps` → `MarkdownLiteProps`)
   now that there are two renderers and the difference matters at the call site.
   The old names remain as deprecated aliases and are removed in 5.0.
+
+- Review follow-ups, folded in before publish: the fence opener accepts a
+  multi-word info string and up to three spaces of indentation (both
+  CommonMark-legal — either used to fall back into the flattened-paragraph
+  path this release fixes), a tilde fence may carry backticks in its info
+  string while a backtick fence may not, and `data-language` carries the info
+  string's first word. `MarkdownLite` links now pass the same scheme
+  allowlist the full renderer gets from react-markdown's urlTransform — a
+  `javascript:` href renders disarmed. `resolveImageSrc` applies to the
+  `note` variant, not only `article`. `text-lg` joins the size classes a
+  host's `className` can win with. `verify-dist` catches deep parser imports
+  (`react-markdown/lib/…`), not only bare ones.
 
 ## 4.83.2
 

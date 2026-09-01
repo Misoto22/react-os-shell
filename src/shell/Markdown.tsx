@@ -24,6 +24,16 @@ import type { ReactNode } from 'react';
 const INLINE_RE =
   /!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]+)\]\(([^)]+)\)|\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*/g;
 
+/** The full renderer neutralises `javascript:`-class URLs through
+ *  react-markdown's default urlTransform; this is the same allowlist for the
+ *  Lite one. A scheme outside the safe set renders the anchor with no href —
+ *  visible, honest, inert — rather than a clickable script. No scheme at all
+ *  (relative, anchor, protocol-relative) passes. */
+function safeHref(href: string): boolean {
+  const scheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.exec(href.trim());
+  return scheme === null || /^(?:https?|mailto|tel):$/i.test(scheme[0]);
+}
+
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
   let last = 0;
@@ -42,7 +52,7 @@ function renderInline(text: string): ReactNode[] {
       out.push(
         <a
           key={key++}
-          href={m[4]}
+          href={safeHref(m[4]) ? m[4] : undefined}
           target="_blank"
           rel="noreferrer"
           className="text-blue-600 hover:underline"
@@ -253,11 +263,16 @@ interface Fence {
 /** A block in source order — a fence, or a paragraph-shaped run of text. */
 type Block = { fence: Fence } | { text: string };
 
-/** An opening or closing fence: three or more backticks or tildes alone on the
- *  line. The second capture is the info string — a language tag on an opener,
- *  which CommonMark forbids on a closer, and that is how the two are told
- *  apart without tracking which one we are looking for. */
-const FENCE_RE = /^(`{3,}|~{3,})[ \t]*([^\s`]*)[ \t]*$/;
+/** An opening or closing fence: three or more backticks or tildes, indented
+ *  at most three spaces (CommonMark 4.5). The last capture is the info
+ *  string — anything after the marker, spaces included (` ```ruby startline=3 `
+ *  is legal) — which CommonMark forbids on a closer, and that is how the two
+ *  are told apart without tracking which one we are looking for. One rule is
+ *  NOT in the regex: a backtick fence's info string may not contain a
+ *  backtick (that line is prose carrying code spans, not a fence); a tilde
+ *  fence has no such restriction. The caller checks it, because a regex
+ *  cannot condition one capture on another. */
+const FENCE_RE = /^( {0,3})(`{3,}|~{3,})[ \t]*(.*?)[ \t]*$/;
 
 /**
  * Split the source into blocks, lifting fences out BEFORE anything is split on
@@ -286,28 +301,34 @@ function splitBlocks(source: string): Block[] {
 
   for (let i = 0; i < lines.length; i += 1) {
     const open = FENCE_RE.exec(lines[i]);
-    if (!open) {
+    const opens = open !== null && !(open[2][0] === '`' && open[3].includes('`'));
+    if (!opens) {
       buf.push(lines[i]);
       continue;
     }
     flush();
-    const [, marker, lang] = open;
+    const [, indent, marker, info] = open;
     const code: string[] = [];
     for (i += 1; i < lines.length; i += 1) {
       const close = FENCE_RE.exec(lines[i]);
       const closes =
         close !== null &&
-        close[1][0] === marker[0] &&
-        close[1].length >= marker.length &&
-        close[2] === '';
+        close[2][0] === marker[0] &&
+        close[2].length >= marker.length &&
+        close[3] === '';
       if (closes) break;
-      code.push(lines[i]);
+      // An indented opener's indentation is stripped from the content, per
+      // CommonMark — the fence's placement is not part of the code.
+      code.push(indent ? lines[i].replace(new RegExp(`^ {0,${indent.length}}`), '') : lines[i]);
     }
     // An unclosed fence runs to the end of the document. That is CommonMark's
     // rule, and it is also the kind one: in a live preview, a half-typed fence
     // shows the rest as code rather than folding it into a paragraph and
     // reflowing the page under the author's cursor.
-    blocks.push({ fence: { lang, code: code.join('\n') } });
+    //
+    // The info string's FIRST word is the language (the rest is host
+    // metadata, per convention), and that is what `data-language` carries.
+    blocks.push({ fence: { lang: info.split(/[ \t]/)[0], code: code.join('\n') } });
   }
   flush();
   return blocks;

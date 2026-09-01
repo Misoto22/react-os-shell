@@ -130,7 +130,9 @@ for (const [rel, label] of [['dist/index.js', 'react-os-shell'], ['dist/ui/index
   const graph = walkEntry(entry, null);
   for (const file of graph) {
     for (const spec of specifiersOf(readFileSync(file, 'utf8'))) {
-      if (MARKDOWN_PEERS.includes(spec)) {
+      // Prefix match, not equality: a deep import ('react-markdown/lib/…')
+      // promotes the peer exactly as hard as the bare one does.
+      if (MARKDOWN_PEERS.some(p => spec === p || spec.startsWith(`${p}/`))) {
         note(
           `PARSER LEAK: ${file.slice(root.length + 1)} imports '${spec}', which is ` +
             `reachable from ${label}. It belongs to react-os-shell/markdown alone — ` +
