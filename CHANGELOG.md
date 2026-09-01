@@ -2,6 +2,105 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.84.0
+
+- **Charts you can read values off, not just glance at.** The four charts this
+  package shipped are decorative on purpose — a stretched `0 0 100 100` viewBox,
+  `aria-hidden`, no axis, the numbers living as text somewhere else on the page.
+  That is right for a dashboard tile and wrong for anything an operator reads a
+  value off, so every consumer that needed one built its own axes, its own
+  tooltip and its own colours. `ChartFrame`, `TimeSeriesChart`, `RankedBars`,
+  `Meter` and `StatTile` are that missing tier, drawn in real pixels, still
+  dependency-free SVG. The `scale` primitives (`linearScale`, `bandScale`,
+  `ladderScale`, `niceMax`) are exported too, so a consumer with a chart type
+  none of these covers composes it rather than forking one.
+
+- **A chart palette, at last.** There was no series token anywhere in `ui.css`
+  or `themes.css`, so `currentColor` was the only answer and each portal picked
+  hues by hand. Eight categorical `--viz-series-*` slots, a reserved
+  `--viz-good`/`neutral`/`warning`/`serious`/`critical` status set, and the
+  chart inks now ship as tokens, validated for colour-vision separation against
+  this package's own surfaces in both themes. Slots are assigned in fixed order
+  and never cycled: a ninth series gets the de-emphasis ink rather than a hue
+  indistinguishable from an existing one.
+
+  These tokens are deliberately NOT remapped by `themes.css`. Every other accent
+  in the package follows the user's chosen theme; a series colour must not,
+  because "4xx is amber" is an identity encoding and an identity that changes
+  with a cosmetic preference has stopped being one.
+
+- **`TimeSeriesChart` has a `step` mode, and no second y-axis.** A value that
+  can only land on a known level — a histogram-derived percentile, a tier, a
+  discrete state — is not a sample of a continuous signal, and joining two
+  levels with a sloped segment draws a transition that never happened. Pair
+  `mode: 'step'` with `levels` and the y-axis becomes the level ladder, spaced
+  evenly per rung, with the levels themselves as the ticks. There is no prop for
+  a second y-scale: the alignment between two scales is arbitrary, and the
+  crossing point it produces is a correlation the data does not contain.
+
+- **Sixteen more chart types, and the two layout functions behind them.** A
+  typical chart picker lists twenty-seven entries; several of those are one
+  component with a variant, because the data shape is identical and only the
+  geometry differs — candlestick and OHLC, radar area and radar line, funnel and
+  cone, pie and Nightingale rose. Shipping them separately would duplicate the
+  scale, the axis, the hover and the colour rule four times over and then let
+  the copies drift. `ColumnChart`, `ScatterChart` (scatter and bubble),
+  `RangeChart`, `WaterfallChart`, `HistogramChart`, `BoxPlotChart`,
+  `CandlestickChart`, `HeatmapChart`, `RadarChart`, `PieChart`,
+  `RadialBarChart`, `FunnelChart`, `TreemapChart`, `SunburstChart`,
+  `SankeyChart` and `ChordChart` cover the list; `CartesianPlot` is the shared
+  frame the rectangular ones draw into, and `squarify` is the treemap layout as
+  a pure function.
+
+  Encoding rules that are easy to get invisibly wrong are enforced rather than
+  documented: a bubble's radius is square-rooted so AREA carries the value, a
+  rose's radius likewise, radar axes normalise per axis so a metric in thousands
+  cannot flatten one in tens, and scatter and radar both cap at three series
+  because that is where the palette clears its all-pairs separation floors.
+
+- **`curve` on the line family, and a `column` mode.** Five options, and the
+  choice is a claim about the data rather than a style preference.
+
+  `monotone` is the curved one to reach for: Fritsch-Carlson interpolation,
+  which cannot overshoot between two samples. If the data rises from A to B so
+  does the curve — no invented peak, no bump nobody measured. It carries a
+  guard the textbook magnitude test does not imply: at a local extremum the two
+  neighbouring secants disagree in sign, and any non-zero tangent there is an
+  overshoot by construction. That test squares its terms, so it throws away
+  exactly the sign that would catch it, and the tangent has to be flattened
+  before it runs. Without that, a traffic series that peaks and falls draws a
+  burst above the peak that never happened.
+
+  `spline` is the looser Catmull-Rom variant, converted to cubic Bézier so it
+  passes through every point, and clamped to the series range because a smooth
+  curve through 0, 10, 0 otherwise dips below zero and draws negative requests.
+  It can still bulge past an interior point on the way to the next one — that
+  is the difference between the two, and it is kept for when the rounder shape
+  is wanted knowingly. `step` holds the value, `bump` is flat at each point and
+  curved between them, and `linear` remains the default and the only unarguable
+  option when the samples are all you know.
+
+  `column` puts volume behind a rate in one chart, which is the Combination
+  form, still on ONE shared axis: there is no prop for a second y-scale and
+  there will not be one.
+
+- **An expressive layer, borrowed from EvilCharts (MIT).** Fills are named
+  variants backed by patterns — `gradient`, `gradient-reverse`, `solid`,
+  `dotted`, `lines`, `hatched` — which makes texture first-class rather than a
+  hack, and a hatch is exactly what a colour-vision or forced-colors reader
+  needs when hue alone stops separating two series. Strokes take `solid`,
+  `dashed` or `animated-dashed`, the last for a series that is a projection.
+  The intro reveal is an animated SVG mask rather than a stroke dash, so fill,
+  stroke and point markers arrive together instead of the chart assembling in
+  pieces — driven by a CSS transform, so nothing runs in the frame loop. Glow,
+  and five background patterns, are opt-in.
+
+  Two places this parts company with that reference on purpose: gridlines stay
+  solid (a dashed rule reads as a threshold, and a gridline is neither —
+  `gridStyle="dashed"` is there for the look), and every animation is a class
+  that `ui.css` disables under `prefers-reduced-motion`, so a chart cannot
+  forget to honour it because no chart implements motion itself.
+
 ## 4.83.2
 
 - **A missing wasm decoder is now reported instead of quietly ignored.** The
