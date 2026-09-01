@@ -105,10 +105,13 @@ export default function TimeSeriesChart({
   }
 
   const fullLabels = labels;
-  const window: ChartRange = range
+  // Not named `window`: this file also works with the real one — the modal
+  // seam above listens on it — and shadowing the global is how the wrong one
+  // gets grabbed silently.
+  const viewRange: ChartRange = range
     ?? ownRange
     ?? [0, Math.max(0, fullLabels.length - 1)];
-  const [windowFrom, windowTo] = window;
+  const [windowFrom, windowTo] = viewRange;
   const setWindow = (next: ChartRange) => {
     if (onRangeChange) onRangeChange(next);
     else setOwnRange(next);
@@ -450,15 +453,18 @@ export default function TimeSeriesChart({
           // window, not for reading values, and stacking every series into it
           // would make it a second chart competing with the one above.
           data={series[0]?.data ?? []}
-          range={window}
+          range={viewRange}
           onRangeChange={setWindow}
         />
       )}
 
       {active !== null && (
+        // The clamp budgets for the card's own width (`min-w-44`, 176px): a
+        // percentage-only clamp let the card spill past the right edge of any
+        // container under ~590px.
         <div
           className="absolute top-2 z-10"
-          style={{ left: `${Math.min(Math.max(0, (x.center(active) / width) * 100 - 8), 72)}%` }}
+          style={{ left: `clamp(0px, calc(${((x.center(active) / width) * 100).toFixed(2)}% - 88px), calc(100% - 184px))` }}
         >
           <ChartTooltip
             title={labels[active]}

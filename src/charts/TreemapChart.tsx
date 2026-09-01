@@ -18,8 +18,11 @@
 import { useRef, useState } from 'react';
 
 import { CHART_INK, resolveSeriesColor } from './palette';
+import { useHighlight } from './highlight';
 import { squarify } from './treemapLayout';
 import { usePlotWidth } from './usePlotWidth';
+import AccessibleTable from './AccessibleTable';
+import ChartTooltip from './ChartTooltip';
 import type { TreemapChartProps } from './types';
 
 /** Rough px per character at 11px; enough to decide whether a label fits. */
@@ -33,6 +36,7 @@ export default function TreemapChart({
   const measured = usePlotWidth(host);
   const width = widthProp ?? measured;
   const [hover, setHover] = useState<string | null>(null);
+  const { highlighted } = useHighlight();
 
   const tiles = squarify(items, width, height);
   if (tiles.length === 0) {
@@ -41,8 +45,16 @@ export default function TreemapChart({
 
   const hue = color ?? resolveSeriesColor(0);
   const top = Math.max(...tiles.map(t => t.value), 1);
+  const mix = (value: number) => 34 + (value / top) * 62;
   const shade = (value: number) =>
-    `color-mix(in oklab, ${hue} ${(34 + (value / top) * 62).toFixed(0)}%, ${CHART_INK.surface})`;
+    `color-mix(in oklab, ${hue} ${mix(value).toFixed(0)}%, ${CHART_INK.surface})`;
+  // Surface-coloured text needs a tile that is mostly hue behind it. At the
+  // ramp's light end the tile IS nearly the surface, so the label switches to
+  // the ink that contrasts with the surface instead of vanishing into it.
+  const tileInk = (value: number) => (mix(value) >= 55 ? CHART_INK.surface : CHART_INK.label);
+
+  const active = hover ?? highlighted;
+  const hoveredTile = hover ? tiles.find(t => t.key === hover) : undefined;
 
   return (
     <div className={`relative ${className ?? ''}`} ref={host}>
@@ -54,20 +66,18 @@ export default function TreemapChart({
           const fitsLabel = w > tile.label.length * CHAR_WIDTH + 12 && h > 30;
           const fitsValue = fitsLabel && h > 44;
           return (
-            <g key={tile.key} opacity={hover && hover !== tile.key ? 0.55 : 1} onMouseEnter={() => setHover(tile.key)}>
+            <g key={tile.key} opacity={active && active !== tile.key ? 0.55 : 1} onMouseEnter={() => setHover(tile.key)}>
               <rect
                 x={tile.x + gap / 2} y={tile.y + gap / 2} width={w} height={h}
                 rx={radius} fill={shade(tile.value)}
-              >
-                <title>{`${tile.label}: ${formatValue(tile.value)}`}</title>
-              </rect>
+              />
               {fitsLabel && (
-                <text x={tile.x + gap / 2 + 8} y={tile.y + gap / 2 + 18} fontSize={11.5} fontWeight={600} fill={CHART_INK.surface}>
+                <text x={tile.x + gap / 2 + 8} y={tile.y + gap / 2 + 18} fontSize={11.5} fontWeight={600} fill={tileInk(tile.value)}>
                   {tile.label}
                 </text>
               )}
               {fitsValue && (
-                <text x={tile.x + gap / 2 + 8} y={tile.y + gap / 2 + 34} fontSize={11} fill={CHART_INK.surface} fillOpacity={0.85} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                <text x={tile.x + gap / 2 + 8} y={tile.y + gap / 2 + 34} fontSize={11} fill={tileInk(tile.value)} fillOpacity={0.85} style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {formatValue(tile.value)}
                 </text>
               )}
@@ -75,6 +85,21 @@ export default function TreemapChart({
           );
         })}
       </svg>
+
+      {hoveredTile && (
+        <div className="absolute top-2 left-2 z-10">
+          <ChartTooltip
+            title={hoveredTile.label}
+            rows={[{ key: 'value', label: 'Value', color: shade(hoveredTile.value), value: formatValue(hoveredTile.value) }]}
+          />
+        </div>
+      )}
+
+      <AccessibleTable
+        caption={`Treemap of ${items.length} items`}
+        head={['Item', 'Value']}
+        rows={tiles.map(tile => [tile.label, formatValue(tile.value)])}
+      />
     </div>
   );
 }

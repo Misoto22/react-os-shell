@@ -36,6 +36,9 @@ export default function HistogramChart({
   return (
     <CartesianPlot
       labels={labels} values={counts} height={height} width={width} bandPadding={0}
+      // Each label is a bin's LOWER BOUND, so it sits on the edge it names —
+      // centred under the band it would claim the whole bin is that value.
+      xTickAnchor="start"
       formatValue={formatCount} yAxisLabel={yAxisLabel} className={className} emptyLabel={emptyLabel}
       ariaLabel={`${label}: ${computed.length} bins over ${(values ?? []).length} observations`}
       tooltip={index => (

@@ -2,7 +2,7 @@
  * The cartesian family and the chrome it shares — axes, legend, tooltip,
  * skeleton, dot, brush.
  */
-import './dom';
+import { render, pressKey } from './dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -716,16 +716,40 @@ test('both handles are keyboard sliders that read the LABEL, not the index', () 
 
 test('the handles cannot cross, and the window cannot collapse', () => {
   // A zero-width selection leaves the plot above empty with no keyboard way
-  // back — the state a drag-only brush strands people in.
+  // back — the state a drag-only brush strands people in. Driven through the
+  // COMPONENT: an earlier version of this spec asserted a private copy of the
+  // clamp arithmetic, which the real guard could regress under without
+  // failing it.
   let got: [number, number] | null = null;
-  const onChange = (r: [number, number]) => { got = r; };
-  // Driving the guard directly: pushing `from` past `to` clamps to to-1.
-  const clampFrom = (next: number, to: number) => [Math.min(next, to - 1), to];
-  assert.deepEqual(clampFrom(9, 4), [3, 4]);
-  const clampTo = (next: number, from: number) => [from, Math.max(next, from + 1)];
-  assert.deepEqual(clampTo(0, 4), [4, 5]);
-  assert.equal(got, null, 'no accidental callback in the guard itself');
-  void onChange;
+  const view = render(
+    <ChartBrush labels={WEEK} data={LOAD} range={[3, 4]} onRangeChange={r => { got = r; }} width={700} />,
+  );
+  try {
+    const [fromHandle, toHandle] = [...view.container.querySelectorAll('[role="slider"]')];
+    // `from` shoved to the far end stops one short of `to`…
+    pressKey('End', { target: fromHandle });
+    assert.deepEqual(got, [3, 4], 'from clamps below to');
+    // …and `to` shoved to the start stops one past `from`.
+    pressKey('Home', { target: toHandle });
+    assert.deepEqual(got, [3, 4], 'to clamps above from');
+    // The guard is a clamp, not a lock: a legitimate move still moves.
+    pressKey('ArrowLeft', { target: fromHandle });
+    assert.deepEqual(got, [2, 4]);
+  } finally {
+    view.unmount();
+  }
+});
+
+test('a gap in the strip is drawn as one — the outline breaks, it does not dive', () => {
+  // `data` documents `null` as "a gap, drawn as one". The old outline sent
+  // yAt(null) to the floor, which reads as a value of zero.
+  const markup = html(
+    <ChartBrush labels={WEEK} data={[10, 40, null, 30, 20, 5, 8]} range={[0, 6]} onRangeChange={() => {}} width={700} />,
+  );
+  const outline = /<path d="([^"]*)"/.exec(markup)?.[1] ?? '';
+  assert.equal([...outline.matchAll(/M/g)].length, 2, 'one subpath per contiguous run');
+  // xAt(2) — the gap bucket — is 233.33: no point is drawn there at all.
+  assert.doesNotMatch(outline, /233\.33/, 'the gap bucket has no point, floor or otherwise');
 });
 
 test('a brushed chart plots only the window, and says so on its axis', () => {
@@ -1071,4 +1095,115 @@ test('stacked negatives stack DOWN from zero instead of vanishing', () => {
     .map(m => ({ y: Number(m[1]), height: Number(m[2]) }));
   assert.equal(rects.length, 2, 'the negative segment is drawn, not clamped away');
   assert.ok(rects.every(r => r.height > 0), 'both segments have body');
+});
+
+// ── audit follow-ups (#191): tick formatting, geometry, keyboard reach ──────
+
+test('candlestick ticks never print float noise', () => {
+  // The price axis is padded off the data, so its ticks are almost never
+  // integers — the old `String(v)` default printed 102.72999999999999.
+  const markup = html(
+    <CandlestickChart width={400} candles={[
+      { label: 'Mon', open: 101.1, high: 103.3, low: 100.7, close: 102.73 },
+      { label: 'Tue', open: 102.73, high: 104.1, low: 102.2, close: 103.9 },
+    ]} />,
+  );
+  // Geometry attributes may carry long floats; LABELS may not.
+  const labels = [...markup.matchAll(/tabular-nums">([\d.]+)</g)].map(m => m[1]);
+  assert.ok(labels.length >= 4, 'tick labels parsed');
+  for (const label of labels) assert.doesNotMatch(label, /\.\d{3,}/, `no float noise in "${label}"`);
+});
+
+test('waterfall connectors span the gap, not the bars', () => {
+  const markup = html(
+    <WaterfallChart width={400} steps={[
+      { label: 'Open', value: 100 },
+      { label: 'Sales', value: 40 },
+      { label: 'Close', value: 0, total: true },
+    ]} />,
+  );
+  // Only the clipped plot group: the gridlines outside it are <line>s too.
+  const plot = markup.slice(markup.indexOf('clip-path="url('));
+  const lines = [...plot.matchAll(/<line[^>]*\bx1="([\d.]+)"[^>]*\bx2="([\d.]+)"/g)]
+    .map(m => ({ x1: Number(m[1]), x2: Number(m[2]) }));
+  const bars = [...plot.matchAll(/<rect x="([\d.]+)" y="[\d.]+" width="([\d.]+)" height="[\d.]+" rx="3"/g)]
+    .map(m => ({ x: Number(m[1]), width: Number(m[2]) }));
+  assert.equal(lines.length, 2, 'one connector per step boundary');
+  assert.equal(bars.length, 3, 'bars parsed');
+  // Connector i runs from the RIGHT edge of bar i to the LEFT edge of bar i+1.
+  lines.forEach((line, i) => {
+    assert.ok(Math.abs(line.x1 - (bars[i].x + bars[i].width)) < 0.51,
+      `connector ${i} starts on bar ${i}'s right edge: ${line.x1} vs ${bars[i].x + bars[i].width}`);
+    assert.ok(Math.abs(line.x2 - bars[i + 1].x) < 0.51,
+      `connector ${i} ends on bar ${i + 1}'s left edge: ${line.x2} vs ${bars[i + 1].x}`);
+  });
+});
+
+test('histogram bin labels sit on the edge they name, not the band centre', () => {
+  const markup = html(
+    <HistogramChart width={400} precomputed={[
+      { from: 0, to: 10, count: 4 },
+      { from: 10, to: 20, count: 6 },
+    ]} />,
+  );
+  // The x-axis labels specifically — the y-axis prints a "0" of its own.
+  const first = /<text x="([\d.]+)" y="[\d.]+" text-anchor="middle"[^>]*>0</.exec(markup);
+  assert.ok(first, 'the first lower bound is labelled');
+  const bins = [...markup.matchAll(/<rect[^>]*\bx="([\d.]+)"[^>]*fill="var\(--viz-series-1\)"/g)]
+    .map(m => Number(m[1]));
+  const leftEdge = Math.min(...bins) - 0.5; // bars carry a 0.5 hairline inset
+  assert.ok(Math.abs(Number(first![1]) - leftEdge) < 0.51,
+    `"0" labels the first bin's LEFT edge: ${first![1]} vs ${leftEdge}`);
+});
+
+test('the tooltip cannot overflow a narrow container', () => {
+  // The card is min-w-44 (176px); a percentage-only clamp let it spill past
+  // the right edge of any container under ~590px.
+  const view = render(
+    <ColumnChart width={320} labels={MONTHS} animate={false}
+      series={[{ key: 'a', label: 'A', data: [1, 2, 3, 4] }]} />,
+  );
+  try {
+    const svg = view.container.querySelector('svg')!;
+    for (let i = 0; i < MONTHS.length; i += 1) pressKey('ArrowRight', { target: svg });
+    const holder = view.container.querySelector('[role="status"]')!.parentElement!;
+    assert.match(holder.getAttribute('style') ?? '', /clamp\(0px/, 'left is px-clamped');
+    assert.match(holder.getAttribute('style') ?? '', /100% - 184px/, 'the budget covers the card width');
+  } finally {
+    view.unmount();
+  }
+});
+
+test('scatter reaches its tooltip without a pointer', () => {
+  const view = render(
+    <ScatterChart width={400} series={[
+      { key: 'a', label: 'A', points: [{ x: 1, y: 2 }, { x: 3, y: 4 }] },
+    ]} />,
+  );
+  try {
+    const svg = view.container.querySelector('svg')!;
+    assert.equal(svg.getAttribute('tabindex'), '0', 'the plot is focusable');
+    pressKey('ArrowRight', { target: svg });
+    assert.ok(view.container.querySelector('[role="status"]'), 'an arrow key lights a point');
+  } finally {
+    view.unmount();
+  }
+});
+
+test('heatmap reaches its tooltip without a pointer, in both dimensions', () => {
+  const view = render(
+    <HeatmapChart width={400} rows={['r1', 'r2']} columns={['c1', 'c2']}
+      cells={[[1, 2], [3, 4]]} />,
+  );
+  try {
+    const svg = view.container.querySelector('svg')!;
+    assert.equal(svg.getAttribute('tabindex'), '0', 'the grid is focusable');
+    pressKey('ArrowRight', { target: svg });
+    pressKey('ArrowDown', { target: svg });
+    const card = view.container.querySelector('[role="status"]');
+    assert.ok(card, 'arrow keys light a cell');
+    assert.match(card!.textContent ?? '', /r2 · c2/, 'both axes moved');
+  } finally {
+    view.unmount();
+  }
 });

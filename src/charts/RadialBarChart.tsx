@@ -24,7 +24,9 @@ import { useId, useState } from 'react';
 import { CHART_INK, resolveSeriesColor } from './palette';
 import { arcPath } from './curve';
 import { MOTION, stagger } from './effects';
+import { useHighlight } from './highlight';
 import { angleScale } from './scale';
+import ChartTooltip from './ChartTooltip';
 import type { RadialBarChartProps } from './types';
 
 const TRACK_SWEEP = (300 * Math.PI) / 180;
@@ -35,6 +37,7 @@ export default function RadialBarChart({
 }: RadialBarChartProps) {
   const titleId = useId();
   const [hover, setHover] = useState<number | null>(null);
+  const { highlighted } = useHighlight();
 
   if (rows.length === 0) return <p className={`text-sm text-gray-500 ${className ?? ''}`}>{emptyLabel}</p>;
 
@@ -57,8 +60,17 @@ export default function RadialBarChart({
   const gap = Math.min(trackGap, Math.max(1, bandWidth - 2));
   const angle = angleScale(drawnRows.length, 0.03);
 
+  // Local hover names a row by index; the frame's legend highlight names it by
+  // key. Either one recedes the others.
+  const dimmed = (i: number, key: string) => {
+    if (hover !== null) return hover !== i;
+    if (highlighted !== null) return highlighted !== key;
+    return false;
+  };
+  const hoveredRow = hover !== null ? drawnRows[hover] : undefined;
+
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`}>
       <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-labelledby={titleId}
         onMouseLeave={() => setHover(null)}>
         <title id={titleId}>{`${drawnRows.length} categories, ${variant === 'track' ? 'as concentric proportions' : 'around a cycle'}`}</title>
@@ -66,7 +78,7 @@ export default function RadialBarChart({
         {drawnRows.map((row, i) => {
           const colour = resolveSeriesColor(i, row.color, row.tone);
           const share = Math.max(0, Math.min(1, row.value / top));
-          const dim = hover !== null && hover !== i;
+          const dim = dimmed(i, row.key);
 
           if (variant === 'track') {
             const r2 = outer - i * bandWidth;
@@ -76,9 +88,7 @@ export default function RadialBarChart({
               <g key={row.key} opacity={dim ? 0.4 : 1} onMouseEnter={() => setHover(i)}
                 className={animate ? MOTION.sweep : undefined} style={animate ? stagger(i, 70) : undefined}>
                 <path d={arcPath(cx, cy, r1, r2, start, start + TRACK_SWEEP)} fill={CHART_INK.grid} />
-                <path d={arcPath(cx, cy, r1, r2, start, start + TRACK_SWEEP * share)} fill={colour}>
-                  <title>{`${row.label}: ${formatValue(row.value)}`}</title>
-                </path>
+                <path d={arcPath(cx, cy, r1, r2, start, start + TRACK_SWEEP * share)} fill={colour} />
               </g>
             );
           }
@@ -89,13 +99,20 @@ export default function RadialBarChart({
               <path
                 d={arcPath(cx, cy, inner, inner + (outer - inner) * share, angle(i), angle(i) + angle.step)}
                 fill={colour}
-              >
-                <title>{`${row.label}: ${formatValue(row.value)}`}</title>
-              </path>
+              />
             </g>
           );
         })}
       </svg>
+
+      {hoveredRow && hover !== null && (
+        <div className="absolute top-2 left-2 z-10">
+          <ChartTooltip
+            title={hoveredRow.label}
+            rows={[{ key: 'value', label: 'Value', color: resolveSeriesColor(hover, hoveredRow.color, hoveredRow.tone), value: formatValue(hoveredRow.value) }]}
+          />
+        </div>
+      )}
 
       <ul className="m-0 mt-3 grid gap-1 p-0" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))' }}>
         {rows.map((row, i) => (

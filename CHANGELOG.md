@@ -2,6 +2,82 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.89.0
+
+The follow-ups deferred from the charts-tier audit
+([#191](https://github.com/victorymau/react-os-shell/issues/191)): the
+radial and hierarchical charts stop being pointer-only and colour-only, the
+family's two tooltip behaviours become one, and ten small geometry and
+identity defects are fixed.
+
+- **The opaque charts now carry their data as a hidden table.** `role="img"`
+  makes an SVG a single node to assistive tech — descendants are
+  presentational — so the per-mark `<title>` tooltips Sunburst, Treemap,
+  Sankey, Chord and Radar relied on were never exposed to anyone. Each now
+  renders the same data as a visually-hidden table right after its SVG
+  (`AccessibleTable`, internal), so a screen reader walks rows instead of
+  hearing a count.
+
+- **RadarChart has a legend.** Up to three series were distinguishable only by
+  colour — the one channel a chart may never rely on alone. It now renders the
+  same swatch list the pie draws.
+
+- **Scatter and Heatmap are keyboard-reachable.** Both had styled tooltips
+  that only a pointer could open. Both svgs now take focus, arrow keys walk
+  the points (Heatmap in both dimensions), and Escape clears through the
+  modal seam — the same conventions `CartesianPlot` already had.
+
+- **One tooltip surface across the whole family.** Pie, RadialBar, Radar,
+  Funnel, Sunburst, Treemap, Sankey and Chord used native `<title>` — the
+  delayed, unstyled OS tooltip — while every cartesian chart rendered the
+  shared `ChartTooltip` card. All eight now render the same card, and all
+  eight consume the highlight context, so pointing at a `ChartFrame` legend
+  entry recedes their marks the way it always did for TimeSeries and Column.
+
+- **The tooltip can no longer overflow a narrow container.** The card is
+  `min-w-44` (176px) but its `left` was clamped only in percent, so any
+  container under ~590px let it spill past the right edge. The clamp now
+  budgets the card's own width, in `CartesianPlot` and `TimeSeriesChart`
+  both.
+
+- **SunburstChart survives hostile trees.** A cyclic `children` graph used to
+  recurse to a stack overflow; depth is now capped at eight rings. Wedge
+  identity is the path from the root rather than `key`+depth, so the same key
+  reused in two branches no longer collides React keys or lights both wedges
+  on hover.
+
+- **SankeyChart stays inside its height.** The 2px node floor was never part
+  of the column budget, so many near-zero nodes walked off the bottom of the
+  svg; the un-floored nodes now give back exactly the overflow. Links are
+  keyed by route instead of array index.
+
+- **ChartBrush honours its own null contract.** `data` documents `null` as "a
+  gap, drawn as one", but the miniature outline drew gaps to the floor —
+  which reads as a value of zero. The strip is now one area per contiguous
+  run. The handles-cannot-cross spec also drives the real component now; the
+  previous spec asserted a private copy of the clamp arithmetic.
+
+- **Waterfall connectors span the gap, not the bars.** Each connector ran
+  from the left edge of one bar to the right edge of the next — under both
+  bodies — which showed through whenever a bar dimmed to translucent.
+
+- **Histogram bin labels sit on the edge they name.** Lower-bound labels were
+  centred under the band, half a bin right of the boundary they state.
+  `CartesianPlot` grew an `xTickAnchor` prop ('center' | 'start') for exactly
+  this.
+
+- **Candlestick ticks stop printing float noise.** The default `formatValue`
+  was `String(v)` on an axis whose domain is padded off the data, so ticks
+  printed `102.72999999999999`. Non-integers now default to two decimals.
+
+- **In-tile text switches to ink where a ramp nears the surface.** Treemap
+  and Funnel painted surface-coloured text on tiles whose fill mixes as
+  little as a third of the hue into that same surface — text on itself, at
+  the light end. Below the mix threshold the text takes the label ink.
+
+- `TimeSeriesChart` no longer shadows the global `window` with a local
+  range — in a file whose own escape seam listens on the real one.
+
 ## 4.88.0
 
 - **A fenced code block is now rendered as one, instead of being flattened into

@@ -5,7 +5,7 @@
  * what the eye reads, so scaling the radius linearly overstates a large value
  * by its square.
  */
-import './dom';
+import { render, act } from './dom';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -23,6 +23,7 @@ import { bumpPath, polygonPoints, arcPath } from '../src/charts/curve';
 import { radiusScale, angleScale } from '../src/charts/scale';
 import { squarify } from '../src/charts/treemapLayout';
 import { autoHighlightIndex, highlightOpacity } from '../src/charts/highlight';
+import type { SunburstNode } from '../src/charts/types';
 
 const html = (el: React.ReactElement) => renderToStaticMarkup(el);
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr'];
@@ -137,8 +138,11 @@ test('a treemap only labels a tile the label actually fits in', () => {
       ]}
     />,
   );
-  assert.match(markup, />Alloy wheels</);
-  assert.doesNotMatch(markup, />A very long category name indeed</, 'no clipped label');
+  const svg = markup.slice(0, markup.indexOf('</svg>'));
+  assert.match(svg, />Alloy wheels</);
+  assert.doesNotMatch(svg, />A very long category name indeed</, 'no clipped label in the plot');
+  // A dropped label is not dropped DATA: the hidden table still carries it.
+  assert.match(markup, /A very long category name indeed/);
 });
 
 test('a sunburst keeps a branch one hue, stepped lighter with depth', () => {
@@ -322,4 +326,157 @@ test('radial tracks stop at what fits rather than walking past the centre', () =
   assert.ok(title, 'the accessible title reports the drawn count');
   assert.ok(Number(title![1]) < 30, `capped below 30, got ${title![1]}`);
   assert.doesNotMatch(markup, /A ?-/, 'no negative arc radius in any path');
+});
+
+// ── audit follow-ups (#191): identity, budgets, text equivalents ────────────
+
+test('a cyclic sunburst renders instead of overflowing the stack', () => {
+  // `children` is caller data; a cycle in it used to recurse without limit.
+  const loop: SunburstNode = { key: 'loop', label: 'Loop', value: 10 };
+  loop.children = [loop];
+  const markup = html(<SunburstChart size={220} nodes={[loop]} />);
+  // The depth cap turns the cycle into a finite column of rings.
+  assert.ok((markup.match(/<path/g) ?? []).length <= 8, 'depth is capped');
+});
+
+test('the same key in two sunburst branches is two wedges, not one', () => {
+  // Wedge identity is the PATH from the root. Keyed on `key` alone, hovering
+  // AU's "wheels" also lit NZ's — and React reconciled two branches as one.
+  const view = render(
+    <SunburstChart size={220} nodes={[
+      { key: 'au', label: 'AU', children: [{ key: 'wheels', label: 'Wheels', value: 60 }] },
+      { key: 'nz', label: 'NZ', children: [{ key: 'wheels', label: 'Wheels', value: 40 }] },
+    ]} />,
+  );
+  try {
+    const paths = [...view.container.querySelectorAll('svg path')];
+    assert.equal(paths.length, 4);
+    // Depth-first flatten: [au, au/wheels, nz, nz/wheels].
+    act(() => {
+      paths[1].dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
+    });
+    const dimmed = [...view.container.querySelectorAll('svg path')]
+      .filter(p => p.getAttribute('fill-opacity') === '0.45');
+    assert.equal(dimmed.length, 3, 'every wedge but the hovered one recedes — including the twin key');
+  } finally {
+    view.unmount();
+  }
+});
+
+test('a sankey column of near-zero nodes stays inside the height budget', () => {
+  // Each node has a 2px floor the scale never budgeted for: enough tiny nodes
+  // used to walk the column straight off the bottom of the svg.
+  const tinies = Array.from({ length: 12 }, (_, i) => ({ key: `t${i}`, label: `T${i}`, depth: 1 }));
+  const markup = html(
+    <SankeyChart
+      width={520} height={300}
+      nodes={[{ key: 'src', label: 'Source', depth: 0 }, { key: 'main', label: 'Main', depth: 1 }, ...tinies]}
+      links={[
+        { from: 'src', to: 'main', value: 100 },
+        ...tinies.map(t => ({ from: 'src', to: t.key, value: 0.01 })),
+      ]}
+    />,
+  );
+  const nodes = [...markup.matchAll(/<rect[^>]*\by="([\d.]+)"[^>]*\bheight="([\d.]+)" rx="2"/g)]
+    .map(m => Number(m[1]) + Number(m[2]));
+  assert.equal(nodes.length, 14, 'every node draws');
+  assert.ok(Math.max(...nodes) <= 290.5, `no node overflows the column: deepest ends at ${Math.max(...nodes)}`);
+});
+
+test('in-tile text switches to ink where the ramp nears the surface', () => {
+  // Surface-coloured text on a tile that is nearly the surface is text on
+  // itself. The pale end of the ramp takes the label ink instead.
+  const treemap = html(
+    <TreemapChart width={800} height={400} items={[
+      { key: 'big', label: 'Big', value: 1000 },
+      { key: 'small', label: 'Small', value: 100 },
+    ]} />,
+  );
+  assert.match(treemap, /font-weight="600" fill="var\(--viz-surface\)"/, 'the dark tile keeps surface text');
+  assert.match(treemap, /font-weight="600" fill="var\(--viz-label\)"/, 'the pale tile takes the ink');
+
+  const funnel = html(
+    <FunnelChart stages={[
+      { key: 'seen', label: 'Seen', value: 1000 },
+      { key: 'bought', label: 'Bought', value: 900 },
+    ]} />,
+  );
+  assert.match(funnel, /font-weight="600" fill="var\(--viz-label\)"/, 'the first, palest band takes the ink');
+  assert.match(funnel, /font-weight="600" fill="var\(--viz-surface\)"/, 'the darkest band keeps surface text');
+});
+
+test('a radar names its series outside the plot — colour is never the only channel', () => {
+  const markup = html(
+    <RadarChart
+      size={240}
+      axes={[{ key: 'x', label: 'X' }, { key: 'y', label: 'Y' }, { key: 'z', label: 'Z' }]}
+      series={[
+        { key: 'a', label: 'Alpha', values: [1, 2, 3] },
+        { key: 'b', label: 'Beta', values: [3, 2, 1] },
+      ]}
+    />,
+  );
+  const legend = markup.slice(markup.indexOf('</svg>'));
+  assert.match(legend, /<ul/, 'a swatch list follows the plot');
+  assert.match(legend, /Alpha/);
+  assert.match(legend, /Beta/);
+});
+
+test('the opaque charts carry their data as a hidden table', () => {
+  // role="img" makes the svg one node to assistive tech: per-mark <title> was
+  // never exposed. Each of these now renders the same data as an sr-only table.
+  const sunburst = html(
+    <SunburstChart size={220} nodes={[{ key: 'au', label: 'AU', children: [{ key: 'w', label: 'Wheels', value: 60 }] }]} />,
+  );
+  const treemap = html(
+    <TreemapChart width={400} height={200} items={[{ key: 'a', label: 'Alloy wheels', value: 900 }]} />,
+  );
+  const sankey = html(
+    <SankeyChart width={520} nodes={[{ key: 's', label: 'S', depth: 0 }, { key: 't', label: 'T', depth: 1 }]}
+      links={[{ from: 's', to: 't', value: 5 }]} />,
+  );
+  const chord = html(
+    <ChordChart labels={['AU', 'NZ']} matrix={[[0, 5], [3, 0]]} size={240} />,
+  );
+  const radar = html(
+    <RadarChart size={240}
+      axes={[{ key: 'x', label: 'X' }, { key: 'y', label: 'Y' }, { key: 'z', label: 'Z' }]}
+      series={[{ key: 'a', label: 'Alpha', values: [1, 2, 3] }]} />,
+  );
+  for (const [name, markup] of Object.entries({ sunburst, treemap, sankey, chord, radar })) {
+    assert.match(markup, /<table class="sr-only">/, `${name} carries a hidden table`);
+    assert.match(markup, /<caption>/, `${name}'s table is captioned`);
+  }
+  assert.match(sunburst, /<td>Wheels<\/td>/);
+  assert.match(sankey, /<td>5<\/td>/);
+  assert.match(chord, /<td>AU<\/td>/);
+});
+
+test('the frame legend recedes a radial chart, same as a cartesian one', () => {
+  // `useHighlight` linkage: pointing at a legend entry must dim the pie's
+  // other slices — the context used to stop at the cartesian family.
+  const view = render(
+    <ChartFrame
+      title="Mix"
+      legend={[{ key: 'a', label: 'Direct' }, { key: 'b', label: 'Search' }]}
+    >
+      <PieChart animate={false} size={200} segments={[
+        { key: 'a', label: 'Direct', value: 60 },
+        { key: 'b', label: 'Search', value: 40 },
+      ]} />
+    </ChartFrame>,
+  );
+  try {
+    const entry = [...view.container.querySelectorAll('button')]
+      .find(b => b.textContent?.includes('Direct'))!;
+    act(() => {
+      entry.dispatchEvent(new window.MouseEvent('mouseover', { bubbles: true }));
+    });
+    const slices = [...view.container.querySelectorAll('svg path')];
+    assert.equal(slices.length, 2);
+    assert.equal(slices[0].getAttribute('fill-opacity'), '1', 'the named slice holds');
+    assert.equal(slices[1].getAttribute('fill-opacity'), '0.4', 'the other slice recedes');
+  } finally {
+    view.unmount();
+  }
 });

@@ -16,8 +16,9 @@
  * colour-only continuous encoding is not readable to everyone and the chart
  * should not depend on it.
  */
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 import { CHART_INK, resolveSeriesColor } from './palette';
 import { usePlotWidth } from './usePlotWidth';
 import ChartTooltip from './ChartTooltip';
@@ -33,6 +34,18 @@ export default function HeatmapChart({
   const width = widthProp ?? measured;
   const gradientId = useId();
   const [hover, setHover] = useState<{ r: number; c: number } | null>(null);
+
+  // Escape goes through the modal seam — `Modal` listens on `window` in the
+  // CAPTURE phase, so the svg's own handler never sees the press inside a
+  // shell window. Registered only while a cell is lit.
+  useEffect(() => {
+    if (hover === null) return;
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      setHover(null);
+      return true;
+    });
+  }, [hover]);
 
   if (rows.length === 0 || columns.length === 0) {
     return <div className={className} ref={host}><p className="py-8 text-center text-sm text-gray-500">{emptyLabel}</p></div>;
@@ -53,11 +66,26 @@ export default function HeatmapChart({
     return `color-mix(in oklab, ${hue} ${(8 + t * 92).toFixed(1)}%, ${CHART_INK.surface})`;
   };
 
+  // Arrow keys walk the grid in two dimensions — the tooltip a pointer gets
+  // must be reachable without one. Same convention as `CartesianPlot`.
+  const onKey = (event: KeyboardEvent<SVGSVGElement>) => {
+    const dr = event.key === 'ArrowDown' ? 1 : event.key === 'ArrowUp' ? -1 : 0;
+    const dc = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+    if (dr === 0 && dc === 0) return;
+    event.preventDefault();
+    setHover(prev => ({
+      r: Math.min(rows.length - 1, Math.max(0, (prev?.r ?? 0) + dr)),
+      c: Math.min(columns.length - 1, Math.max(0, (prev?.c ?? 0) + dc)),
+    }));
+  };
+
   return (
     <div className={`relative ${className ?? ''}`} ref={host}>
       <svg width="100%" height={totalHeight} viewBox={`0 0 ${width} ${totalHeight}`} role="img"
         aria-label={`${label} across ${rows.length} rows and ${columns.length} columns`}
-        onMouseLeave={() => setHover(null)}>
+        tabIndex={0}
+        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        onMouseLeave={() => setHover(null)} onBlur={() => setHover(null)} onKeyDown={onKey}>
         <defs>
           <linearGradient id={gradientId} x1="0" x2="1">
             <stop offset="0" stopColor={shade(0)} />
