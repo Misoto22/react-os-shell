@@ -285,5 +285,88 @@ export { default as useClickOutside } from '../hooks/useClickOutside';
 export { useIsMobile } from '../shell/useIsMobile';
 export { ALT_SHIFT_E, ALT_SHIFT_D, ALT_SHIFT_N, CMD_ENTER, CMD_S, CMD_K, CMD_DOT, CMD_A, MOD, ALT, SHIFT, ENTER, isMac } from '../shell/Kbd';
 
+// ── Chart primitives ──
+// The layer every chart is built from, exported on its own so a consumer with
+// a chart type the package does not cover composes one rather than forking one.
+// The palette is here so a legend swatch or a status pill can carry the same
+// token the chart used, instead of guessing a hex.
+export {
+  SERIES_VARS, SERIES_SLOT_COUNT, STATUS_VARS, CHART_INK,
+  seriesColor, resolveSeriesColor,
+} from '../charts/palette';
+export { linearScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../charts/scale';
+export type { LinearScale, BandScale, LadderScale, AngleScale, Range } from '../charts/scale';
+export { curvePath, monotonePath, splinePath, bumpPath, stepPath, linearPath, areaFrom, areaBetween, arcPath, polygonPoints } from '../charts/curve';
+export type { Curve, Point } from '../charts/curve';
+export { squarify } from '../charts/treemapLayout';
+export type { TreemapItem, TreemapTile } from '../charts/treemapLayout';
+export { ChartDefs, MOTION, stagger, fillFor, dashFor, fillId, glowId, maskId, groundId } from '../charts/effects';
+export type { ChartDefsProps, FillVariant, StrokeVariant, RevealDirection, BackgroundVariant } from '../charts/effects';
+export { ChartHighlightProvider, useHighlight, highlightOpacity, autoHighlightIndex } from '../charts/highlight';
+export { usePlotWidth } from '../charts/usePlotWidth';
+export type {
+  ChartStatusTone, ChartCurve,
+  ChartFillVariant, ChartStrokeVariant, ChartRevealDirection, ChartBackgroundVariant,
+} from '../charts/types';
+
+// ── Inline marks ──
+// The small forms that belong inside a table cell or a summary card, where a
+// full chart frame would cost more room than the number is worth.
+export { default as RankedBars } from '../charts/RankedBars';
+export { default as Meter } from '../charts/Meter';
+export { default as StatTile } from '../charts/StatTile';
+export type { RankedBarsProps, RankedBarsRow, MeterProps, StatTileProps } from '../charts/types';
+
+// ── Chart chrome and the cartesian family ──
+export { default as ChartFrame } from '../charts/ChartFrame';
+export { default as ChartTooltip } from '../charts/ChartTooltip';
+export { default as ChartSkeleton } from '../charts/ChartSkeleton';
+export { default as ChartDot } from '../charts/ChartDot';
+export { default as ChartBrush } from '../charts/ChartBrush';
+export { default as CartesianPlot } from '../charts/CartesianPlot';
+export type { PlotGeometry, CartesianPlotProps } from '../charts/CartesianPlot';
+export { default as TimeSeriesChart } from '../charts/TimeSeriesChart';
+export { default as ColumnChart } from '../charts/ColumnChart';
+export { default as ScatterChart, SCATTER_SERIES_CAP } from '../charts/ScatterChart';
+export { default as RangeChart } from '../charts/RangeChart';
+export { default as WaterfallChart } from '../charts/WaterfallChart';
+export { default as HistogramChart } from '../charts/HistogramChart';
+export { default as BoxPlotChart } from '../charts/BoxPlotChart';
+export { default as CandlestickChart } from '../charts/CandlestickChart';
+export { default as HeatmapChart } from '../charts/HeatmapChart';
+export type {
+  ChartLegendEntry, ChartLegendSwatch, ChartFrameProps, ChartTooltipProps, ChartTooltipRow,
+  ChartSkeletonProps, ChartDotProps, ChartDotVariant, ChartBrushProps, ChartRange,
+  ChartReferenceLine, TimeSeriesChartProps, TimeSeriesSeries,
+  ColumnChartProps, ColumnSeries,
+  ScatterChartProps, ScatterPoint, ScatterSeries,
+  RangeChartProps, RangeRow,
+  WaterfallChartProps, WaterfallStep,
+  HistogramChartProps, HistogramBin,
+  BoxPlotChartProps, BoxPlotBox,
+  CandlestickChartProps, Candle,
+  HeatmapChartProps,
+} from '../charts/types';
+
+// ── Radial, hierarchical and flow ──
+export { default as RadarChart, RADAR_SERIES_CAP } from '../charts/RadarChart';
+export { default as PieChart } from '../charts/PieChart';
+export { default as RadialBarChart } from '../charts/RadialBarChart';
+export { default as FunnelChart } from '../charts/FunnelChart';
+export { default as TreemapChart } from '../charts/TreemapChart';
+export { default as SunburstChart } from '../charts/SunburstChart';
+export { default as SankeyChart } from '../charts/SankeyChart';
+export { default as ChordChart } from '../charts/ChordChart';
+export type {
+  RadarChartProps, RadarAxis, RadarSeries,
+  PieChartProps, PieSegment,
+  RadialBarChartProps, RadialBarRow,
+  FunnelChartProps, FunnelStage,
+  TreemapChartProps,
+  SunburstChartProps, SunburstNode,
+  SankeyChartProps, SankeyNode, SankeyLink,
+  ChordChartProps,
+} from '../charts/types';
+
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';
