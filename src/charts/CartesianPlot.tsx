@@ -48,6 +48,13 @@ export interface CartesianPlotProps {
   yTickCount?: number;
   formatValue?: (value: number) => string;
   yAxisLabel?: string;
+  /**
+   * Where an x tick label sits. `center` is the default and right for
+   * categories; `start` puts the label on the band's left EDGE, for the one
+   * case where the label names a boundary rather than the band — histogram
+   * bin bounds.
+   */
+  xTickAnchor?: 'center' | 'start';
   /** Rendered inside the clipped plot area. */
   children: (geometry: PlotGeometry) => ReactNode;
   /** Rendered above the plot when a band is hovered or focused. */
@@ -68,6 +75,7 @@ export default function CartesianPlot({
   yTickCount = 4,
   formatValue = v => String(v),
   yAxisLabel,
+  xTickAnchor = 'center',
   children,
   tooltip,
   ariaLabel,
@@ -159,7 +167,7 @@ export default function CartesianPlot({
         </g>
 
         {labels.map((label, i) => (i % labelStep === 0 ? (
-          <text key={`x${i}`} x={x.center(i)} y={height - 8} textAnchor="middle" fontSize={11} fill={CHART_INK.label} style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <text key={`x${i}`} x={xTickAnchor === 'start' ? x(i) : x.center(i)} y={height - 8} textAnchor="middle" fontSize={11} fill={CHART_INK.label} style={{ fontVariantNumeric: 'tabular-nums' }}>
             {label}
           </text>
         ) : null))}
@@ -175,10 +183,12 @@ export default function CartesianPlot({
 
       {tooltip && active !== null && (
         // Positioning only: the card itself is `ChartTooltip`, so every chart
-        // in the family renders the same surface.
+        // in the family renders the same surface. The clamp budgets for the
+        // card's own width (`min-w-44`, 176px): a percentage-only clamp let the
+        // card spill past the right edge of any container under ~590px.
         <div
           className="absolute top-2 z-10"
-          style={{ left: `${Math.min(Math.max(0, (x.center(active) / width) * 100 - 8), 70)}%` }}
+          style={{ left: `clamp(0px, calc(${((x.center(active) / width) * 100).toFixed(2)}% - 88px), calc(100% - 184px))` }}
         >
           {tooltip(active)}
         </div>

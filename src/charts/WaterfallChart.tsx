@@ -66,8 +66,11 @@ export default function WaterfallChart({
       {({ x, y, active }) => (
         <g>
           {connectors && bars.slice(0, -1).map((bar, i) => (
+            // The connector spans the GAP — right edge of this bar to left edge
+            // of the next. Any wider and it crosses the bar bodies, which shows
+            // whenever a bar is translucent (the 0.45 inactive dim).
             <line
-              key={`c${i}`} x1={x(i)} y1={y(bar.to)} x2={x(i + 1) + x.bandwidth} y2={y(bar.to)}
+              key={`c${i}`} x1={x.end(i)} y1={y(bar.to)} x2={x(i + 1)} y2={y(bar.to)}
               stroke={CHART_INK.grid} strokeWidth={1} shapeRendering="crispEdges"
             />
           ))}

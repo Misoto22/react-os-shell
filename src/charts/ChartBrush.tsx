@@ -54,14 +54,28 @@ export default function ChartBrush({
     return Math.round(ratio * last);
   };
 
-  const finite = data.filter((v): v is number => typeof v === 'number' && Number.isFinite(v));
+  const isValue = (v: number | null | undefined): v is number => typeof v === 'number' && Number.isFinite(v);
+  const finite = data.filter(isValue);
   const peak = Math.max(...finite, 1);
-  const yAt = (value: number | null) =>
-    value === null ? height : height - (value / peak) * (height - 6);
+  const yAt = (value: number) => height - (value / peak) * (height - 6);
 
-  const outline = labels
-    .map((_, i) => `${i === 0 ? 'M' : 'L'}${xAt(i).toFixed(2)},${yAt(data[i] ?? null).toFixed(2)}`)
-    .join(' ');
+  // `null` is a gap, drawn as one — the promise `data` makes. So the miniature
+  // is one area per contiguous run of readings, each closed to the baseline on
+  // its own; drawing through a gap would dive to the floor and read as zero.
+  const runs: { from: number; to: number }[] = [];
+  labels.forEach((_, i) => {
+    if (!isValue(data[i])) return;
+    const open = runs[runs.length - 1];
+    if (open && open.to === i - 1) open.to = i;
+    else runs.push({ from: i, to: i });
+  });
+  const outline = runs.map(run => {
+    const points: string[] = [];
+    for (let i = run.from; i <= run.to; i += 1) {
+      points.push(`${i === run.from ? 'M' : 'L'}${xAt(i).toFixed(2)},${yAt(data[i] as number).toFixed(2)}`);
+    }
+    return `${points.join(' ')} L${xAt(run.to).toFixed(2)},${height} L${xAt(run.from).toFixed(2)},${height} Z`;
+  }).join(' ');
 
   const move = (edge: 'from' | 'to', next: number) => {
     const clamped = Math.max(0, Math.min(last, next));
@@ -134,7 +148,7 @@ export default function ChartBrush({
       >
         {/* The whole series, always. A brush that hides what is outside the
             window lets a plateau look like the whole story. */}
-        <path d={`${outline} L${width},${height} L0,${height} Z`} fill={CHART_INK.grid} />
+        <path d={outline} fill={CHART_INK.grid} />
 
         <rect x={0} y={0} width={xAt(from)} height={height} fill={CHART_INK.surface} fillOpacity={0.72} />
         <rect x={xAt(to)} y={0} width={Math.max(0, width - xAt(to))} height={height} fill={CHART_INK.surface} fillOpacity={0.72} />

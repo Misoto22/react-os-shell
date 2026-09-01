@@ -21,13 +21,19 @@ import { useState } from 'react';
 
 import { CHART_INK, resolveSeriesColor } from './palette';
 import { arcPath } from './curve';
+import { useHighlight } from './highlight';
+import AccessibleTable from './AccessibleTable';
+import ChartTooltip from './ChartTooltip';
 import type { ChordChartProps } from './types';
+
+type Hover = { kind: 'arc'; index: number } | { kind: 'ribbon'; index: number } | null;
 
 export default function ChordChart({
   labels, matrix, size = 340, maxNodes = 8, padAngle = 0.04, arcWidth = 12,
   formatValue = v => String(v), className, emptyLabel = 'No flows to chart.',
 }: ChordChartProps) {
-  const [hover, setHover] = useState<number | null>(null);
+  const [hover, setHover] = useState<Hover>(null);
+  const { highlighted } = useHighlight();
 
   // A ragged or NaN-carrying matrix must degrade to zeros, not throw in the
   // row reduce or slip NaN totals past the `grand <= 0` guard.
@@ -74,23 +80,47 @@ export default function ChordChart({
 
   const point = (angle: number, r: number) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)] as const;
 
+  // Local hover names an arc or one ribbon; the frame's legend highlight names
+  // a participant by LABEL, the identity a legend entry carries.
+  const ribbonLit = (ribbon: { from: number; to: number }, index: number) => {
+    if (hover) {
+      return hover.kind === 'ribbon'
+        ? hover.index === index
+        : hover.index === ribbon.from || hover.index === ribbon.to;
+    }
+    if (highlighted !== null) return labels[ribbon.from] === highlighted || labels[ribbon.to] === highlighted;
+    return null;
+  };
+  const arcLit = (index: number) => {
+    if (hover) {
+      return hover.kind === 'arc'
+        ? hover.index === index
+        : ribbons[hover.index].from === index || ribbons[hover.index].to === index;
+    }
+    if (highlighted !== null) return labels[index] === highlighted;
+    return null;
+  };
+
+  const hoveredArc = hover?.kind === 'arc' ? hover.index : undefined;
+  const hoveredRibbon = hover?.kind === 'ribbon' ? ribbons[hover.index] : undefined;
+
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`}>
       <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} role="img"
         aria-label={`Flows between ${order.length} participants`} onMouseLeave={() => setHover(null)}>
         {ribbons.map((ribbon, i) => {
           const [x1, y1] = point(ribbon.a, inner);
           const [x2, y2] = point(ribbon.b, inner);
           const colour = resolveSeriesColor(spans.get(ribbon.from)!.slot);
-          const lit = hover === null || hover === ribbon.from || hover === ribbon.to;
+          const lit = ribbonLit(ribbon, i);
           return (
             <path
-              key={i} d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`} fill="none"
+              key={`${labels[ribbon.from]}→${labels[ribbon.to]}`}
+              d={`M${x1},${y1} Q${cx},${cy} ${x2},${y2}`} fill="none"
               stroke={colour} strokeWidth={Math.max(1, (ribbon.value / grand) * size * 0.9)}
-              strokeOpacity={lit ? 0.34 : 0.07} strokeLinecap="round"
-            >
-              <title>{`${labels[ribbon.from]} → ${labels[ribbon.to]}: ${formatValue(ribbon.value)}`}</title>
-            </path>
+              strokeOpacity={lit === null || lit ? 0.34 : 0.07} strokeLinecap="round"
+              onMouseEnter={() => setHover({ kind: 'ribbon', index: i })}
+            />
           );
         })}
 
@@ -98,15 +128,14 @@ export default function ChordChart({
           const span = spans.get(index)!;
           const mid = (span.start + span.end) / 2;
           const [lx, ly] = point(mid, outer + 16);
+          const lit = arcLit(index);
           return (
-            <g key={index} onMouseEnter={() => setHover(index)}>
+            <g key={index} onMouseEnter={() => setHover({ kind: 'arc', index })}>
               <path
                 d={arcPath(cx, cy, inner, outer, span.start, span.end)}
                 fill={resolveSeriesColor(span.slot)}
-                fillOpacity={hover === null || hover === index ? 1 : 0.45}
-              >
-                <title>{`${labels[index]}: ${formatValue(totals[index])}`}</title>
-              </path>
+                fillOpacity={lit === null || lit ? 1 : 0.45}
+              />
               <text
                 x={lx} y={ly + 4} fontSize={11} fill={CHART_INK.label}
                 textAnchor={Math.cos(mid) > 0.15 ? 'start' : Math.cos(mid) < -0.15 ? 'end' : 'middle'}
@@ -117,6 +146,29 @@ export default function ChordChart({
           );
         })}
       </svg>
+
+      {hoveredArc !== undefined && (
+        <div className="absolute top-2 left-2 z-10">
+          <ChartTooltip
+            title={labels[hoveredArc]}
+            rows={[{ key: 'total', label: 'Total flow', color: resolveSeriesColor(spans.get(hoveredArc)!.slot), value: formatValue(totals[hoveredArc]) }]}
+          />
+        </div>
+      )}
+      {hoveredRibbon && (
+        <div className="absolute top-2 left-2 z-10">
+          <ChartTooltip
+            title={`${labels[hoveredRibbon.from]} → ${labels[hoveredRibbon.to]}`}
+            rows={[{ key: 'value', label: 'Flow', color: resolveSeriesColor(spans.get(hoveredRibbon.from)!.slot), value: formatValue(hoveredRibbon.value) }]}
+          />
+        </div>
+      )}
+
+      <AccessibleTable
+        caption={`Flows between ${order.length} participants`}
+        head={['From', 'To', 'Value']}
+        rows={ribbons.map(ribbon => [labels[ribbon.from], labels[ribbon.to], formatValue(ribbon.value)])}
+      />
     </div>
   );
 }

@@ -26,7 +26,10 @@ import { useId, useState } from 'react';
 import { CHART_INK, resolveSeriesColor } from './palette';
 import { polygonPoints } from './curve';
 import { ChartDefs, maskId } from './effects';
+import { useHighlight } from './highlight';
 import { angleScale } from './scale';
+import AccessibleTable from './AccessibleTable';
+import ChartTooltip from './ChartTooltip';
 import type { RadarChartProps } from './types';
 
 /** All-pairs colour separation holds for three slots, not eight. */
@@ -41,6 +44,7 @@ export default function RadarChart({
 }: RadarChartProps) {
   const titleId = useId();
   const [hover, setHover] = useState<number | null>(null);
+  const { highlighted } = useHighlight();
 
   const drawn = series.slice(0, RADAR_SERIES_CAP);
   if (axes.length < 3 || drawn.length === 0) {
@@ -67,8 +71,17 @@ export default function RadarChart({
     return [cx + radius * t * Math.cos(a), cy + radius * t * Math.sin(a)];
   };
 
+  // Local hover names a series by index; the frame's legend highlight names it
+  // by key. Either one recedes the others.
+  const dimmed = (si: number, key: string) => {
+    if (hover !== null) return hover !== si;
+    if (highlighted !== null) return highlighted !== key;
+    return false;
+  };
+  const hoveredSeries = hover !== null ? drawn[hover] : undefined;
+
   return (
-    <div className={className}>
+    <div className={`relative ${className ?? ''}`}>
       <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-labelledby={titleId}
         onMouseLeave={() => setHover(null)}>
         <title id={titleId}>
@@ -102,23 +115,51 @@ export default function RadarChart({
         {drawn.map((s, si) => {
           const colour = resolveSeriesColor(si, s.color, s.tone);
           const points = axes.map((_, i) => at(i, s.values[i] ?? 0));
-          const dim = hover !== null && hover !== si;
           return (
             <g
-              key={s.key} opacity={dim ? 0.3 : 1} onMouseEnter={() => setHover(si)}
+              key={s.key} opacity={dimmed(si, s.key) ? 0.3 : 1} onMouseEnter={() => setHover(si)}
               mask={animate ? `url(#${maskId(titleId)})` : undefined}
             >
               {mode === 'area' && <path d={ring(points)} fill={colour} fillOpacity={0.18} stroke="none" />}
               <path d={ring(points)} fill="none" stroke={colour} strokeWidth={2} strokeLinejoin="round" />
               {points.map(([px, py], i) => (
-                <circle key={i} cx={px} cy={py} r={3.5} fill={colour} stroke={CHART_INK.surface} strokeWidth={1.5}>
-                  <title>{`${s.label} · ${axes[i].label}: ${formatValue(s.values[i] ?? 0)}`}</title>
-                </circle>
+                <circle key={i} cx={px} cy={py} r={3.5} fill={colour} stroke={CHART_INK.surface} strokeWidth={1.5} />
               ))}
             </g>
           );
         })}
       </svg>
+
+      {hoveredSeries && (
+        <div className="absolute top-2 left-2 z-10">
+          <ChartTooltip
+            title={hoveredSeries.label}
+            rows={axes.map((axis, i) => ({
+              key: axis.key,
+              label: axis.label,
+              color: resolveSeriesColor(hover!, hoveredSeries.color, hoveredSeries.tone),
+              value: formatValue(hoveredSeries.values[i] ?? 0),
+            }))}
+          />
+        </div>
+      )}
+
+      {/* Identity was carried by colour alone — the one channel a chart may
+          never rely on. The same swatch list the pie draws. */}
+      <ul className="m-0 mt-3 grid gap-1 p-0" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))' }}>
+        {drawn.map((s, si) => (
+          <li key={s.key} className="flex list-none items-center gap-2 text-xs text-gray-600">
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: resolveSeriesColor(si, s.color, s.tone) }} />
+            <span className="flex-1 truncate">{s.label}</span>
+          </li>
+        ))}
+      </ul>
+
+      <AccessibleTable
+        caption={`${drawn.map(s => s.label).join(', ')} across ${axes.length} measures`}
+        head={['Series', ...axes.map(axis => axis.label)]}
+        rows={drawn.map(s => [s.label, ...axes.map((_, i) => formatValue(s.values[i] ?? 0))])}
+      />
     </div>
   );
 }

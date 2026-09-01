@@ -16,11 +16,12 @@
  * facets. Marks also carry a surface-coloured ring, which is how overlapping
  * points stay countable without a border darkening every one of them.
  */
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 import { CHART_INK, resolveSeriesColor } from './palette';
 import { linearScale, niceMax, radiusScale } from './scale';
 import { usePlotWidth } from './usePlotWidth';
 import ChartTooltip from './ChartTooltip';
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { ScatterChartProps } from './types';
 
 /** All-pairs colour separation holds for three slots, not eight. */
@@ -36,6 +37,18 @@ export default function ScatterChart({
   const width = widthProp ?? measured;
   const clipId = useId();
   const [hover, setHover] = useState<{ s: number; i: number } | null>(null);
+
+  // Escape goes through the modal seam — `Modal` listens on `window` in the
+  // CAPTURE phase, so the svg's own handler never sees the press inside a
+  // shell window. Registered only while a point is lit.
+  useEffect(() => {
+    if (hover === null) return;
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      setHover(null);
+      return true;
+    });
+  }, [hover]);
 
   const drawn = series.filter(s => s.points.length > 0).slice(0, SCATTER_SERIES_CAP);
   if (drawn.length === 0) {
@@ -57,11 +70,24 @@ export default function ScatterChart({
   const hoveredSeries = hover ? drawn[hover.s] : undefined;
   const hoveredPoint = hover && hoveredSeries ? hoveredSeries.points[hover.i] : undefined;
 
+  // Arrow keys walk every point, series by series — the tooltip a pointer gets
+  // must be reachable without one. Same convention as `CartesianPlot`.
+  const flat = drawn.flatMap((s, si) => s.points.map((_, i) => ({ s: si, i })));
+  const onKey = (event: KeyboardEvent<SVGSVGElement>) => {
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+    event.preventDefault();
+    const delta = event.key === 'ArrowRight' ? 1 : -1;
+    const at = hover ? flat.findIndex(p => p.s === hover.s && p.i === hover.i) : 0;
+    setHover(flat[Math.min(flat.length - 1, Math.max(0, at + delta))]);
+  };
+
   return (
     <div className={`relative ${className ?? ''}`} ref={host}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} role="img"
         aria-label={`${drawn.map(s => s.label).join(', ')}: ${yLabel ?? 'y'} against ${xLabel ?? 'x'}`}
-        onMouseLeave={() => setHover(null)}>
+        tabIndex={0}
+        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        onMouseLeave={() => setHover(null)} onBlur={() => setHover(null)} onKeyDown={onKey}>
         <defs><clipPath id={clipId}><rect x={left - radiusRange[1]} y={margin.top - radiusRange[1]} width={right - left + radiusRange[1] * 2} height={height - margin.bottom - margin.top + radiusRange[1] * 2} /></clipPath></defs>
 
         {y.ticks(5).map(t => (

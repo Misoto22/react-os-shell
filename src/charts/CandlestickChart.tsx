@@ -18,7 +18,10 @@ import ChartTooltip from './ChartTooltip';
 import type { CandlestickChartProps } from './types';
 
 export default function CandlestickChart({
-  candles, variant = 'candle', height = 260, width, formatValue = v => String(v),
+  candles, variant = 'candle', height = 260, width,
+  // Not `String(v)`: the axis domain is padded off the data, so its ticks are
+  // almost never integers, and a raw float prints as 102.72999999999999.
+  formatValue = v => (Number.isInteger(v) ? String(v) : v.toFixed(2)),
   yAxisLabel, label = 'Price', className, emptyLabel,
 }: CandlestickChartProps) {
   const values = candles.flatMap(c => [c.low, c.high]).filter(Number.isFinite);
