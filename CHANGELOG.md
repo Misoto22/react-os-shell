@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.85.0
+
+- **Inline marks: `RankedBars`, `Meter`, `StatTile`.** The small forms that
+  belong inside a table cell or a summary card, where a full chart frame would
+  cost more room than the number is worth. They sit on the 4.84.0 primitives, so
+  a meter and a chart on the same page carry the same status token rather than
+  two hand-picked greens.
+
+  `RankedBars` colours by status or by an explicit series slot, never by
+  position in the list. Cycling tones down a list makes colour look like it
+  encodes something when it encodes nothing.
+
 ## 4.84.0
 
 - **Chart primitives, on their own.** The layer every chart is built from, split

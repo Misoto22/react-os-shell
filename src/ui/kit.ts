@@ -295,5 +295,13 @@ export type {
   ChartFillVariant, ChartStrokeVariant, ChartRevealDirection, ChartBackgroundVariant,
 } from '../charts/types';
 
+// ── Inline marks ──
+// The small forms that belong inside a table cell or a summary card, where a
+// full chart frame would cost more room than the number is worth.
+export { default as RankedBars } from '../charts/RankedBars';
+export { default as Meter } from '../charts/Meter';
+export { default as StatTile } from '../charts/StatTile';
+export type { RankedBarsProps, RankedBarsRow, MeterProps, StatTileProps } from '../charts/types';
+
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';
