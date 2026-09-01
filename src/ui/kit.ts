@@ -229,6 +229,80 @@ export { default as DonutChart } from '../charts/DonutChart';
 export { default as LineChart } from '../charts/LineChart';
 export type { SparklineProps, BarChartProps, DonutChartProps, DonutSegment, LineChartProps, LineChartSeries } from '../charts/types';
 
+// ── Analytical charts (axes, legend, table view — read, not glanced at) ──
+export { default as ChartFrame } from '../charts/ChartFrame';
+export { default as ChartTooltip } from '../charts/ChartTooltip';
+export { default as ChartSkeleton } from '../charts/ChartSkeleton';
+export { default as ChartDot } from '../charts/ChartDot';
+export { default as ChartBrush } from '../charts/ChartBrush';
+export { ChartHighlightProvider, useHighlight, highlightOpacity } from '../charts/highlight';
+export { default as TimeSeriesChart } from '../charts/TimeSeriesChart';
+export { default as RankedBars } from '../charts/RankedBars';
+export { default as Meter } from '../charts/Meter';
+export { default as StatTile } from '../charts/StatTile';
+export type {
+  ChartStatusTone, ChartLegendEntry, ChartLegendSwatch, ChartFrameProps, ChartTooltipProps, ChartTooltipRow, ChartSkeletonProps, ChartDotProps, ChartDotVariant, ChartBrushProps, ChartRange,
+  TimeSeriesChartProps, TimeSeriesSeries,
+  RankedBarsProps, RankedBarsRow,
+  MeterProps, StatTileProps,
+} from '../charts/types';
+// The palette is exported so a consumer can colour a legend swatch or a status
+// pill with the same token the chart used, instead of guessing a hex.
+export {
+  SERIES_VARS, SERIES_SLOT_COUNT, STATUS_VARS, CHART_INK,
+  seriesColor, resolveSeriesColor,
+} from '../charts/palette';
+export { linearScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../charts/scale';
+export type { LinearScale, BandScale, LadderScale, AngleScale, Range } from '../charts/scale';
+export { curvePath, monotonePath, splinePath, bumpPath, stepPath, linearPath, areaFrom, areaBetween, arcPath, polygonPoints } from '../charts/curve';
+export type { Curve, Point } from '../charts/curve';
+
+// ── The wider chart family ──
+// Cartesian
+export { default as CartesianPlot } from '../charts/CartesianPlot';
+export type { PlotGeometry, CartesianPlotProps } from '../charts/CartesianPlot';
+export { default as ColumnChart } from '../charts/ColumnChart';
+export { default as ScatterChart, SCATTER_SERIES_CAP } from '../charts/ScatterChart';
+export { default as RangeChart } from '../charts/RangeChart';
+export { default as WaterfallChart } from '../charts/WaterfallChart';
+export { default as HistogramChart } from '../charts/HistogramChart';
+export { default as BoxPlotChart } from '../charts/BoxPlotChart';
+export { default as CandlestickChart } from '../charts/CandlestickChart';
+export { default as HeatmapChart } from '../charts/HeatmapChart';
+// Polar
+export { default as RadarChart, RADAR_SERIES_CAP } from '../charts/RadarChart';
+export { default as PieChart } from '../charts/PieChart';
+export { default as RadialBarChart } from '../charts/RadialBarChart';
+// Hierarchy and flow
+export { default as FunnelChart } from '../charts/FunnelChart';
+export { default as TreemapChart } from '../charts/TreemapChart';
+export { default as SunburstChart } from '../charts/SunburstChart';
+export { default as SankeyChart } from '../charts/SankeyChart';
+export { default as ChordChart } from '../charts/ChordChart';
+export { ChartDefs, MOTION, stagger, fillFor, dashFor, fillId, glowId, maskId, groundId } from '../charts/effects';
+export type { ChartDefsProps, FillVariant, StrokeVariant, RevealDirection, BackgroundVariant } from '../charts/effects';
+export { squarify } from '../charts/treemapLayout';
+export type { TreemapItem, TreemapTile } from '../charts/treemapLayout';
+export type {
+  ChartCurve, ChartReferenceLine, ChartFillVariant, ChartStrokeVariant, ChartRevealDirection, ChartBackgroundVariant,
+  ColumnChartProps, ColumnSeries,
+  ScatterChartProps, ScatterSeries, ScatterPoint,
+  RangeChartProps, RangeRow,
+  WaterfallChartProps, WaterfallStep,
+  HistogramChartProps, HistogramBin,
+  BoxPlotChartProps, BoxPlotBox,
+  CandlestickChartProps, Candle,
+  HeatmapChartProps,
+  RadarChartProps, RadarAxis, RadarSeries,
+  PieChartProps, PieSegment,
+  RadialBarChartProps, RadialBarRow,
+  FunnelChartProps, FunnelStage,
+  TreemapChartProps,
+  SunburstChartProps, SunburstNode,
+  SankeyChartProps, SankeyNode, SankeyLink,
+  ChordChartProps,
+} from '../charts/types';
+
 // ── Page templates (starter screens; see src/templates) ──
 export { default as DashboardTemplate } from '../templates/DashboardTemplate';
 export { default as DataTablePage } from '../templates/DataTablePage';
