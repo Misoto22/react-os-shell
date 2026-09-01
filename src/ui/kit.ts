@@ -334,5 +334,25 @@ export type {
   HeatmapChartProps,
 } from '../charts/types';
 
+// ── Radial, hierarchical and flow ──
+export { default as RadarChart, RADAR_SERIES_CAP } from '../charts/RadarChart';
+export { default as PieChart } from '../charts/PieChart';
+export { default as RadialBarChart } from '../charts/RadialBarChart';
+export { default as FunnelChart } from '../charts/FunnelChart';
+export { default as TreemapChart } from '../charts/TreemapChart';
+export { default as SunburstChart } from '../charts/SunburstChart';
+export { default as SankeyChart } from '../charts/SankeyChart';
+export { default as ChordChart } from '../charts/ChordChart';
+export type {
+  RadarChartProps, RadarAxis, RadarSeries,
+  PieChartProps, PieSegment,
+  RadialBarChartProps, RadialBarRow,
+  FunnelChartProps, FunnelStage,
+  TreemapChartProps,
+  SunburstChartProps, SunburstNode,
+  SankeyChartProps, SankeyNode, SankeyLink,
+  ChordChartProps,
+} from '../charts/types';
+
 // ── Package version (tsup-injected at build time) ──
 export { VERSION } from '../version';

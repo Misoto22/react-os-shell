@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.87.0
+
+- **The radial, hierarchical and flow families.** `RadarChart`, `PieChart`,
+  `RadialBarChart`, `FunnelChart`, `TreemapChart`, `SunburstChart`,
+  `SankeyChart`, `ChordChart` — completing the tier begun in 4.84.0.
+
+- **Radius is square-rooted wherever a radial mark encodes a quantity.** Area is
+  what the eye reads, so scaling the radius linearly overstates a large value by
+  its square.
+
+- **`SankeyChart` does not run crossing-minimisation.** The iterative relaxation
+  a full implementation does is several hundred lines that mostly matter above
+  about thirty nodes, and a caller who orders its nodes sensibly gets a clean
+  diagram without it. Node ordering is therefore part of the contract rather
+  than something the component quietly rearranges. Ribbons use the same `bump`
+  curve the line family does — flat where they leave a node, flat where they
+  arrive — rather than the private copy the first draft inlined.
+
+- **`TreemapChart` uses the squarified layout** (Bruls–Huizing–van Wijk), so
+  tiles stay close to square and their areas remain comparable by eye.
+
 ## 4.86.0
 
 - **Charts you can read values off, not just glance at.** The four charts this
