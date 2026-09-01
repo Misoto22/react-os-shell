@@ -57,6 +57,10 @@ const sharedBuild = {
   external: [
     'react', 'react-dom', 'react-dom/server', 'react-dom/client',
     'react-dom/test-utils', 'react/jsx-runtime', 'jsdom',
+    // The markdown entry's optional peers, external for the same reason as
+    // React: the spec and the component must share one instance, and bundling
+    // a CommonMark parser into every spec is a lot of work to do 40 times.
+    'react-markdown', 'remark-gfm', 'remark-breaks',
   ],
   define: { __PKG_VERSION__: '"test"' },
 };

@@ -173,7 +173,20 @@ export { default as MilestoneTimeline } from '../shell/MilestoneTimeline';
 export type { Milestone, MilestoneKind, MilestoneTimelineProps } from '../shell/MilestoneTimeline';
 export { default as ContainerFillChart } from '../shell/ContainerFillChart';
 export type { ContainerFillChartProps, ContainerFillItem } from '../shell/ContainerFillChart';
+// The regex renderer. It carries `Lite` in its name now that there are two,
+// and the name is the honest half of the pair: it covers headings, emphasis,
+// links, fences, flat lists, pipe tables and callouts, and it CANNOT nest,
+// because a regex cannot. Reach for it when a body is short and the bundle is
+// the constraint — it is why the till can render prose at all.
+//
+// For a body a person or a service wrote — a note, a message, a bug report —
+// take `react-os-shell/markdown` instead: a real CommonMark parser behind an
+// optional peer, which a consumer who never imports it never installs.
+export { default as MarkdownLite } from '../shell/Markdown';
+export type { MarkdownProps as MarkdownLiteProps } from '../shell/Markdown';
+/** @deprecated Renamed to `MarkdownLite`. Removed in 5.0. */
 export { default as Markdown } from '../shell/Markdown';
+/** @deprecated Renamed to `MarkdownLiteProps`. Removed in 5.0. */
 export type { MarkdownProps } from '../shell/Markdown';
 export { default as HelpCenter } from '../shell/HelpCenter';
 export type { HelpCenterProps, HelpCenterDoc } from '../shell/HelpCenter';

@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.84.0
+
+- **A fenced code block is now rendered as one, instead of being flattened into
+  a paragraph.** `Markdown` split its input on blank lines before looking for
+  anything, so a fence containing one was torn into pieces and every piece fell
+  through to the paragraph branch — which joins its lines with a space. A YAML
+  block came back as a single long line, with the opening ``` read as an empty
+  code span, the language tag beginning another, and two bare backticks printed
+  to the reader. Fences are line-shaped, so they are now found by walking lines,
+  before anything is split. Tilde fences, longer closers and CommonMark's
+  unclosed-fence rule are covered; the info string is passed through as
+  `data-language` rather than drawn.
+
+- **The inline-code chip is visible in dark mode.** It used `bg-gray-100`, which
+  `ui.css` remaps to `--surface` — and so does `bg-white`, which is what every
+  host panel that draws this component uses, `HelpCenter`'s own `<main>` among
+  them. The chip was therefore the exact colour of the surface behind it:
+  present, styled, unreadable. It is `bg-gray-200` (`--surface-raised`) now.
+
+  Both of these had survived because the renderer had no spec at all. It has
+  one now, and it includes a static check that every colour class the component
+  paints is remapped in `ui.css` AND does not collapse into `bg-white`'s token —
+  which is the class of bug the second one belongs to.
+
+- **New: `react-os-shell/markdown`** — CommonMark + GFM for bodies a person or a
+  service wrote (notes, chat messages, bug reports, help articles), with
+  `react-markdown`, `remark-gfm` and `remark-breaks` as **optional** peers. Only
+  a consumer who imports this subpath ever installs them; the package's
+  `dependencies` stay empty, and the till and the storefront pay nothing.
+
+  Two variants — `note` for typed copy inside a card, `article` for authored
+  documentation — plus `clamp`, `resolveImageSrc` and per-element `components`
+  overrides. Four constructs are disabled so that pre-markdown bodies do not
+  render surprisingly (indented code, raw HTML in both positions, setext
+  headings); raw HTML is never parsed and `javascript:` URLs are neutralised, so
+  no sanitiser is needed or wanted. No syntax highlighting: the fence's info
+  string is exposed as `data-language` for a host that wants to add it.
+
+  `scripts/verify-dist.mjs` now walks this entry too, in both directions: the
+  markdown entry may reach its parser and nothing else, and the parser may not
+  be reachable from the root or `ui` entries — either would quietly promote an
+  optional peer to a required install.
+
+- **`Markdown` is renamed `MarkdownLite`** (`MarkdownProps` → `MarkdownLiteProps`)
+  now that there are two renderers and the difference matters at the call site.
+  The old names remain as deprecated aliases and are removed in 5.0.
+
 ## 4.83.2
 
 - **A missing wasm decoder is now reported instead of quietly ignored.** The
