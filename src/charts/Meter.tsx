@@ -17,7 +17,7 @@
  * colour never travels alone here — the value and the objective are both
  * written out, so the meaning survives greyscale, CVD and forced-colors.
  */
-import { STATUS_VARS, type StatusTone } from './palette';
+import { CHART_INK, STATUS_VARS } from './palette';
 import type { MeterProps } from './types';
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -53,39 +53,46 @@ export default function Meter({
           {formatValue(value)}
         </span>
       </div>
+      {/* bg-gray-200, not bg-gray-100: ui.css remaps gray-100 to the same
+          `--surface` token the host card takes in dark mode, which made the
+          track invisible there. gray-200 maps to `--surface-raised`. */}
       <div
-        className="relative w-full rounded-full bg-gray-100"
+        className="relative w-full rounded-full bg-gray-200"
         style={{ height: 12 }}
         role="meter"
-        aria-valuenow={Number((value * 100).toFixed(2))}
+        aria-valuenow={Number((filled * 100).toFixed(2))}
         aria-valuemin={0}
         aria-valuemax={100}
+        aria-valuetext={formatValue(value)}
         aria-label={label}
       >
         <div
           className="h-full rounded-full"
           style={{ width: `${(filled * 100).toFixed(2)}%`, backgroundColor: colour }}
         />
+        {/* Inline ink, not a gray class: bg-gray-600 has no dark remap in
+            ui.css, so the objective marker vanished against a dark track. */}
         {objective != null && (
           <span
-            className="absolute top-[-4px] w-0.5 rounded-full bg-gray-600"
-            style={{ left: `${(clamp01(objective) * 100).toFixed(2)}%`, height: 20 }}
+            className="absolute top-[-4px] w-0.5 rounded-full"
+            style={{ left: `${(clamp01(objective) * 100).toFixed(2)}%`, height: 20, backgroundColor: CHART_INK.axis }}
             aria-hidden="true"
           />
         )}
       </div>
-      <p className="mt-1.5 text-xs text-gray-500">
-        {detail}
-        {objective != null && (
-          <>
-            {detail ? ' · ' : ''}
-            objective {formatValue(objective)}
-            {met ? ' met' : ' missed'}
-          </>
-        )}
-      </p>
+      {(detail || objective != null) && (
+        <p className="mt-1.5 text-xs text-gray-500">
+          {detail}
+          {objective != null && (
+            <>
+              {detail ? ' · ' : ''}
+              objective {formatValue(objective)}
+              {met ? ' met' : ' missed'}
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }
 
-export type { StatusTone };

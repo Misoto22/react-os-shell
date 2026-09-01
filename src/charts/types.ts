@@ -6,6 +6,9 @@
  */
 import { type CSSProperties, type ReactNode } from 'react';
 
+import type { Curve } from './curve';
+import type { StatusTone } from './palette';
+
 export interface SparklineProps {
   data: number[];
   width?: number;
@@ -91,7 +94,7 @@ export interface DonutChartProps {
  */
 
 /** One reserved state colour. Never doubles as a categorical slot. */
-export type ChartStatusTone = 'good' | 'neutral' | 'warning' | 'serious' | 'critical';
+export type ChartStatusTone = StatusTone;
 
 /**
  * The shape of a legend swatch.
@@ -399,7 +402,7 @@ export type ChartDotVariant = 'default' | 'border' | 'colored-border';
 export interface ChartDotProps {
   cx: number;
   cy: number;
-  colour: string;
+  color: string;
   variant?: ChartDotVariant;
   /** A pulsing halo. Asserts the reading is LIVE — see ChartDot's docblock. */
   pulse?: boolean;
@@ -417,7 +420,7 @@ export interface ChartBrushProps {
   onRangeChange: (range: ChartRange) => void;
   height?: number;
   width?: number;
-  colour?: string;
+  color?: string;
   className?: string;
 }
 
@@ -430,7 +433,7 @@ export interface ChartReferenceLine {
   color?: string;
 }
 
-export type ChartCurve = 'linear' | 'monotone' | 'spline' | 'step' | 'bump';
+export type ChartCurve = Curve;
 
 /**
  * Fill treatments. The textured ones are not decoration: a hatch is what a

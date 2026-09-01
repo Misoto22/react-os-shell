@@ -622,7 +622,7 @@ test('RankedBars can find its own outlier', () => {
 
 test('the three dot weights differ in geometry, not only in colour', () => {
   const at = (variant: 'default' | 'border' | 'colored-border') =>
-    html(<ChartDot cx={10} cy={10} colour="var(--viz-series-1)" variant={variant} />);
+    html(<ChartDot cx={10} cy={10} color="var(--viz-series-1)" variant={variant} />);
 
   // default: one filled circle, no ring to separate it from anything.
   assert.equal((at('default').match(/<circle/g) ?? []).length, 1);
@@ -636,7 +636,7 @@ test('the three dot weights differ in geometry, not only in colour', () => {
 });
 
 test('the pulse sits under the marker, so it never covers the value', () => {
-  const markup = html(<ChartDot cx={10} cy={10} colour="var(--viz-series-1)" pulse />);
+  const markup = html(<ChartDot cx={10} cy={10} color="var(--viz-series-1)" pulse />);
   assert.match(markup, /rosh-viz-ping/);
   // The ping is the first circle in document order — painted first, so it is
   // underneath.
@@ -1035,4 +1035,40 @@ test('a rule lands on the ladder when the axis is one', () => {
   const ruleY = /stroke-dasharray="5 4"[^>]*/.exec(markup);
   assert.ok(ruleY, 'the rule drew');
   assert.match(markup, />SLO</);
+});
+
+// ── signed data ─────────────────────────────────────────────────────────────
+
+test('grouped columns grow from the zero line, not the plot floor', () => {
+  // With a negative in the domain the floor is BELOW zero: footing every bar
+  // on it drew a positive bar straight through the zero line, and clamped a
+  // negative bar to nothing.
+  const markup = html(
+    <ColumnChart width={300} labels={['a']} animate={false} series={[
+      { key: 'up', label: 'Up', data: [5] },
+      { key: 'down', label: 'Down', data: [-3] },
+    ]} />,
+  );
+  const rects = [...markup.matchAll(/<rect[^>]*\by="([\d.]+)"[^>]*\bheight="([\d.]+)" rx=/g)]
+    .map(m => ({ y: Number(m[1]), height: Number(m[2]) }));
+  assert.equal(rects.length, 2, 'both bars draw');
+  const [up, down] = rects;
+  assert.ok(up.height > 0 && down.height > 0, 'neither bar vanishes');
+  // Both bars anchor on the SAME zero line: the positive one ends where the
+  // negative one begins.
+  assert.ok(Math.abs(up.y + up.height - down.y) < 0.51,
+    `bars must meet at zero: up ends ${up.y + up.height}, down starts ${down.y}`);
+});
+
+test('stacked negatives stack DOWN from zero instead of vanishing', () => {
+  const markup = html(
+    <ColumnChart width={300} labels={['a']} stacked animate={false} series={[
+      { key: 'in', label: 'In', data: [5] },
+      { key: 'out', label: 'Out', data: [-3] },
+    ]} />,
+  );
+  const rects = [...markup.matchAll(/<rect[^>]*\by="([\d.]+)"[^>]*\bheight="([\d.]+)" rx=/g)]
+    .map(m => ({ y: Number(m[1]), height: Number(m[2]) }));
+  assert.equal(rects.length, 2, 'the negative segment is drawn, not clamped away');
+  assert.ok(rects.every(r => r.height > 0), 'both segments have body');
 });

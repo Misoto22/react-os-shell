@@ -273,10 +273,18 @@ html.rosh-reduce-transparency *::after {
   .rosh-viz-mark { transition: none !important; }
   .rosh-viz-wipe, .rosh-viz-wipe-rtl, .rosh-viz-wipe-center,
   .rosh-viz-rise, .rosh-viz-grow, .rosh-viz-sweep, .rosh-viz-fade,
-  .rosh-viz-march, .rosh-viz-shimmer, .rosh-viz-ping {
+  .rosh-viz-march {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+  /* These two REST invisible — the shimmer exits at translateX(200%) and the
+     ping fades to nothing — so the entrance treatment above would park the
+     shimmer band fully lit over the skeleton and pin the ping halo at an
+     opacity it never reaches while animating. They stop by disappearing. */
+  .rosh-viz-shimmer, .rosh-viz-ping {
+    animation: none !important;
+    opacity: 0 !important;
   }
 }
 

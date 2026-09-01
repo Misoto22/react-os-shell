@@ -51,6 +51,12 @@ export default function ScatterChart({
   const y = linearScale([Math.min(0, ...all.map(p => p.y)), niceMax(Math.max(...all.map(p => p.y)))], { from: height - margin.bottom, to: margin.top });
   const r = radiusScale([0, Math.max(...all.map(p => p.size ?? 1))], { from: radiusRange[0], to: radiusRange[1] });
 
+  // Hover indices go stale when a polling caller shrinks the data mid-hover;
+  // resolve them defensively so a vanished point drops the tooltip instead of
+  // crashing the tree.
+  const hoveredSeries = hover ? drawn[hover.s] : undefined;
+  const hoveredPoint = hover && hoveredSeries ? hoveredSeries.points[hover.i] : undefined;
+
   return (
     <div className={`relative ${className ?? ''}`} ref={host}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} role="img"
@@ -86,18 +92,18 @@ export default function ScatterChart({
         </g>
       </svg>
 
-      {hover && (
+      {hover && hoveredSeries && hoveredPoint && (
         <div className="absolute top-2 left-2 z-10">
           <ChartTooltip
-            title={drawn[hover.s].points[hover.i].label ?? drawn[hover.s].label}
+            title={hoveredPoint.label ?? hoveredSeries.label}
             rows={[
-              { key: 'x', label: xLabel ?? 'x', color: resolveSeriesColor(hover.s, drawn[hover.s].color, drawn[hover.s].tone), value: formatX(drawn[hover.s].points[hover.i].x) },
-              { key: 'y', label: yLabel ?? 'y', color: resolveSeriesColor(hover.s, drawn[hover.s].color, drawn[hover.s].tone), value: formatY(drawn[hover.s].points[hover.i].y) },
-              ...(drawn[hover.s].points[hover.i].size != null
-                ? [{ key: 'size', label: 'Size', color: CHART_INK.muted, value: String(drawn[hover.s].points[hover.i].size) }]
+              { key: 'x', label: xLabel ?? 'x', color: resolveSeriesColor(hover.s, hoveredSeries.color, hoveredSeries.tone), value: formatX(hoveredPoint.x) },
+              { key: 'y', label: yLabel ?? 'y', color: resolveSeriesColor(hover.s, hoveredSeries.color, hoveredSeries.tone), value: formatY(hoveredPoint.y) },
+              ...(hoveredPoint.size != null
+                ? [{ key: 'size', label: 'Size', color: CHART_INK.muted, value: String(hoveredPoint.size) }]
                 : []),
             ]}
-            footnote={drawn[hover.s].points[hover.i].label ? drawn[hover.s].label : undefined}
+            footnote={hoveredPoint.label ? hoveredSeries.label : undefined}
           />
         </div>
       )}

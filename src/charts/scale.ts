@@ -200,22 +200,49 @@ export function radiusScale(
 /** Bin a set of observations into evenly spaced buckets, for a histogram. */
 export function binValues(
   values: number[],
-  binCount = 10,
+  bins: number | number[] = 10,
 ): { from: number; to: number; count: number }[] {
-  if (values.length === 0 || binCount < 1) return [];
-  const lo = Math.min(...values);
-  const hi = Math.max(...values);
+  // A bad sample is skipped, never a crash: one NaN would poison the spread
+  // through `Math.min`/`Math.max` and then index `bins[NaN]`.
+  const finite = values.filter(Number.isFinite);
+
+  // Explicit boundaries — the caller's edges ARE the bins, `[from, to)` with
+  // the top bin closed. A backend that chose latency buckets `[25,50,100,…]`
+  // must see counts against those edges, not an even re-spread of the range.
+  if (Array.isArray(bins)) {
+    const edges = [...bins].filter(Number.isFinite).sort((a, b) => a - b);
+    if (edges.length < 2) return [];
+    const out = Array.from({ length: edges.length - 1 }, (_, i) => ({
+      from: edges[i],
+      to: edges[i + 1],
+      count: 0,
+    }));
+    const top = edges[edges.length - 1];
+    for (const value of finite) {
+      if (value < edges[0] || value > top) continue;
+      const index = value === top
+        ? out.length - 1
+        : out.findIndex(bin => value >= bin.from && value < bin.to);
+      if (index >= 0) out[index].count += 1;
+    }
+    return out;
+  }
+
+  const binCount = bins;
+  if (finite.length === 0 || binCount < 1) return [];
+  const lo = Math.min(...finite);
+  const hi = Math.max(...finite);
   const width = (hi - lo) / binCount || 1;
-  const bins = Array.from({ length: binCount }, (_, i) => ({
+  const out = Array.from({ length: binCount }, (_, i) => ({
     from: lo + i * width,
     to: lo + (i + 1) * width,
     count: 0,
   }));
-  for (const value of values) {
+  for (const value of finite) {
     // The top bin is closed on both sides, so the maximum lands in it rather
     // than in an imaginary bin past the end.
     const index = Math.min(binCount - 1, Math.floor((value - lo) / width));
-    bins[index].count += 1;
+    out[index].count += 1;
   }
-  return bins;
+  return out;
 }

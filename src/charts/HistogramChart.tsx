@@ -25,7 +25,10 @@ export default function HistogramChart({
   formatCount = v => String(v), yAxisLabel = 'count', label = 'Distribution',
   className, emptyLabel,
 }: HistogramChartProps) {
-  const computed = precomputed ?? binValues(values ?? [], typeof bins === 'number' ? bins : bins.length - 1);
+  // `bins` passes through whole: a count computes even bins, an array IS the
+  // boundaries. Collapsing an edge list to `length - 1` even bins silently
+  // re-spread backend-chosen bucket bounds over the data's own range.
+  const computed = precomputed ?? binValues(values ?? [], bins);
   const colour = resolveSeriesColor(0, color, tone);
   const labels = computed.map(b => formatBound(b.from));
   const counts = computed.map(b => b.count);

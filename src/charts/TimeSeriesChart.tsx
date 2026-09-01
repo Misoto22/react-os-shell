@@ -24,7 +24,9 @@
  * arbitrary and the crossing point it produces is a correlation the data does
  * not contain. There is no prop for it.
  */
-import { useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 
 import { CHART_INK, resolveSeriesColor, type StatusTone } from './palette';
 import { areaBetween, areaFrom, curvePath, stepPath, type Point } from './curve';
@@ -85,6 +87,19 @@ export default function TimeSeriesChart({
   const { highlighted } = useHighlight();
   const clipId = useId();
 
+  // Escape goes through the modal seam — `Modal` listens on `window` in the
+  // CAPTURE phase, so the svg's own handler never sees the press inside a
+  // shell window and the window would close instead of the crosshair
+  // clearing. Registered only while a band is active.
+  useEffect(() => {
+    if (active === null) return;
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      setActive(null);
+      return true;
+    });
+  }, [active]);
+
   if (loading) {
     return <div className={className} ref={host}><ChartSkeleton height={height} width={widthProp ?? measured} /></div>;
   }
@@ -101,7 +116,11 @@ export default function TimeSeriesChart({
   const slice = <T,>(items: T[]): T[] =>
     brush ? items.slice(windowFrom, windowTo + 1) : items;
 
+  // `slot` pins each series to its ORIGINAL index: colour must not shift when
+  // an all-null series is dropped, or the plot disagrees with a caller-built
+  // legend exactly when a series has a data outage.
   const drawn = series
+    .map((s, slot) => ({ ...s, slot }))
     .filter(s => s.data.some(isValue))
     .map(s => ({ ...s, data: slice(s.data) }));
   labels = slice(fullLabels);
@@ -194,7 +213,6 @@ export default function TimeSeriesChart({
         onKeyDown={event => {
           if (event.key === 'ArrowRight') move(1)(event);
           if (event.key === 'ArrowLeft') move(-1)(event);
-          if (event.key === 'Escape') setActive(null);
         }}
       >
         <defs>
@@ -205,7 +223,7 @@ export default function TimeSeriesChart({
         <ChartDefs
           id={clipId}
           fills={drawn.map((s2, i) => ({
-            colour: resolveSeriesColor(i, s2.color, s2.tone),
+            color: resolveSeriesColor(s2.slot, s2.color, s2.tone),
             variant: s2.fillVariant ?? fillVariant,
           }))}
           fadeFrom={stacked ? 0.42 : 0.3}
@@ -246,7 +264,7 @@ export default function TimeSeriesChart({
 
         <g clipPath={`url(#${clipId})`} mask={animate && reveal ? `url(#${maskId(clipId)})` : undefined}>
           {drawn.map((s, si) => {
-            const color = resolveSeriesColor(si, s.color, s.tone);
+            const color = resolveSeriesColor(s.slot, s.color, s.tone);
             const mode = s.mode ?? (stacked ? 'area' : 'line');
             // `null` means nothing is highlighted, so the series keeps whatever
             // opacity it already had — a stacked fill is translucent by design
@@ -360,7 +378,7 @@ export default function TimeSeriesChart({
             the samples actually are. */}
         {(dots ?? (labelEndpoints ? 'last' : 'none')) !== 'none' && drawn.map((s, si) => {
           const which = dots ?? (labelEndpoints ? 'last' : 'none');
-          const color = resolveSeriesColor(si, s.color, s.tone);
+          const color = resolveSeriesColor(s.slot, s.color, s.tone);
           const lastIndex = [...s.data].map(isValue).lastIndexOf(true);
           const indices = which === 'all'
             ? labels.map((_, i) => i).filter(i => isValue(stacked ? tops[si]?.[i] : s.data[i]))
@@ -372,7 +390,7 @@ export default function TimeSeriesChart({
                 if (!isValue(value)) return null;
                 return (
                   <ChartDot
-                    key={i} cx={x.center(i)} cy={scaleY(value)} colour={color}
+                    key={i} cx={x.center(i)} cy={scaleY(value)} color={color}
                     variant={dotVariant}
                     // Only the final marker pulses: a whole line of pulsing
                     // dots is a strobe, and only the last one is "now".
@@ -447,7 +465,7 @@ export default function TimeSeriesChart({
             rows={drawn.map((s, si) => ({
               key: s.key,
               label: s.label,
-              color: resolveSeriesColor(si, s.color, s.tone),
+              color: resolveSeriesColor(s.slot, s.color, s.tone),
               // In percent mode the plot has thrown volume away, so the tooltip
               // carries it back: the share the chart drew AND the count it was
               // taken over. A share without its denominator is the thing this

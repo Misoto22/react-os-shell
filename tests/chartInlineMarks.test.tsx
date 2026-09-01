@@ -65,3 +65,27 @@ test('a delta carries an arrow and a word, so it survives greyscale', () => {
   assert.match(markup, /▼/);
   assert.match(markup, /<span class="sr-only"> down<\/span>/);
 });
+
+test('a NaN row is "no data", not the biggest bar', () => {
+  // A NaN% width is invalid CSS and silently dropped, so the inner div used
+  // to default to FULL width — the one row with no data painted as the max.
+  const markup = html(<RankedBars rows={[
+    { key: 'bad', label: 'bad', value: NaN },
+    { key: 'ok', label: 'ok', value: 10 },
+  ]} animate={false} />);
+  assert.doesNotMatch(markup, /NaN/, 'no NaN reaches the markup');
+  assert.match(markup, /—/, 'the missing value prints the em dash');
+  assert.match(markup, /width:100\.00%/, 'the good row still spans the scale');
+});
+
+test('the tracks and the objective marker survive dark mode', () => {
+  // bg-gray-100 remaps to the same --surface token the host card takes in
+  // dark mode, and bg-gray-600 has no dark remap at all — both vanished.
+  const bars = html(<RankedBars rows={ROUTES} />);
+  const meter = html(<Meter value={0.97} objective={0.99} label="Attainment" />);
+  assert.doesNotMatch(bars + meter, /bg-gray-100/, 'tracks sit on --surface-raised, not the surface itself');
+  assert.match(bars, /bg-gray-200/, 'RankedBars track');
+  assert.match(meter, /bg-gray-200/, 'Meter track');
+  assert.doesNotMatch(meter, /bg-gray-600/, 'the marker is not an unmapped gray class');
+  assert.match(meter, /background-color:var\(--viz-axis\)/, 'the marker takes the axis ink');
+});

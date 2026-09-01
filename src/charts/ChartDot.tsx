@@ -27,7 +27,7 @@ import type { ChartDotProps } from './types';
 export default function ChartDot({
   cx,
   cy,
-  colour,
+  color,
   variant = 'default',
   pulse = false,
   title,
@@ -43,7 +43,7 @@ export default function ChartDot({
         <circle
           className="rosh-viz-ping"
           cx={cx} cy={cy} r={core}
-          fill={colour} fillOpacity={0.45}
+          fill={color} fillOpacity={0.45}
         />
       )}
       {variant === 'border' && (
@@ -51,8 +51,8 @@ export default function ChartDot({
       )}
       <circle
         cx={cx} cy={cy} r={core}
-        fill={variant === 'colored-border' ? CHART_INK.surface : colour}
-        stroke={variant === 'colored-border' ? colour : undefined}
+        fill={variant === 'colored-border' ? CHART_INK.surface : color}
+        stroke={variant === 'colored-border' ? color : undefined}
         strokeWidth={variant === 'colored-border' ? ring : undefined}
       >
         {title && <title>{title}</title>}

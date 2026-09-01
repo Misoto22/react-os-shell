@@ -8,10 +8,14 @@
  * to lay out along.
  *
  * It is a demanding form and the limits are real, so they are enforced rather
- * than documented and hoped for. Past about ten participants the ribbons occlude
- * each other and the chart becomes a decorative tangle — `maxNodes` folds the
- * tail. Colour follows the SOURCE arc, which is the only convention that lets a
- * reader trace a ribbon back to where it came from.
+ * than documented and hoped for. Past about eight participants the ribbons
+ * occlude each other and the chart becomes a decorative tangle — `maxNodes`
+ * keeps the biggest participants and DROPS the rest, flows included; it is a
+ * cut, not an "Other" fold, so a reader comparing against a total should be
+ * told. Eight is also the palette's slot count: a ninth arc would take the
+ * de-emphasis ink and two participants would become indistinguishable. Colour
+ * follows the SOURCE arc, which is the only convention that lets a reader
+ * trace a ribbon back to where it came from.
  */
 import { useState } from 'react';
 
@@ -20,13 +24,19 @@ import { arcPath } from './curve';
 import type { ChordChartProps } from './types';
 
 export default function ChordChart({
-  labels, matrix, size = 340, maxNodes = 10, padAngle = 0.04, arcWidth = 12,
+  labels, matrix, size = 340, maxNodes = 8, padAngle = 0.04, arcWidth = 12,
   formatValue = v => String(v), className, emptyLabel = 'No flows to chart.',
 }: ChordChartProps) {
   const [hover, setHover] = useState<number | null>(null);
 
+  // A ragged or NaN-carrying matrix must degrade to zeros, not throw in the
+  // row reduce or slip NaN totals past the `grand <= 0` guard.
+  const cell = (row: number, col: number): number => {
+    const value = matrix[row]?.[col];
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  };
   const totals = labels.map((_, i) =>
-    matrix[i].reduce((n, v) => n + v, 0) + matrix.reduce((n, row) => n + row[i], 0));
+    labels.reduce((n, _l, j) => n + cell(i, j) + cell(j, i), 0));
   const order = labels.map((_, i) => i).sort((a, b) => totals[b] - totals[a]).slice(0, maxNodes);
   const grand = order.reduce((n, i) => n + totals[i], 0);
   if (grand <= 0) return <p className={`text-sm text-gray-500 ${className ?? ''}`}>{emptyLabel}</p>;
@@ -52,7 +62,7 @@ export default function ChordChart({
   const ribbons: { from: number; to: number; value: number; a: number; b: number }[] = [];
   for (const from of order) {
     for (const to of order) {
-      const value = matrix[from]?.[to] ?? 0;
+      const value = cell(from, to);
       if (value <= 0) continue;
       const span = spans.get(from)!;
       const width = (value / Math.max(1, totals[from])) * (span.end - span.start);

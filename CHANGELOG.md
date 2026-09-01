@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.87.1
+
+Review follow-ups across the 4.84.0–4.87.0 chart tier, before anything ships
+to npm.
+
+- **Escape goes through the modal seam.** `CartesianPlot` and `TimeSeriesChart`
+  handled Escape on the svg itself, where `Modal`'s window-capture listener
+  wins: inside a shell window the crosshair stayed lit and the WINDOW closed —
+  the same defect fixed in Tooltip (4.30.1), DropdownMenu (4.54.0) and
+  DatePicker (4.66.0). Both now register `registerModalEscapeInterceptor`
+  while a band is active, and an idle chart leaves Escape to the window.
+- **Signed columns.** Grouped columns foot on the zero line, not the plot
+  floor, and stacked series stack positives up and negatives down from zero —
+  a negative segment used to be clamped away entirely.
+- **Series colour is pinned to the caller's order.** A series dropped for
+  having no data no longer shifts its neighbours' colours out from under a
+  caller-built legend (TimeSeriesChart, ColumnChart).
+- **Histogram `bins` honours explicit boundaries.** An edge list was collapsed
+  to a bin COUNT and re-spread evenly over the data's own range — backend
+  latency buckets silently redrew the distribution.
+- **Hostile data cannot take a chart down.** `binValues` skips non-finite
+  observations instead of crashing; a NaN `RankedBars` row draws as missing
+  (em dash) rather than as the widest bar; a `RadarChart` axis with an
+  explicit `max` of 0 no longer erases the polygon; a ragged `ChordChart`
+  matrix degrades to zeros; `ScatterChart` no longer crashes when a polling
+  caller shrinks the data mid-hover.
+- **Dark mode kept its marks.** The RankedBars/Meter tracks moved off
+  `bg-gray-100` (which collapses into the host card's `--surface`) to
+  `bg-gray-200`, and Meter's objective marker moved off unmapped `bg-gray-600`
+  onto the axis ink.
+- **Reduced motion hides the shimmer and the ping** instead of freezing them
+  fully lit — their resting state is invisible, so the entrance treatment
+  (freeze at `opacity: 1`) was exactly wrong for them.
+- **Degenerate radial input stays legible.** The sunburst depth ramp is
+  floored before it crosses into invalid negative `color-mix()` shares (deep
+  rings painted black); `ChordChart` defaults `maxNodes` to the palette's
+  eight slots and documents that the tail is DROPPED, not folded;
+  `RadialBarChart` track mode draws the rows that fit rather than walking its
+  radii negative.
+- **Tooltips keep the missing-versus-zero contract everywhere.** RangeChart
+  and HeatmapChart printed 0 for an absent row or ragged cell.
+- **ChartBrush drags by pointer capture alone** — no window listeners to leak
+  on unmount mid-drag, `pointercancel` ends a drag, and `touch-action: none`
+  keeps touch drags from being stolen for scrolling.
+- **API before it becomes permanent:** the three stray `colour` props
+  (`ChartDefsProps.fills`, `ChartDotProps`, `ChartBrushProps`) renamed to
+  `color` to match every other prop in the kit; `usePlotWidth` and
+  `autoHighlightIndex` are exported; the `ChartCurve`/`ChartStatusTone`
+  unions are now aliases of their source-of-truth definitions instead of
+  second copies.
+
 ## 4.87.0
 
 - **The radial, hierarchical and flow families.** `RadarChart`, `PieChart`,

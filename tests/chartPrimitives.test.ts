@@ -315,3 +315,45 @@ test('slots do not cycle: a ninth series gets the de-emphasis ink', () => {
   assert.equal(seriesColor(7), SERIES_VARS[7]);
   assert.equal(seriesColor(8), CHART_INK.muted);
 });
+
+// ── binning, the hostile inputs ─────────────────────────────────────────────
+
+test('binValues skips a non-finite observation instead of crashing on it', () => {
+  // One NaN used to poison the spread through Math.min/max and then index
+  // `bins[NaN]` — a TypeError out of one bad API sample.
+  const bins = binValues([0, 1, 2, NaN, 3, 4, 5], 5);
+  assert.equal(bins.reduce((n, b) => n + b.count, 0), 6, 'the six good samples all land');
+});
+
+test('explicit boundaries ARE the bins, not a bin count', () => {
+  // Backend-chosen latency edges must be honoured — collapsing them to an
+  // even re-spread of the data range silently redraws the distribution.
+  const bins = binValues([10, 30, 30, 120, 260, 1000], [25, 50, 100, 250, 1000]);
+  assert.deepEqual(
+    bins.map(b => [b.from, b.to, b.count]),
+    [[25, 50, 2], [50, 100, 0], [100, 250, 1], [250, 1000, 2]],
+    'edges kept verbatim, out-of-range dropped, top edge closed',
+  );
+});
+
+// ── the reduced-motion contract, read from the stylesheet ───────────────────
+
+test('reduced motion HIDES the shimmer and the ping instead of freezing them lit', async () => {
+  // Their resting state is invisible — the shimmer exits at translateX(200%),
+  // the ping fades to nothing. The entrance treatment (opacity:1) parked the
+  // shimmer band fully lit over the skeleton and pinned the ping halo at an
+  // opacity it never reaches while animating.
+  const { readFileSync } = await import('node:fs');
+  const { resolve } = await import('node:path');
+  // The specs run from an esbuild bundle in node_modules/.cache, so the repo
+  // root comes from the runner, the same way darkRampTokens.test.ts finds it.
+  const root = process.env.REPO_ROOT ?? resolve(import.meta.dirname, '..');
+  const css = readFileSync(resolve(root, 'src', 'ui.css'), 'utf-8');
+  const reduced = css.slice(css.indexOf('@media (prefers-reduced-motion: reduce)'));
+  const block = reduced.slice(0, reduced.indexOf('}\n}') + 3);
+  const hidden = block.match(/\.rosh-viz-shimmer,\s*\.rosh-viz-ping\s*\{[^}]*\}/);
+  assert.ok(hidden, 'shimmer and ping get their own reduced-motion rule');
+  assert.match(hidden![0], /opacity:\s*0\s*!important/, 'they stop by disappearing');
+  const entrance = block.match(/\.rosh-viz-wipe[\s\S]*?\{[^}]*\}/);
+  assert.ok(entrance && !/shimmer|ping/.test(entrance[0]), 'the visible-rest rule no longer claims them');
+});

@@ -38,13 +38,13 @@ export default function ChartBrush({
   onRangeChange,
   height = 46,
   width = 720,
-  colour,
+  color,
   className,
 }: ChartBrushProps) {
   const track = useRef<SVGSVGElement>(null);
   const last = labels.length - 1;
   const [from, to] = range;
-  const hue = colour ?? resolveSeriesColor(0);
+  const hue = color ?? resolveSeriesColor(0);
 
   const xAt = (index: number) => (last === 0 ? 0 : (index / last) * width);
   const indexAt = (clientX: number) => {
@@ -80,16 +80,23 @@ export default function ChartBrush({
     if (event.key === 'End') { event.preventDefault(); move(edge, last); }
   };
 
-  const onDrag = (edge: 'from' | 'to') => (event: PointerEvent<SVGRectElement>) => {
+  // Pointer capture routes every later pointer event to the handle itself, so
+  // the drag needs NO window listeners: nothing leaks on unmount mid-drag, and
+  // `pointercancel` — the browser reclaiming the gesture — ends the drag the
+  // same way `pointerup` does. `touch-action: none` on the handle keeps a
+  // touch drag from being stolen for scrolling before it starts.
+  const dragging = useRef<'from' | 'to' | null>(null);
+
+  const onDragStart = (edge: 'from' | 'to') => (event: PointerEvent<SVGRectElement>) => {
+    dragging.current = edge;
     event.currentTarget.setPointerCapture(event.pointerId);
-    const handle = (moveEvent: globalThis.PointerEvent) =>
-      move(edge, indexAt(moveEvent.clientX));
-    const stop = () => {
-      window.removeEventListener('pointermove', handle);
-      window.removeEventListener('pointerup', stop);
-    };
-    window.addEventListener('pointermove', handle);
-    window.addEventListener('pointerup', stop);
+  };
+  const onDragMove = (edge: 'from' | 'to') => (event: PointerEvent<SVGRectElement>) => {
+    if (dragging.current !== edge) return;
+    move(edge, indexAt(event.clientX));
+  };
+  const onDragEnd = (edge: 'from' | 'to') => () => {
+    if (dragging.current === edge) dragging.current = null;
   };
 
   const handle = (edge: 'from' | 'to') => {
@@ -109,8 +116,12 @@ export default function ChartBrush({
         // The label, not the index — "00:14" is the thing the reader is
         // choosing; "2" is an implementation detail.
         aria-valuetext={labels[index]}
+        style={{ touchAction: 'none' }}
         onKeyDown={onKey(edge)}
-        onPointerDown={onDrag(edge)}
+        onPointerDown={onDragStart(edge)}
+        onPointerMove={onDragMove(edge)}
+        onPointerUp={onDragEnd(edge)}
+        onPointerCancel={onDragEnd(edge)}
       />
     );
   };

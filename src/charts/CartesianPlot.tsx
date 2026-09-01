@@ -13,8 +13,9 @@
  * nothing else — the same division visx draws between `@visx/axis` and whatever
  * you put in the group above it.
  */
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 
+import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 import { CHART_INK } from './palette';
 import { bandScale, linearScale, niceMax, type BandScale, type LinearScale } from './scale';
 import { usePlotWidth } from './usePlotWidth';
@@ -79,6 +80,20 @@ export default function CartesianPlot({
   const [active, setActive] = useState<number | null>(null);
   const clipId = useId();
 
+  // Escape must go through the modal seam: `Modal` listens on `window` in the
+  // CAPTURE phase, so an element-level handler never sees the press inside a
+  // shell window — the window closes instead of the crosshair clearing.
+  // Registered only while a band is active, so an idle chart still lets
+  // Escape close the window.
+  useEffect(() => {
+    if (active === null) return;
+    return registerModalEscapeInterceptor(event => {
+      if (event.key !== 'Escape') return false;
+      setActive(null);
+      return true;
+    });
+  }, [active]);
+
   if (labels.length === 0) {
     return (
       <div className={className} ref={host}>
@@ -103,9 +118,8 @@ export default function CartesianPlot({
   const labelStep = Math.max(1, Math.ceil(labels.length / Math.max(1, Math.floor(width / 84))));
 
   const onKey = (event: KeyboardEvent<SVGSVGElement>) => {
-    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft' && event.key !== 'Escape') return;
+    if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
     event.preventDefault();
-    if (event.key === 'Escape') { setActive(null); return; }
     const delta = event.key === 'ArrowRight' ? 1 : -1;
     setActive(prev => Math.min(labels.length - 1, Math.max(0, (prev ?? 0) + delta)));
   };

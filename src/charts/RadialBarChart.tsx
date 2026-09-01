@@ -46,22 +46,31 @@ export default function RadialBarChart({
   const bandWidth = variant === 'track'
     ? Math.max(6, (outer - size * 0.16) / rows.length)
     : 0;
-  const angle = angleScale(rows.length, 0.03);
+  // Once bandWidth hits its 6px floor, extra rows would walk the radii
+  // inwards past zero — zero-thickness tracks, then garbage arcs. Draw the
+  // biggest rows that fit rather than degenerating; this is a gauge cluster,
+  // not a list form, and RankedBars is the form for a long tail.
+  const trackCapacity = Math.max(1, Math.floor((outer - size * 0.16) / bandWidth || 1));
+  const drawnRows = variant === 'track' ? rows.slice(0, trackCapacity) : rows;
+  // The gap may not eat the whole band: trackGap >= bandWidth would leave
+  // zero-thickness tracks.
+  const gap = Math.min(trackGap, Math.max(1, bandWidth - 2));
+  const angle = angleScale(drawnRows.length, 0.03);
 
   return (
     <div className={className}>
       <svg width="100%" height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-labelledby={titleId}
         onMouseLeave={() => setHover(null)}>
-        <title id={titleId}>{`${rows.length} categories, ${variant === 'track' ? 'as concentric proportions' : 'around a cycle'}`}</title>
+        <title id={titleId}>{`${drawnRows.length} categories, ${variant === 'track' ? 'as concentric proportions' : 'around a cycle'}`}</title>
 
-        {rows.map((row, i) => {
+        {drawnRows.map((row, i) => {
           const colour = resolveSeriesColor(i, row.color, row.tone);
           const share = Math.max(0, Math.min(1, row.value / top));
           const dim = hover !== null && hover !== i;
 
           if (variant === 'track') {
             const r2 = outer - i * bandWidth;
-            const r1 = r2 - bandWidth + trackGap;
+            const r1 = r2 - bandWidth + gap;
             const start = -Math.PI / 2;
             return (
               <g key={row.key} opacity={dim ? 0.4 : 1} onMouseEnter={() => setHover(i)}

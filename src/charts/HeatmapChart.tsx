@@ -107,7 +107,8 @@ export default function HeatmapChart({
         <div className="absolute top-1 right-1 z-10">
           <ChartTooltip
             title={`${rows[hover.r]} · ${columns[hover.c]}`}
-            rows={[{ key: 'v', label, color: hue, value: formatValue(cells[hover.r]?.[hover.c] ?? 0) }]}
+            // A ragged/missing cell renders the em dash: absent is not zero.
+            rows={[{ key: 'v', label, color: hue, value: cells[hover.r]?.[hover.c] == null ? undefined : formatValue(cells[hover.r][hover.c]) }]}
           />
         </div>
       )}

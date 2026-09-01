@@ -70,8 +70,10 @@ export default function SunburstChart({
   const ring = (outer - innerRadius) / depth;
   const total = wedges.filter(w => w.depth === 0).reduce((n, w) => n + w.value, 0);
 
+  // Floored: past depth four the unclamped ramp crosses zero, and a negative
+  // percentage is an invalid color-mix() — the deepest rings painted BLACK.
   const shade = (w: Wedge) =>
-    `color-mix(in oklab, ${resolveSeriesColor(w.branch)} ${(100 - w.depth * 24).toFixed(0)}%, ${CHART_INK.surface})`;
+    `color-mix(in oklab, ${resolveSeriesColor(w.branch)} ${Math.max(16, 100 - w.depth * 24).toFixed(0)}%, ${CHART_INK.surface})`;
 
   return (
     <div className={className}>

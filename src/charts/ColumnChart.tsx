@@ -33,15 +33,28 @@ export default function ColumnChart({
   const { highlighted } = useHighlight();
   if (loading) return <ChartSkeleton height={height} width={width} variant="bars" className={className} />;
 
-  const drawn = series.filter(s => s.data.some(v => Number.isFinite(v)));
-  const totals = labels.map((_, i) => drawn.reduce((sum, s) => sum + (s.data[i] ?? 0), 0));
+  // `slot` pins each series to its ORIGINAL index: colour must not shift when
+  // an all-null series is dropped, or the plot and a caller-built legend
+  // disagree exactly when a series has a data outage.
+  const drawn = series
+    .map((s, slot) => ({ ...s, slot }))
+    .filter(s => s.data.some(v => Number.isFinite(v)));
+  const finiteAt = (s: { data: (number | null)[] }, i: number): number => {
+    const v = s.data[i];
+    return typeof v === 'number' && Number.isFinite(v) ? v : 0;
+  };
+  const totals = labels.map((_, i) => drawn.reduce((sum, s) => sum + finiteAt(s, i), 0));
+  // Signed data stacks in two directions: positives up from zero, negatives
+  // down. Each bucket's axis reach is its one-sided totals, not the net.
+  const posTotals = labels.map((_, i) => drawn.reduce((sum, s) => sum + Math.max(0, finiteAt(s, i)), 0));
+  const negTotals = labels.map((_, i) => drawn.reduce((sum, s) => sum + Math.min(0, finiteAt(s, i)), 0));
   const percent = stacked && stackMode === 'percent';
   // A bucket with no traffic has no composition: 0/0 is a gap, not an empty
   // stack and not a full one.
   const share = (value: number, i: number) => (totals[i] > 0 ? value / totals[i] : null);
   const values = percent
     ? [1]
-    : stacked ? totals : drawn.flatMap(s => s.data.filter(Number.isFinite) as number[]);
+    : stacked ? [...posTotals, ...negTotals] : drawn.flatMap(s => s.data.filter(Number.isFinite) as number[]);
 
   return (
     <CartesianPlot
@@ -55,10 +68,10 @@ export default function ColumnChart({
           title={labels[index]}
           // Stack order: the bottom segment is the first row, because that is
           // the order the column itself is read in.
-          rows={drawn.map((s, si) => ({
+          rows={drawn.map(s => ({
             key: s.key,
             label: s.label,
-            color: resolveSeriesColor(si, s.color, s.tone),
+            color: resolveSeriesColor(s.slot, s.color, s.tone),
             // Percent mode drops volume from the plot, so the tooltip carries
             // it back — the share AND the count it was taken over.
             value: !Number.isFinite(s.data[index])
@@ -88,19 +101,39 @@ export default function ColumnChart({
           <ChartDefs id={defsId} glow={glow} />
           {labels.map((_, i) => {
             const slot = x.bandwidth / (stacked ? 1 : Math.max(1, drawn.length));
-            let base = 0;
+            // Two running bases: positive segments stack up from zero and
+            // negative ones down, so a signed series neither vanishes (the old
+            // clamp) nor overdraws its neighbours.
+            let basePos = 0;
+            let baseNeg = 0;
+            // The zero line, clamped into the domain: grouped bars grow FROM
+            // it, not from the plot floor — a floor foot drew a positive bar
+            // through the zero line whenever the domain went negative.
+            const zeroY = y(Math.min(y.domain[1], Math.max(y.domain[0], 0)));
             return drawn.map((s, si) => {
               const raw = s.data[i];
               if (!Number.isFinite(raw)) return null;
               // In percent mode a zero-total bucket has nothing to draw at all.
               const value = percent ? share(raw as number, i) : raw;
               if (value === null) return null;
-              const colour = resolveSeriesColor(si, s.color, s.tone);
+              const colour = resolveSeriesColor(s.slot, s.color, s.tone);
               const bx = stacked ? x(i) : x(i) + si * slot;
-              const top = stacked ? y(base + (value as number)) : y(value as number);
-              const foot = stacked ? y(base) : bottom;
-              base += stacked ? (value as number) : 0;
-              const h = Math.max(0, foot - top - (stacked && si > 0 ? STACK_GAP : 0));
+              let top: number;
+              let foot: number;
+              let stackedFromZero = true;
+              if (stacked) {
+                const v = value as number;
+                const from = v >= 0 ? basePos : baseNeg;
+                const to = from + v;
+                if (v >= 0) basePos = to; else baseNeg = to;
+                top = y(Math.max(from, to));
+                foot = y(Math.min(from, to));
+                stackedFromZero = from === 0;
+              } else {
+                top = Math.min(y(value as number), zeroY);
+                foot = Math.max(y(value as number), zeroY);
+              }
+              const h = Math.max(0, foot - top - (stacked && !stackedFromZero ? STACK_GAP : 0));
               // Emphasis: everything that is not the point recedes to the
               // de-emphasis ink, rather than staying coloured at low contrast.
               const isLit = lit === null || lit === i;

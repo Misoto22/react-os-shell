@@ -191,7 +191,7 @@ export interface ChartDefsProps {
   /** Unique per chart instance — pass `useId()`. */
   id: string;
   /** One entry per series needing a fill. */
-  fills?: { colour: string; variant?: FillVariant }[];
+  fills?: { color: string; variant?: FillVariant }[];
   fadeFrom?: number;
   fadeTo?: number;
   /** Soft outer bloom. Off by default — it is an accent, not a default. */
@@ -210,7 +210,7 @@ export function ChartDefs({
     <defs>
       {fills.map((fill, i) => (
         <FillDef
-          key={i} id={id} index={i} colour={fill.colour}
+          key={i} id={id} index={i} colour={fill.color}
           variant={fill.variant ?? 'gradient'} from={fadeFrom} to={fadeTo}
         />
       ))}

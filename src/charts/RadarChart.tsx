@@ -53,8 +53,13 @@ export default function RadarChart({
   const angle = angleScale(axes.length);
 
   // Per-axis maxima, so a metric in thousands cannot flatten one in tens.
+  // An explicit max must still be a usable divisor: `max: 0` or NaN would put
+  // 0/0 through the clamp — NaN survives Math.min/max — and silently erase
+  // the whole polygon.
   const maxima = axes.map((axis, i) =>
-    axis.max ?? Math.max(1, ...drawn.map(s => s.values[i] ?? 0)));
+    axis.max != null && Number.isFinite(axis.max) && axis.max > 0
+      ? axis.max
+      : Math.max(1, ...drawn.map(s => s.values[i] ?? 0).filter(Number.isFinite)));
 
   const at = (axisIndex: number, value: number): [number, number] => {
     const t = Math.max(0, Math.min(1, value / maxima[axisIndex]));

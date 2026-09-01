@@ -289,7 +289,8 @@ export { squarify } from '../charts/treemapLayout';
 export type { TreemapItem, TreemapTile } from '../charts/treemapLayout';
 export { ChartDefs, MOTION, stagger, fillFor, dashFor, fillId, glowId, maskId, groundId } from '../charts/effects';
 export type { ChartDefsProps, FillVariant, StrokeVariant, RevealDirection, BackgroundVariant } from '../charts/effects';
-export { ChartHighlightProvider, useHighlight, highlightOpacity } from '../charts/highlight';
+export { ChartHighlightProvider, useHighlight, highlightOpacity, autoHighlightIndex } from '../charts/highlight';
+export { usePlotWidth } from '../charts/usePlotWidth';
 export type {
   ChartStatusTone, ChartCurve,
   ChartFillVariant, ChartStrokeVariant, ChartRevealDirection, ChartBackgroundVariant,

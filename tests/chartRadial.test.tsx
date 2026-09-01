@@ -285,3 +285,41 @@ const descents = (ys: number[]) => {
   for (let i = 1; i < ys.length; i += 1) if (ys[i] < ys[i - 1] - 1e-9) n += 1;
   return n;
 };
+
+// ── review follow-ups: the degenerate ends of the radial forms ──────────────
+
+test('a deep sunburst never mixes a negative colour share', () => {
+  // 100 - depth*24 crosses zero at depth five, and a negative percentage is
+  // an invalid color-mix() — the deepest rings painted BLACK.
+  type N = { key: string; label: string; value: number; children?: N[] };
+  let node: N = { key: 'leaf', label: 'leaf', value: 1 };
+  for (let i = 0; i < 6; i++) node = { key: `n${i}`, label: `n${i}`, value: 1, children: [node] };
+  const markup = html(<SunburstChart nodes={[node]} />);
+  assert.doesNotMatch(markup, /oklab[^)]*-\d+%/, 'every mix share stays non-negative');
+});
+
+test('a chord defaults to the palette, not past it', () => {
+  // Ten arcs on eight palette slots painted two participants (and all their
+  // ribbons) the same de-emphasis ink — indistinguishable by construction.
+  const labels = Array.from({ length: 14 }, (_, i) => `T${i}`);
+  const matrix = labels.map((_, r) => labels.map((__, c) => (r === c ? 0 : 14 - Math.abs(r - c))));
+  const markup = html(<ChordChart labels={labels} matrix={matrix} />);
+  const arcs = [...markup.matchAll(/<path[^>]*fill="var\(--viz-series-\d\)"/g)];
+  assert.equal(arcs.length, 8, 'the default cut is the slot count');
+});
+
+test('a ragged chord matrix degrades to zeros instead of throwing', () => {
+  const markup = html(<ChordChart labels={['a', 'b', 'c']} matrix={[[0, 2], [1]]} />);
+  assert.doesNotMatch(markup, /NaN/, 'no NaN geometry');
+});
+
+test('radial tracks stop at what fits rather than walking past the centre', () => {
+  // Once the band width hits its floor, extra rows drove the radii negative —
+  // garbage arcs over the middle of the chart.
+  const rows = Array.from({ length: 30 }, (_, i) => ({ key: `r${i}`, label: `R${i}`, value: i + 1 }));
+  const markup = html(<RadialBarChart size={300} rows={rows} />);
+  const title = markup.match(/<title[^>]*>(\d+) categories/);
+  assert.ok(title, 'the accessible title reports the drawn count');
+  assert.ok(Number(title![1]) < 30, `capped below 30, got ${title![1]}`);
+  assert.doesNotMatch(markup, /A ?-/, 'no negative arc radius in any path');
+});

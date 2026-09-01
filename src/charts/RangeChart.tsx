@@ -36,8 +36,9 @@ export default function RangeChart({
         <ChartTooltip
           title={labels[index]}
           rows={[
-            { key: 'high', label: 'High', color: colour, value: formatValue(rows[index]?.high ?? 0) },
-            { key: 'low', label: 'Low', color: colour, value: formatValue(rows[index]?.low ?? 0) },
+            // undefined renders the em dash: "no row here" is not "zero".
+            { key: 'high', label: 'High', color: colour, value: rows[index] == null ? undefined : formatValue(rows[index].high) },
+            { key: 'low', label: 'Low', color: colour, value: rows[index] == null ? undefined : formatValue(rows[index].low) },
           ]}
         />
       )}
