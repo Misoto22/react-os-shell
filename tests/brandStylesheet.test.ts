@@ -91,8 +91,14 @@ test('brand.css imports the kit instead of restating it', () => {
   const css = read('brand.css');
 
   assert.match(css, /@import "\.\/styles\.css";/);
-  // Anything hand-copied from the kit is drift waiting to happen.
-  assert.doesNotMatch(css, /^\s*\.[a-z]/m, 'brand.css must declare no classes');
+  // Anything hand-copied from the kit is drift waiting to happen. The only
+  // classes this file may declare are the ef-* report primitives, which
+  // exist nowhere in the kit.
+  assert.doesNotMatch(
+    css,
+    /^\s*\.(?!ef-)[a-z]/m,
+    'brand.css declares only the ef-* report primitives',
+  );
   for (const role of RAMP) {
     assert.doesNotMatch(
       css,
@@ -140,4 +146,75 @@ test('status text clears AA in the theme it is read against', () => {
     /--danger-text:\s*(#\w+)/.exec(dark)?.[1],
     'a text variant that survives a theme swap unchanged has not been checked',
   );
+});
+
+/**
+ * The generator-facing API of a brand surface. Harness BRAND-2 lists exactly
+ * these names; an `ef-` class that is not here renders as nothing, and the
+ * brand checker reports it as a defect rather than a near miss. Adding a
+ * primitive means adding it in three places — here, in the CSS, and in the
+ * contract — which is the point: the list is the contract.
+ */
+const REPORT_API = [
+  'ef-report', 'ef-shell', 'ef-skip-link', 'ef-masthead', 'ef-identity',
+  'ef-logo-light', 'ef-logo-dark', 'ef-document-meta', 'ef-footer',
+  'ef-opening', 'ef-opening-claim', 'ef-opening-proof',
+  'ef-section', 'ef-section-title', 'ef-flow', 'ef-reading', 'ef-peers',
+  'ef-label', 'ef-caption', 'ef-mono', 'ef-numeric', 'ef-visually-hidden',
+  'ef-sources',
+  'ef-stat-strip', 'ef-stat', 'ef-stat-label', 'ef-stat-value', 'ef-stat-unit',
+  'ef-stat-detail', 'ef-unavailable',
+  'ef-table-wrap', 'ef-status',
+  'ef-bar-list', 'ef-bar-label', 'ef-bar-track', 'ef-bar-fill', 'ef-bar-value',
+  'ef-chart', 'ef-series-1', 'ef-series-2', 'ef-series-3', 'ef-series-4',
+  'ef-series-5', 'ef-series-6', 'ef-series-stroke', 'ef-series-fill',
+  'ef-chart-axis', 'ef-chart-gridline', 'ef-chart-label',
+  'ef-field', 'ef-helper', 'ef-error', 'ef-button',
+];
+
+test('every published report primitive is declared, and nothing else is', () => {
+  const css = read('brand.css');
+
+  for (const name of REPORT_API) {
+    assert.match(
+      css,
+      new RegExp(`\\.${name}(?![a-z0-9-])`),
+      `${name} is in the API and not in the stylesheet`,
+    );
+  }
+  const declared = new Set(css.match(/\.ef-[a-z0-9-]+/g) ?? []);
+  const unlisted = [...declared].filter((c) => !REPORT_API.includes(c.slice(1)));
+  assert.deepEqual(unlisted, [], 'a declared ef-* class is missing from the API list');
+});
+
+test('the primitives yield to utilities and make the layout defects unexpressible', () => {
+  const css = read('brand.css');
+
+  // In @layer components so a utility on the same element still wins.
+  assert.match(css, /@layer components \{/);
+  // BRAND-4.1: an evidence table owns the full width of its section.
+  assert.match(css, /\.ef-table-wrap table \{[^}]*width: 100%/);
+  // A wide table scrolls inside its wrap; the page body never does (BRAND-8).
+  assert.match(css, /\.ef-table-wrap \{[^}]*overflow-x: auto/);
+  // Peer bars share one label lane, one plot lane, one value lane.
+  assert.match(
+    css,
+    /\.ef-bar-list \{[^}]*grid-template-columns: minmax\(8rem, max-content\) minmax\(0, 1fr\) max-content/,
+  );
+  // The prose measure is the one place reading width is legitimate.
+  assert.match(css, /\.ef-reading \{ max-width: 42rem; \}/);
+});
+
+test('status text reads the -text variants, never a fill hue', () => {
+  const css = read('brand.css');
+  const status = css.match(/\.ef-status[^{]*\{[^}]*\}/g) ?? [];
+
+  assert.ok(status.length >= 4, 'the status rules are missing');
+  for (const rule of status) {
+    assert.doesNotMatch(
+      rule,
+      /var\(--(danger|warning|success)\)/,
+      `a fill hue is used as status text: ${rule}`,
+    );
+  }
 });

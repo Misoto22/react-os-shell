@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.93.0
+
+`brand.css` grows a semantic layer: the report primitives.
+
+- **New `ef-*` report primitives, in `@layer components`.** A brand surface
+  had a vocabulary of utility classes and nothing above it, so every report
+  composed its layout from scratch — and the recurring defects (a table at
+  reading width, metric boxes that do not share a baseline, bars that do not
+  share a scale) were all layout the author had to get right by hand. The
+  primitives take that decision away: `.ef-table-wrap` owns the full width of
+  its section, `.ef-bar-list` owns one shared label, plot and value lane,
+  `.ef-stat-strip` owns the peer grid and its baseline. Harness GOV-9's first
+  rung — make the wrong thing unavailable — rather than a check that finds it
+  afterwards.
+
+  Fifty-three names, in seven groups: shell (`ef-report`, `ef-shell`,
+  `ef-masthead`, `ef-identity` with two logo slots, `ef-document-meta`,
+  `ef-footer`), opening and structure (`ef-opening-claim`, `ef-opening-proof`,
+  `ef-section`, `ef-section-title`, `ef-flow`, `ef-reading`, `ef-peers`),
+  type roles (`ef-label`, `ef-caption`, `ef-mono`, `ef-numeric`,
+  `ef-visually-hidden`, `ef-sources`), figures (`ef-stat-*`,
+  `ef-unavailable`), evidence tables (`ef-table-wrap`, which styles the
+  caption, header, baseline-aligned cells and numeric columns), status
+  (`ef-status[data-status]` over the nine groups, reading only the `-text`
+  hues), bars and inline-SVG charts (`ef-bar-*`, `ef-chart`, `ef-series-1…6`),
+  and controls (`ef-field`, `ef-helper`, `ef-error`, `ef-button`, all at the
+  44px target).
+
+  The list is the API. Harness `52-brand-surface.md` BRAND-2 enumerates the
+  same names, and the brand checker reports an `ef-` class outside the list as
+  a defect — an invented `ef-stat-note` renders as nothing, exactly like a
+  spacing step the kit never compiles. `tests/brandStylesheet.test.ts` pins the list, pins that nothing
+  but `ef-*` is declared here, and pins the three layout guarantees above.
+
+  Render-neutral for every portal: no portal loads `brand.css`.
+
 ## 4.92.0
 
 - **Dark `--ink-faint` clears AA.** It was `#7f849c`, which measures 4.44:1
