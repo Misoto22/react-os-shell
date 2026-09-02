@@ -2,6 +2,38 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.94.0
+
+Six fresh agents composed brand surfaces from `brand.css` and the harness
+contract alone. Every one of them hit the same four gaps.
+
+- **A page with no `data-theme` now follows the OS.** Dark was keyed only to
+  `[data-theme="dark"]`, which a portal stamps from the user's own choice. A
+  standalone report has no such switch, so every one of those pages rendered
+  light to a dark-preferring reader, and each agent worked around it by
+  writing its own `matchMedia` stamp. `brand.css` now carries the kit's dark
+  values under `@media (prefers-color-scheme: dark)`, guarded on
+  `:root:not([data-theme])` so any explicit stamp still wins. Render-neutral
+  for the portals, which always stamp. The test pins the block's values equal
+  to `ui.css`, so the two cannot drift.
+
+- **New `--accent-text` and `--on-accent`.** `--accent-600` is 5.17:1 on white
+  and **3.17:1** on the dark surface, so it is a fill and never an ink, and
+  there was no accent counterpart to `--danger-text`. A link on a dark page
+  had no AA-safe colour. `--accent-text` is `#1d4ed8` light (6.70:1) and
+  `#60a5fa` dark (6.45:1); `--on-accent` is the ink that sits on an accent
+  fill, `#ffffff` in both themes, and `.ef-button` reads it instead of a
+  literal.
+
+- **`.ef-skip-link` clears the 44px target.** It computed to about 42px, so
+  the only control on a typical report missed the floor the contract sets for
+  every other control.
+
+- **`.ef-flow` is declared before `.ef-section`.** Both are specificity
+  (0,1,0), so source order decided whether a section inside a flow kept its
+  own 2rem or collapsed to the flow's 1rem. It keeps its own now, deliberately
+  and testably.
+
 ## 4.93.0
 
 `brand.css` grows a semantic layer: the report primitives.

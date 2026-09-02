@@ -63,6 +63,8 @@ function block(css: string, selector: string, marker: string): string {
   assert.fail(`no ${selector} block declaring ${marker}`);
 }
 
+const block2 = block;
+
 test('the neutral ramp names the same twelve roles in light and dark', () => {
   const css = read('ui.css');
   const light = block(css, ':root', '--surface: #ffffff');
@@ -87,6 +89,32 @@ test('light declares the ramp before dark, so dark still wins', () => {
   assert.ok(light < dark, 'light ramp must precede the dark block');
 });
 
+/** The one block in brand.css allowed to restate the ramp: the OS-preference
+ * fallback for a page that stamps no data-theme. Everything outside it is
+ * held to the no-restating rule. */
+function osDarkBlock(raw: string): { block: string; rest: string } {
+  // Comments mention the media query by name, so match the RULE, not the prose.
+  const css = raw.replace(/\/\*[\s\S]*?\*\//g, ' ');
+  const start = css.search(/@media \(prefers-color-scheme: dark\)\s*\{/);
+  assert.notEqual(start, -1, 'the prefers-color-scheme block is missing');
+  let depth = 0;
+  let end = start;
+  for (let i = css.indexOf('{', start); i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    if (css[i] === '}' && --depth === 0) {
+      end = i + 1;
+      break;
+    }
+  }
+  return { block: css.slice(start, end), rest: css.slice(0, start) + css.slice(end) };
+}
+
+function declarations(block: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const m of block.matchAll(/(--[a-z-]+):\s*([^;]+);/g)) out.set(m[1], m[2].trim());
+  return out;
+}
+
 test('brand.css imports the kit instead of restating it', () => {
   const css = read('brand.css');
 
@@ -99,13 +127,56 @@ test('brand.css imports the kit instead of restating it', () => {
     /^\s*\.(?!ef-)[a-z]/m,
     'brand.css declares only the ef-* report primitives',
   );
+  const { rest } = osDarkBlock(css);
   for (const role of RAMP) {
     assert.doesNotMatch(
-      css,
+      rest,
       new RegExp(`\\${role}:`),
       `${role} belongs to the kit, not brand.css`,
     );
   }
+});
+
+test('a page with no data-theme follows the OS, with the kit\'s own dark values', () => {
+  const css = read('brand.css');
+  const { block } = osDarkBlock(css);
+
+  // Any explicit stamp wins; only the unstamped page follows the OS.
+  assert.match(block, /:root:not\(\[data-theme\]\)\s*\{/);
+  assert.match(block, /color-scheme:\s*dark/);
+
+  const kitDark = declarations(block2(read('ui.css'), '[data-theme="dark"]', '--surface: #1e1e2e'));
+  const ours = declarations(block);
+  for (const role of RAMP) {
+    assert.equal(ours.get(role), kitDark.get(role), `${role} drifted from the kit's dark value`);
+  }
+  const brandDark = declarations(block2(css, ':root[data-theme="dark"]', '--danger-text'));
+  for (const token of ['--danger-text', '--warning-text', '--success-text', '--accent-text']) {
+    assert.equal(ours.get(token), brandDark.get(token), `${token} drifted from the explicit dark block`);
+  }
+});
+
+test('the accent has a text variant per theme and an ink for its fill', () => {
+  const css = read('brand.css');
+  const light = declarations(block2(css, ':root', '--accent-600'));
+  const dark = declarations(block2(css, ':root[data-theme="dark"]', '--danger-text'));
+
+  // --accent-600 is 3.17:1 on the dark surface: a fill, never an ink.
+  assert.equal(light.get('--accent-text'), '#1d4ed8');
+  assert.equal(dark.get('--accent-text'), '#60a5fa');
+  assert.equal(light.get('--on-accent'), '#ffffff');
+  assert.match(css, /\.ef-button \{[^}]*color: var\(--on-accent\)/);
+  assert.doesNotMatch(css, /\.ef-[a-z-]+[^{]*\{[^}]*#[0-9a-f]{3,8}/i, 'a primitive declares a literal colour');
+});
+
+test('every control clears the 44px target, and a flow yields to a section', () => {
+  const css = read('brand.css');
+
+  assert.match(css, /\.ef-skip-link \{[^}]*min-height: 2\.75rem/);
+  assert.match(css, /\.ef-button \{[^}]*min-height: 2\.75rem/);
+  // Same specificity; source order is the only thing that lets .ef-section
+  // keep its own margin inside a .ef-flow.
+  assert.ok(css.indexOf('.ef-flow > * + *') < css.indexOf('.ef-section {'), 'declare .ef-flow before .ef-section');
 });
 
 test('brand.css supplies what a page without utility classes cannot express', () => {

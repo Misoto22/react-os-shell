@@ -51,6 +51,13 @@
   --warning-text: #b45309;  /* 5.02:1 — amber-700; #f59e0b is 2.15:1 here */
   --success-text: #15803d;  /* 5.02:1 */
 
+  /* The accent as TEXT — a link, an emphasised figure. --accent-600 itself is
+     5.17:1 on white and 3.17:1 on the dark surface, so it is a fill, not an
+     ink. --on-accent is the ink that sits ON an accent fill; it is white in
+     both themes because the fill does not move. */
+  --accent-text: #1d4ed8;   /* 6.70:1 — blue-700 */
+  --on-accent: #ffffff;     /* 5.17:1 on --accent-600 */
+
   --radius: 0.375rem;
   --radius-lg: 0.5rem;
 
@@ -70,6 +77,43 @@
   --danger-text: #f87171;   /* 5.93:1 on the dark --surface */
   --warning-text: #f59e0b;  /* 7.64:1 */
   --success-text: #16a34a;  /* 4.98:1 */
+  --accent-text: #60a5fa;   /* 6.45:1 — blue-400 */
+}
+
+/*
+ * A page that links this stylesheet and stamps no data-theme still has a
+ * reader with an OS preference. The portals never take this path — they stamp
+ * the attribute from the user's own choice, which must beat the OS — but a
+ * report, a published artifact, a standalone page has no switch of its own,
+ * so the roles and the primitives follow prefers-color-scheme by themselves.
+ *
+ * Guarded on :not([data-theme]): any explicit stamp, light or dark or an
+ * accent theme, wins over the OS. The values ARE the kit's dark values, and
+ * tests/brandStylesheet.test.ts pins them equal to ui.css so they cannot
+ * drift. Utility colour classes remap only under [data-theme="dark"]
+ * (themes.css), so a page that paints with utilities stamps the attribute
+ * itself — one line of matchMedia — or does not paint with utilities.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --surface: #1e1e2e;
+    --surface-sunken: #181825;
+    --surface-raised: #313244;
+    --line-subtle: #2a2a3c;
+    --line: #313244;
+    --line-strong: #45475a;
+    --ink-faintest: #6c7086;
+    --ink-faint: #848aa2;
+    --ink-muted: #9399b2;
+    --ink: #a6adc8;
+    --ink-strong: #bac2de;
+    --ink-strongest: #cdd6f4;
+    --danger-text: #f87171;
+    --warning-text: #f59e0b;
+    --success-text: #16a34a;
+    --accent-text: #60a5fa;
+  }
 }
 
 /*
@@ -92,9 +136,8 @@
  * an invented `ef-stat-note` renders as nothing, like any class the bundle
  * does not contain.
  *
- * Everything reads the roles declared above and in ui.css. The one literal
- * is the white ink on the accent button, which is white in both themes for
- * the same reason the kit's primary button is.
+ * Everything reads the roles declared above and in ui.css; nothing here
+ * declares a colour of its own.
  *
  * They sit in @layer components so a utility class on the same element
  * still wins, the way the kit's own components yield to utilities.
@@ -123,6 +166,9 @@
     top: 0;
     left: -100vw;
     z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem; /* BRAND-8: a 44px target, like every control */
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius);
@@ -194,6 +240,11 @@
     line-height: 1.6;
     color: var(--ink-muted);
   }
+  /* A flow owns the gaps between its children; the children add none. It is
+     declared BEFORE .ef-section so a section placed inside a flow keeps its
+     own 2rem, by source order — both selectors are (0,1,0). */
+  .ef-flow > * + * { margin-top: 1rem; }
+  .ef-flow > .ef-section-title + * { margin-top: 0.75rem; }
   .ef-section {
     margin-top: 2rem;
     padding-top: 2rem;
@@ -206,9 +257,6 @@
     letter-spacing: -0.01em;
     color: var(--ink-strongest);
   }
-  /* A flow owns the gaps between its children; the children add none. */
-  .ef-flow > * + * { margin-top: 1rem; }
-  .ef-flow > .ef-section-title + * { margin-top: 0.75rem; }
   /* Prose measure. Never a table's ancestor — that is BRAND-4.1. */
   .ef-reading { max-width: 42rem; }
   .ef-peers {
@@ -478,7 +526,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius);
     background: var(--accent-600);
-    color: #ffffff;
+    color: var(--on-accent);
     font: inherit;
     font-weight: 500;
     cursor: pointer;

@@ -381,8 +381,9 @@ so they cannot compose the kit; they link one stylesheet instead:
 ```
 
 It is `styles.css` compiled and self-contained, plus the tokens a page without
-utility classes cannot express (accent, status hues and their `-text` variants,
-radius, type), plus the **report primitives** — a small semantic layer in
+utility classes cannot express (accent and `--accent-text`/`--on-accent`,
+status hues and their `-text` variants, radius, type), plus the **report
+primitives** — a small semantic layer in
 `@layer components`, so a utility on the same element still wins:
 
 | Group | Classes |
@@ -394,6 +395,12 @@ radius, type), plus the **report primitives** — a small semantic layer in
 | Evidence | `ef-table-wrap` (caption, header, baseline-aligned cells, `ef-numeric` columns) · `ef-status[data-status]` over the nine groups |
 | Bars, charts | `ef-bar-list` `ef-bar-label` `ef-bar-track` `ef-bar-fill` (`style="--ef-bar: 48%"`) `ef-bar-value` · `ef-chart` `ef-series-1…6` `ef-series-stroke` `ef-series-fill` `ef-chart-axis` `ef-chart-gridline` `ef-chart-label` |
 | Controls | `ef-field` `ef-helper` `ef-error` `ef-button[data-variant]` |
+
+A page that stamps no `data-theme` follows the reader's OS preference: the
+stylesheet carries the dark ramp under `prefers-color-scheme`, guarded so any
+explicit stamp wins. Utility colour classes remap only under
+`[data-theme="dark"]`, so a page that paints with utilities stamps the
+attribute itself.
 
 The list is the API. The stylesheet is compiled, so an `ef-` name outside it
 renders as nothing, the same as `h-[440px]`. The layout primitives exist to
