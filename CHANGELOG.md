@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.90.0
+
+A published `brand.css`, and the light half of a token ramp that has only
+ever had its dark half.
+
+- **New export `react-os-shell/brand.css`.** A compiled, self-contained
+  stylesheet for a surface rendered outside a portal window — a report, a
+  published artifact, a proposal, an HTML email, a shop page. Those have no
+  React and no build step, so "resolve the value to react-os-shell" has
+  nothing to resolve to; they link this file instead. It is the kit's own
+  compiled vocabulary (`@import "./styles.css"`, never a hand-copied rule)
+  plus the tokens a page without utility classes cannot express: the accent
+  scale, the status hues, radius, and type. Being compiled is the point —
+  it contains exactly the classes the kit uses, so an arbitrary value like
+  `h-[440px]` renders as nothing rather than silently almost-working.
+
+- **The neutral ramp is declared for light, not only dark.** `--surface`,
+  `--ink`, `--line` and their nine siblings have named their roles inside
+  `[data-theme="dark"]` since 4.16, and nowhere else — so `var(--ink)`
+  resolved to nothing in a light theme. Invisible in the portals, which read
+  the utility classes rather than the roles, and fatal on a standalone page
+  that reads only the roles. Light now declares the same twelve, with the
+  Tailwind steps the dark block opposite already remaps, in the same shape
+  the `--viz-*` palette below it already used.
+
+  This changes nothing that renders today: no rule outside a
+  `[data-theme="dark"]` scope reads any of the twelve, in CSS or in TSX. The
+  light block sits immediately before the dark one because both are
+  specificity (0,1,0) and source order is the only thing keeping dark ahead
+  — `tests/brandStylesheet.test.ts` pins that order, and pins the two blocks
+  to the same twelve role names.
+
+- **`npm run build` now emits `dist/brand.css`.** `@tailwindcss/cli` compiles
+  `src/brand.css` after the copy step, so the published export is never the
+  uncompiled entry.
+
 ## 4.89.0
 
 The follow-ups deferred from the charts-tier audit

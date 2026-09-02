@@ -1,6 +1,6 @@
 {
   "name": "react-os-shell",
-  "version": "4.89.0",
+  "version": "4.90.0",
   "description": "Desktop-style React UI shell — windows, taskbar, start menu, sticky notes, frosted glass theming, and bundled apps.",
   "license": "MIT",
   "author": "Victor Y. Mau",
@@ -43,7 +43,8 @@
     },
     "./styles.css": "./dist/styles.css",
     "./ui.css": "./dist/ui.css",
-    "./themes.css": "./dist/themes.css"
+    "./themes.css": "./dist/themes.css",
+    "./brand.css": "./dist/brand.css"
   },
   "files": [
     "dist"
@@ -70,6 +71,7 @@
   "devDependencies": {
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
+    "@tailwindcss/cli": "^4.2.4",
     "@tanstack/react-query": "^5.100.5",
     "@types/jsdom": "^28.0.3",
     "@types/node": "^22.0.0",
@@ -96,13 +98,14 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "build": "tsup && cp src/*.css dist/",
+    "build": "tsup && cp src/*.css dist/ && npm run build:brand",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.test.json",
     "test": "node scripts/test.mjs",
     "test:browser": "node scripts/test-browser.mjs",
     "screenshot": "node scripts/screenshot.mjs",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "build:brand": "tailwindcss -i src/brand.css -o dist/brand.css --minify"
   },
   "keywords": [
     "react",

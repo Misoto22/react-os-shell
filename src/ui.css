@@ -103,6 +103,41 @@ html.rosh-reduce-transparency *::after {
 }
 
 /* ═══════════════════════════════════════════════════
+   The neutral ramp, light
+   ═══════════════════════════════════════════════════ */
+/*
+ * The dark block below has named these twelve roles since 4.16; light named
+ * none of them, so `var(--ink)` resolved to nothing outside a dark theme.
+ * That is the same shape the --viz-* palette further down already gets right:
+ * declared for both themes, read by role.
+ *
+ * Adding light values is render-neutral for existing consumers — no rule
+ * outside a `[data-theme="dark"]` scope reads any of these twelve, in CSS or
+ * in TSX. It exists so a surface built WITHOUT the kit's utility classes —
+ * a report, an emailed document, a standalone page — can read the same roles
+ * the portals do. That surface is governed by harness 52-brand-surface.md and
+ * loads `react-os-shell/brand.css`.
+ *
+ * The values are the Tailwind steps the dark block opposite already remaps:
+ * white/gray-50/gray-100 surfaces, gray-100/200/300 lines, gray-900 down to
+ * gray-400 ink. Keep the two blocks in step.
+ */
+:root {
+  --surface: #ffffff;
+  --surface-sunken: #f9fafb;
+  --surface-raised: #f3f4f6;
+  --line-subtle: #f3f4f6;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --ink-faintest: #9ca3af;
+  --ink-faint: #6b7280;
+  --ink-muted: #4b5563;
+  --ink: #374151;
+  --ink-strong: #1f2937;
+  --ink-strongest: #111827;
+}
+
+/* ═══════════════════════════════════════════════════
    Theme: Dark
    ═══════════════════════════════════════════════════ */
 [data-theme="dark"] {
