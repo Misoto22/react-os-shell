@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.92.0
+
+- **Dark `--ink-faint` clears AA.** It was `#7f849c`, which measures 4.44:1
+  against the dark surface — 0.06 under the 4.5:1 bar for normal text. That
+  step is what `.text-gray-500` renders as in a dark theme, so it carries real
+  text on every portal, and it has been marginally failing all along. Now
+  `#848aa2` at 4.79:1. The light value is unchanged at 4.83:1, and the step
+  stays well clear of `--ink-muted` above it.
+
+  This is a small visual change in dark mode: text that used `.text-gray-500`
+  lightens slightly. That is the fix, not a side effect.
+
 ## 4.91.0
 
 Status colour was never safe as text, and nothing said so.

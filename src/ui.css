@@ -164,7 +164,9 @@ html.rosh-reduce-transparency *::after {
   --line: #313244;
   --line-strong: #45475a;
   --ink-faintest: #6c7086;
-  --ink-faint: #7f849c;
+  /* 4.79:1 on --surface. Was #7f849c at 4.44:1 — under AA, and this step
+     is what `.text-gray-500` renders as in dark, so it carries real text. */
+  --ink-faint: #848aa2;
   /*
    * Currently unreachable, and worth knowing before you set it.
    *
