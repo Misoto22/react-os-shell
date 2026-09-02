@@ -67,6 +67,20 @@
    generated when consumers import react-os-shell/ui.css. */
 @source "./**/*.js";
 
+/* Tailwind scans every text file it can reach, prose included, so a class
+   NAMED in the README, the CHANGELOG or a contributor guide is compiled into
+   the bundle as if a component used it. That is not academic: `h-[440px]` and
+   `bg-[#abc]`, which .design-sync/conventions.md cites as examples of values
+   that render as NOTHING, were both real classes in the shipped stylesheet.
+   Worse downstream — harness 52-brand-surface.md treats the compiled bundle as
+   the published vocabulary, so a passing mention in prose silently widened the
+   organisation's brand contract. Excluding the documentation dropped 21 such
+   classes and none the code uses. Excluding a path that does not exist is not
+   an error, so these hold for a consumer's node_modules copy too. */
+@source not "../*.md";
+@source not "../docs/**";
+@source not "../.design-sync/**";
+
 /* The default `utils/glass.ts` already assumes at `getMenuOpacity()`'s
    fallback. Declared here so a ui-only consumer gets identical glass to a shell
    consumer at rest, and has one knob to dial it. <Layout> overrides it inline

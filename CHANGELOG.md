@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.94.1
+
+- **A class named in prose is no longer compiled into the stylesheet.**
+  Tailwind scans every text file it can reach, so mentioning a utility in the
+  README or the CHANGELOG put it in the bundle as if a component used it.
+  `h-[440px]` and `bg-[#abc]` — the two values `.design-sync/conventions.md`
+  cites as examples of things that render as **nothing** — were both real
+  classes in the shipped stylesheet. The bundle is also what the EFFICIENT
+  brand contract treats as the published vocabulary, so a passing mention in
+  prose silently widened it.
+
+  `ui.css` now excludes the documentation from the scan. Measured: 21 classes
+  dropped, none of which the kit's code uses, and none added. Render-neutral
+  for every consumer.
+
 ## 4.94.0
 
 Six fresh agents composed brand surfaces from `brand.css` and the harness
