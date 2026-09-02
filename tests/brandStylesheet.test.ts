@@ -117,3 +117,27 @@ test('brand.css supplies what a page without utility classes cannot express', ()
     assert.match(css, new RegExp(`\\${token}:`), `brand.css is missing ${token}`);
   }
 });
+
+test('status text clears AA in the theme it is read against', () => {
+  const css = read('brand.css');
+
+  // The fill hues are literal in both themes on purpose. As TEXT they are not
+  // safe: amber on white measures 2.15:1, below AA and below even the
+  // large-text bar. A surface that reads --warning for a label looks correct
+  // to its author and is unreadable to its reader, with nothing to catch it.
+  for (const token of ['--danger-text', '--warning-text', '--success-text']) {
+    assert.match(css, new RegExp(`\\${token}:`), `brand.css is missing ${token}`);
+  }
+
+  const light = block(css, ':root', '--accent-600');
+  const dark = block(css, ':root[data-theme="dark"]', '--danger-text');
+
+  // Same hue, moved until it clears the surface behind it.
+  assert.match(light, /--warning-text:\s*#b45309/);
+  assert.match(dark, /--warning-text:\s*#f59e0b/);
+  assert.notEqual(
+    /--danger-text:\s*(#\w+)/.exec(light)?.[1],
+    /--danger-text:\s*(#\w+)/.exec(dark)?.[1],
+    'a text variant that survives a theme swap unchanged has not been checked',
+  );
+});

@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.91.0
+
+Status colour was never safe as text, and nothing said so.
+
+- **New `--danger-text`, `--warning-text`, `--success-text`, per theme.**
+  `--danger`, `--warning` and `--success` are literal in both themes on
+  purpose — danger means the same thing in every product. That holds for a
+  fill: a bar, a dot, a rule. It does not hold for text, because the surface
+  behind it moves. `--warning` on white measures **2.15:1**, below WCAG 2.2 AA
+  and below even the large-text bar; `--danger` on the dark surface is 3.40:1.
+  A label written in either looks correct to its author and is unreadable to
+  its reader, with nothing in the stylesheet to catch it.
+
+  The text variants are the same hues moved until they clear 4.5:1 against the
+  surface of their own theme — amber-700 on light, amber-500 on dark, and so
+  on. The fill hues are unchanged, so nothing that renders today moves.
+
+  Scoped to `[data-theme]` like the rest of the kit, not to a media query: the
+  portals let a user pick a theme and an OS preference must not override that
+  choice. A surface with no theme switch — an email — inlines the same values
+  under `@media (prefers-color-scheme: dark)`.
+
+  `tests/brandStylesheet.test.ts` pins both halves and rejects a text variant
+  that survives a theme swap unchanged, which is the shape of the bug.
+
 ## 4.90.0
 
 A published `brand.css`, and the light half of a token ramp that has only

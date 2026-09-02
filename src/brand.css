@@ -36,14 +36,38 @@
 
   /* Literal in both themes, deliberately: danger means the same thing in
      every EFFICIENT product. Redefining it is a different conversation from
-     restyling neutrals — the same boundary ui.css draws. */
+     restyling neutrals — the same boundary ui.css draws.
+
+     These are the FILL hues — a bar, a dot, a rule, a border. They are not
+     safe as text: amber on white is 2.15:1, which fails WCAG 2.2 AA and even
+     the large-text bar. Status TEXT reads the -text variants below, which are
+     the same hues moved until they clear 4.5:1 against the surface of their
+     own theme. */
   --danger: #dc2626;
   --warning: #f59e0b;
   --success: #16a34a;
+
+  --danger-text: #dc2626;   /* 4.83:1 on --surface */
+  --warning-text: #b45309;  /* 5.02:1 — amber-700; #f59e0b is 2.15:1 here */
+  --success-text: #15803d;  /* 5.02:1 */
 
   --radius: 0.375rem;
   --radius-lg: 0.5rem;
 
   --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+/*
+ * The fill hues hold across themes; the text variants cannot, because the
+ * surface behind them moves. Scoped to [data-theme] rather than a media query
+ * to match the rest of the kit: the portals let a user pick a theme, and an OS
+ * preference must not override that choice. An offline surface that has no
+ * theme switch inlines the same values under
+ * `@media (prefers-color-scheme: dark)` instead — see harness BRAND-1.
+ */
+:root[data-theme="dark"] {
+  --danger-text: #f87171;   /* 5.93:1 on the dark --surface */
+  --warning-text: #f59e0b;  /* 7.64:1 */
+  --success-text: #16a34a;  /* 4.98:1 */
 }
