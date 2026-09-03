@@ -15,14 +15,21 @@
  * date-format preference, and the value contract is the plain `YYYY-MM-DD` the
  * API filters on.
  *
- * The panel is placed against whatever box CLIPS it rather than against a fixed
- * edge — see `clipBounds` below and the alignment effect in the component.
+ * The panel is portalled to <body> and placed by the kit's shared
+ * `useDropdownPosition`, like every other anchored popup: it escapes the
+ * `overflow-hidden` window body that would otherwise cut it in half, stays
+ * inside the shell window that owns the trigger (UI-11), and — because it is no
+ * longer a DOM descendant of the consumer's filter slot — cannot be resized by
+ * a consumer's descendant selector (UI-12). It used to be an `absolute` child
+ * aligned against whatever box clipped it, which solved the horizontal half of
+ * that and none of the rest.
  */
-import { useState, useRef, useCallback, useLayoutEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 import Calendar from './Calendar';
+import { useDropdownPosition } from './dropdownPosition';
 import { glassStyle } from '../utils/glass';
-import useClickOutside from '../hooks/useClickOutside';
 
 export interface DateRangePickerProps {
   /** Start of the range as `YYYY-MM-DD`, or '' when unset. */
@@ -44,6 +51,16 @@ export interface DateRangePickerProps {
   clearable?: boolean;
   /** Trigger text when no range is set. */
   placeholder?: string;
+  /**
+   * Fill the layout slot instead of shrink-wrapping the trigger label.
+   *
+   * The trigger is `inline-flex` by default, which is right in a toolbar row
+   * and wrong in a filter GRID, where every other control is `block w-full` and
+   * this one sat narrow in its column. Consumers were reaching for
+   * `[&>div>div]:w-full` on a wrapper to fix that, which also reached the open
+   * PANEL and sized a 460px calendar to a 280px field (UI-12).
+   */
+  fullWidth?: boolean;
 }
 
 const PRESET_LABELS = ['Last 2 Weeks', 'Last Month', 'Last 3 Months', 'Last 6 Months', 'Last 12 Months'];
@@ -54,36 +71,6 @@ const PRESET_LABELS = ['Last 2 Weeks', 'Last Month', 'Last 3 Months', 'Last 6 Mo
 const monthKeyOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
 
 const pad = (n: number) => String(n).padStart(2, '0');
-
-/** Clear space kept between the panel and the edge it stops at. */
-const EDGE_MARGIN = 8;
-
-/**
- * The box the open panel has to stay inside.
- *
- * The nearest ancestor that clips horizontally, falling back to the viewport
- * when nothing on the way up does. The distinction matters: a shell window's
- * body is `overflow-hidden`, so a panel that hangs past its edge is not merely
- * off to one side, it is *gone* — there is nothing to scroll and resizing the
- * window does not bring it back, because the trigger moves with the edge.
- *
- * jsdom, and a container the browser has not laid out yet, both report a rect
- * of zeros; that says nothing about where the panel may go, so keep walking.
- */
-function clipBounds(el: HTMLElement): { left: number; right: number } {
-  for (let node = el.parentElement; node; node = node.parentElement) {
-    const style = getComputedStyle(node);
-    // jsdom does not expand the `overflow` shorthand into `overflow-x`, and
-    // `overflow-hidden` is how every clipping surface in the shell spells it.
-    // A browser always resolves `overflowX`, so the fallback is inert there.
-    const overflowX = style.overflowX || style.overflow;
-    if (overflowX && overflowX !== 'visible') {
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 0) return { left: rect.left, right: rect.right };
-    }
-  }
-  return { left: 0, right: window.innerWidth };
-}
 
 /**
  * Serialise a Date to `YYYY-MM-DD`, reading its LOCAL calendar fields.
@@ -116,6 +103,7 @@ export default function DateRangePicker({
   formatDisplay = defaultFormatDisplay,
   clearable = true,
   placeholder = 'Date Range',
+  fullWidth = false,
 }: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const [tempFrom, setTempFrom] = useState(from);
@@ -123,8 +111,14 @@ export default function DateRangePicker({
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  // Which edge of the trigger the panel hangs from.
-  const [align, setAlign] = useState<'left' | 'right'>('left');
+  // A calendar plus its preset column is a fixed composition, not a scrolling
+  // list: 520x560 is what it draws at the default font, and the window still
+  // caps both. Left at an option list's 448x240 the presets wrapped and the
+  // Apply button scrolled out of sight.
+  const pos = useDropdownPosition(ref, open, {
+    preferredMaxWidth: 520,
+    preferredMaxHeight: 560,
+  });
 
   const now = new Date();
   // The grid, the month/year panels, the paging and the keyboard all live in
@@ -134,45 +128,19 @@ export default function DateRangePicker({
 
   const displayDate = (s: string) => (s ? formatDisplay(s) : '');
 
-  useClickOutside(ref, useCallback(() => { if (open) setOpen(false); }, [open]));
-
-  /**
-   * Hang the panel off whichever edge of the trigger leaves it on screen.
-   *
-   * It used to be pinned to `right: 0`, which suits a trigger sitting at the
-   * right of a list toolbar and ruins one sitting at the left: the panel grows
-   * leftward, past the edge of the shell window, and the From box, the
-   * month/year header and the previous-month arrow are simply not there. So
-   * left-align by default, since a filter bar reads left to right and its first
-   * control has the whole width to open into, and keep the old right-alignment
-   * for the case it was protecting — a trigger with no room to its right.
-   *
-   * The width is measured, not assumed: the presets column is `min-w-[130px]`,
-   * a MINIMUM, so the real width follows the longest preset label at whatever
-   * font size the reader has. Ancestor clipping does not affect an element's
-   * own rect, so this reads true even while the panel is being cut off.
-   *
-   * Runs in a layout effect, so the correction lands in the same paint as the
-   * open and nothing flashes. Re-measuring on resize is what makes maximising
-   * the window do something, which is the first thing anyone tries.
-   */
-  useLayoutEffect(() => {
+  // BOTH refs, because the panel is portalled to <body> and is therefore not
+  // inside the trigger wrapper. Checking the wrapper alone would make every
+  // click on a DAY read as a click outside, closing the panel before the cell
+  // could act on it.
+  useEffect(() => {
     if (!open) return;
-    const place = () => {
-      const anchor = ref.current, panel = panelRef.current;
-      if (!anchor || !panel) return;
-      const trigger = anchor.getBoundingClientRect();
-      const width = panel.getBoundingClientRect().width;
-      const bounds = clipBounds(anchor);
-      const fitsLeftAligned = trigger.left + width <= bounds.right - EDGE_MARGIN;
-      const fitsRightAligned = trigger.right - width >= bounds.left + EDGE_MARGIN;
-      // When neither fits — a container narrower than the panel itself — left
-      // wins, because the half worth keeping is the one with the dates in it.
-      setAlign(fitsLeftAligned || !fitsRightAligned ? 'left' : 'right');
+    const handler = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (ref.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   const handleOpen = () => {
@@ -247,18 +215,18 @@ export default function DateRangePicker({
     : '';
 
   return (
-    <div className="relative" ref={ref}>
+    <div className={`relative${fullWidth ? ' w-full' : ''}`} ref={ref}>
       {/* Trigger + clear are SIBLING buttons inside a shared bordered shell —
           a clear control nested inside the trigger button would be invalid
           nesting and unreachable by keyboard. */}
       <div
-        className={`inline-flex items-center gap-2 border rounded-lg px-2.5 py-1.5 text-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 ${from || to ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-500'}`}>
+        className={`${fullWidth ? 'flex w-full' : 'inline-flex'} items-center gap-2 border rounded-lg px-2.5 py-1.5 text-sm focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 ${from || to ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-500'}`}>
         <button type="button" onClick={handleOpen} aria-haspopup="dialog" aria-expanded={open}
-          className="inline-flex items-center gap-2 focus:outline-none">
+          className={`inline-flex items-center gap-2 focus:outline-none${fullWidth ? ' min-w-0 flex-1 justify-start' : ''}`}>
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          {displayText || placeholder}
+          <span className="truncate">{displayText || placeholder}</span>
         </button>
         {clearable && (from || to) && (
           <button type="button" onClick={handleClear} aria-label="Clear date range"
@@ -266,9 +234,29 @@ export default function DateRangePicker({
         )}
       </div>
 
-      {open && (
-        <div ref={panelRef} role="dialog" aria-label="Date range" className="absolute z-50 mt-1 rounded-2xl p-4"
-          style={{ ...(align === 'right' ? { right: 0 } : { left: 0 }), ...glassStyle() }}>
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-label="Date range"
+          // Portalled, so this must clear Dialog's and Drawer's z-[9999] layer:
+          // a range filter inside a dialog is where this control usually lives.
+          className="fixed z-[10000] rounded-2xl p-4"
+          style={{
+            left: pos?.left, right: pos?.right, top: pos?.top, bottom: pos?.bottom,
+            // The panel states its own size. `max-content` is the calendar plus
+            // the presets column at whatever font size the reader has, and the
+            // cap is what the owning window allows.
+            width: 'max-content',
+            maxWidth: pos?.maxWidth,
+            maxHeight: pos?.maxHeight,
+            overflowY: 'auto',
+            // Hidden for the first paint until the layout effect measures the
+            // trigger, so the panel never flashes at (0,0).
+            visibility: pos ? undefined : 'hidden',
+            ...glassStyle(),
+          }}
+        >
           {/* From/To display */}
           <div className="flex items-center gap-3 mb-3">
             <div className="flex items-center gap-2">
@@ -331,7 +319,8 @@ export default function DateRangePicker({
               Apply
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

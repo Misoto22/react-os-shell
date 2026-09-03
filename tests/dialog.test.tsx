@@ -282,6 +282,7 @@ test('a dropdown opened inside a dialog renders above it', () => {
     ['forms/DatePicker.tsx', /fixed z-\[\d+\] w-72/],
     ['shell/SearchableSelect.tsx', /fixed z-\[\d+\] rounded-2xl/],
     ['forms/TagInput.tsx', /fixed z-\[\d+\] rounded-2xl/],
+    ['forms/DateRangePicker.tsx', /fixed z-\[\d+\] rounded-2xl/],
   ] as const) {
     assert.ok(layerOf(file, marker) > modal, `${file} must open above the modal layer (${modal})`);
   }
@@ -298,10 +299,14 @@ test('a Select menu is the width of its field, not of its longest option', () =>
   // rect rather than left to the content — which is the thing that was wrong.
   const root = process.env.REPO_ROOT ?? resolve(import.meta.dirname, '..');
   const src = readFileSync(join(root, 'src', 'forms', 'Select.tsx'), 'utf-8');
+  const placement = readFileSync(join(root, 'src', 'forms', 'dropdownPosition.ts'), 'utf-8');
 
   assert.match(src, /width:\s*menuPos\?\.width/, 'the menu takes a computed width');
   assert.doesNotMatch(src, /minWidth:\s*menuPos/, 'not a minimum it may exceed');
-  assert.match(src, /Math\.min\(rect\.width/, 'and that width comes from the trigger, clamped to the viewport');
+  // The maths lives in the ONE shared placement helper now (UI-11); Select
+  // asks for it by name rather than carrying a third copy of flip/clamp.
+  assert.match(src, /matchTriggerWidth:\s*true/, 'Select asks the shared helper for a trigger-width menu');
+  assert.match(placement, /Math\.min\(rect\.width, roomWide\)/, 'and that width comes from the trigger, clamped to the room it has');
   // Every row truncates, which is what makes a bounded width readable rather
   // than merely narrow.
   assert.match(src, /cursor-pointer truncate/);

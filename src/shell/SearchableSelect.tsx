@@ -121,7 +121,7 @@ export default function SearchableSelect({
     setAdornPad(w ? w + (value && !disabled ? 32 : 8) + 6 : null);
   });
 
-  const menuPos = useDropdownPosition(triggerRef, open);
+  const menuPos = useDropdownPosition(triggerRef, open, { matchTriggerWidth: true });
 
   // Cached lookup so the closed-state display can show the current
   // selection's label without scanning options on every keystroke. In
@@ -260,7 +260,7 @@ export default function SearchableSelect({
             top: menuPos?.top,
             bottom: menuPos?.bottom,
             minWidth: menuPos?.minWidth,
-            width: menuPos?.minWidth,
+            width: menuPos?.width,
             // Hidden for the first paint until the layout effect measures the
             // trigger, so the menu never flashes at (0,0).
             visibility: menuPos ? undefined : 'hidden',

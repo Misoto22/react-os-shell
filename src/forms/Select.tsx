@@ -23,12 +23,13 @@
  * free-text entry; use Select for a handful of known options.
  */
 import {
-  forwardRef, useCallback, useEffect, useId, useLayoutEffect, useRef, useState,
+  forwardRef, useCallback, useEffect, useId, useRef, useState,
   type KeyboardEvent as ReactKeyboardEvent, type SelectHTMLAttributes,
 } from 'react';
 import { createPortal } from 'react-dom';
 import { inputClasses, type InputSize } from './styles';
 import { firstEnabledIndex, lastEnabledIndex, matchTypeahead, nextEnabledIndex } from './selectNav';
+import { MENU_MAX_HEIGHT, useDropdownPosition } from './dropdownPosition';
 import { glassStyle } from '../utils/glass';
 import { useIsMobile } from '../shell/useIsMobile';
 import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
@@ -85,10 +86,6 @@ export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement
   className?: string;
 }
 
-/** Gap between the trigger and the popup, and the viewport safety margin. */
-const MENU_GAP = 4;
-const VIEWPORT_MARGIN = 8;
-const MENU_MAX_HEIGHT = 240;
 
 /**
  * Raw native `<select>` styled to match the kit's inputs. This is the original
@@ -126,62 +123,6 @@ export const NativeSelect = forwardRef<HTMLSelectElement, SelectProps>(function 
   );
 });
 
-/**
- * Track the popup's fixed-viewport position from the trigger rect while open,
- * re-running on scroll (capture, so nested form-scroll containers count),
- * resize, and every animation frame the trigger moves (a shell window drag
- * moves it via an ancestor transform, which fires neither scroll nor resize).
- * Anchors below the trigger, flips above when below is cramped. Mirrors
- * SearchableSelect's `useDropdownPosition`.
- */
-interface MenuPos { left: number; top?: number; bottom?: number; width: number; maxHeight: number }
-function useAnchoredPosition(triggerRef: React.RefObject<HTMLElement | null>, open: boolean): MenuPos | null {
-  const [pos, setPos] = useState<MenuPos | null>(null);
-  useLayoutEffect(() => {
-    if (!open) { setPos(null); return; }
-    let lastLeft = NaN, lastTop = NaN, lastBottom = NaN;
-    const compute = () => {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      lastLeft = rect.left; lastTop = rect.top; lastBottom = rect.bottom;
-      const spaceBelow = window.innerHeight - rect.bottom - MENU_GAP - VIEWPORT_MARGIN;
-      const spaceAbove = rect.top - MENU_GAP - VIEWPORT_MARGIN;
-      const placeAbove = spaceBelow < Math.min(MENU_MAX_HEIGHT, 160) && spaceAbove > spaceBelow;
-      const maxHeight = Math.max(96, Math.min(MENU_MAX_HEIGHT, placeAbove ? spaceAbove : spaceBelow));
-      const left = Math.max(VIEWPORT_MARGIN, Math.min(rect.left, window.innerWidth - rect.width - VIEWPORT_MARGIN));
-      // The menu is the WIDTH of the field, not a minimum for it.
-      //
-      // It was `minWidth` with nothing capping the other end, so the list grew
-      // to its longest option: in a 512px dialog, a field of 464px opened a
-      // menu of 583px that hung 95px past the dialog's edge. A native <select>
-      // matches its field and truncates what does not fit, and that is the
-      // shape people read a select as having.
-      //
-      // Still clamped to the viewport, for the field that is itself near an
-      // edge or wider than the room left beside it.
-      const width = Math.min(rect.width, window.innerWidth - 2 * VIEWPORT_MARGIN);
-      const next: MenuPos = { left, width, maxHeight };
-      if (placeAbove) next.bottom = window.innerHeight - rect.top + MENU_GAP;
-      else next.top = rect.bottom + MENU_GAP;
-      setPos(next);
-    };
-    compute();
-    let raf = requestAnimationFrame(function tick() {
-      const rect = triggerRef.current?.getBoundingClientRect();
-      if (rect && (rect.left !== lastLeft || rect.top !== lastTop || rect.bottom !== lastBottom)) compute();
-      raf = requestAnimationFrame(tick);
-    });
-    window.addEventListener('scroll', compute, true);
-    window.addEventListener('resize', compute);
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', compute, true);
-      window.removeEventListener('resize', compute);
-    };
-  }, [open, triggerRef]);
-  return pos;
-}
-
 /** Desktop custom listbox. Keeps DOM focus on the trigger and tracks the active
  *  option with `aria-activedescendant` (the standard combobox pattern). */
 const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function ListboxSelect(
@@ -205,7 +146,10 @@ const ListboxSelect = forwardRef<HTMLSelectElement, SelectProps>(function Listbo
   const listboxId = `${baseId}-listbox`;
   const optionId = (i: number) => `${baseId}-opt-${i}`;
 
-  const menuPos = useAnchoredPosition(triggerRef, open);
+  // One shared placement helper for every anchored popup in the kit (UI-11):
+  // it keeps the menu inside the shell window that owns the trigger, and
+  // `matchTriggerWidth` is what makes this one read as a native <select>.
+  const menuPos = useDropdownPosition(triggerRef, open, { matchTriggerWidth: true });
   const selectedIndex = options.findIndex(o => o.value === value);
   const selectedLabel = selectedIndex >= 0 ? options[selectedIndex].label : undefined;
 

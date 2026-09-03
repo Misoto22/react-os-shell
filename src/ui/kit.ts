@@ -101,6 +101,15 @@ export type { DateTimePickerProps } from '../forms/DateTimePicker';
 export { INPUT_BASE, INPUT_SIZES, inputClasses } from '../forms/styles';
 export type { InputSize } from '../forms/styles';
 
+// Anchored-popup placement, exported because a consumer that has to build its
+// own popup — a hover card, a typeahead over an endpoint the kit does not
+// model — must still land it inside the shell window that owns its trigger
+// (UI-11). `popupBounds` is the primitive: swap it in wherever a hand-rolled
+// popup was clamping to `window.innerWidth`/`innerHeight`, which measures a
+// screen rather than a window and puts the popup on the desktop beside it.
+export { popupBounds, useDropdownPosition, MENU_MAX_HEIGHT, POPUP_MAX_WIDTH } from '../forms/dropdownPosition';
+export type { MenuPos, DropdownPositionOptions } from '../forms/dropdownPosition';
+
 // ── Touch controls (a finger on glass — a till, a warehouse tablet) ──
 export { default as NumericKeypad } from '../forms/NumericKeypad';
 export type { NumericKeypadProps } from '../forms/NumericKeypad';
