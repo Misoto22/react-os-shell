@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.91.0
+
+- **The What's New window no longer ends in a large blank area.** Its body was
+  a single box capped at `max-h-[60vh]`, which cannot grow into a window whose
+  height comes off the size ladder — so once the body was taller than 60vh of
+  the viewport, the difference sat under the last changelog entry as dead
+  space: roughly 100px in a default window, and about a third of it maximized,
+  where the window is the whole work area. The list now flows in the modal
+  body and the body scrolls it, which is what every other flowing-content
+  window in the shell already does. An empty changelog is centred in the space
+  the window has, rather than leaving one grey line at the top of it.
+
+  The window sizes its CONTENT to the window, not the window to its content.
+  A host with a two-line changelog still gets a `md`-ladder window with room
+  to spare; `autoHeight` / `autoMinHeight` are how a host asks for the other
+  behaviour.
+
+- **Changelog entries render their Markdown instead of printing it.** Every
+  consumer writes these entries in Markdown, and this window put them on
+  screen as a raw text node, so a heading like `**Commission Plans**` showed
+  its asterisks. It now goes through `MarkdownLite`, the renderer the package
+  already ships and the one the admin portal's own two changelog surfaces
+  (`VersionsPanel`, `AboutSettings`) already use for the same strings.
+
 ## 4.90.0
 
 - **Right-clicking a grouped taskbar tab now acts on the group.** A tab that
