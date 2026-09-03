@@ -65,6 +65,37 @@ test('a bubble’s radius grows with the square root of its size', () => {
   assert.ok(Math.abs(radii[1] / radii[0] - 2) < 0.01, `expected 2× radius for 4× size, got ${radii[1] / radii[0]}`);
 });
 
+test('a supplied x domain is taken as given, not rounded up to a nice number', () => {
+  // niceMax(33000) is 50000, so a derived axis spends a third of the plot on
+  // range the data never reaches. A caller who knows the extent is the
+  // interesting range says so, and gets the whole width for it.
+  const points = [{ x: 0, y: 1 }, { x: 33000, y: 2 }];
+  const derived = html(<ScatterChart width={400} series={[{ key: 's', label: 'S', points }]} />);
+  const supplied = html(
+    <ScatterChart width={400} xDomain={[0, 33000]} series={[{ key: 's', label: 'S', points }]} />,
+  );
+  const rightmost = (markup: string) =>
+    Math.max(...[...markup.matchAll(/<circle[^>]*cx="([\d.]+)"/g)].map(m => Number(m[1])));
+
+  assert.ok(rightmost(supplied) > rightmost(derived) + 40,
+    `supplied domain should reach further right: ${rightmost(supplied)} vs ${rightmost(derived)}`);
+});
+
+test('a log x axis separates points a linear one stacks on the origin', () => {
+  // The long-tail case: three quiet routes and one busy one. On a linear axis
+  // the quiet three are indistinguishable.
+  const points = [{ x: 1, y: 1 }, { x: 10, y: 2 }, { x: 100, y: 3 }, { x: 10000, y: 4 }];
+  const spread = (markup: string) => {
+    const xs = [...markup.matchAll(/<circle[^>]*cx="([\d.]+)"/g)].map(m => Number(m[1]));
+    return xs[2] - xs[0];
+  };
+  const linear = html(<ScatterChart width={400} series={[{ key: 's', label: 'S', points }]} />);
+  const log = html(<ScatterChart width={400} xScale="log" series={[{ key: 's', label: 'S', points }]} />);
+
+  assert.ok(spread(linear) < 10, `linear should clump the quiet three: ${spread(linear)}`);
+  assert.ok(spread(log) > 100, `log should separate them: ${spread(log)}`);
+});
+
 test('a range band is one filled path, not two lines hoping to meet', () => {
   const markup = html(
     <RangeChart width={520} labels={MONTHS} rows={MONTHS.map((_, i) => ({ low: i, high: i + 5 }))} />,

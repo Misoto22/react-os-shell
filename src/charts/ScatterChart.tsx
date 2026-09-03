@@ -18,7 +18,7 @@
  */
 import { registerModalEscapeInterceptor } from '../shell/escapeInterceptors';
 import { CHART_INK, resolveSeriesColor } from './palette';
-import { linearScale, niceMax, radiusScale } from './scale';
+import { linearScale, logScale, niceMax, radiusScale } from './scale';
 import { usePlotWidth } from './usePlotWidth';
 import ChartTooltip from './ChartTooltip';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
@@ -30,6 +30,7 @@ export const SCATTER_SERIES_CAP = 3;
 export default function ScatterChart({
   series, height = 260, width: widthProp, xLabel, yLabel,
   formatX = v => String(v), formatY = v => String(v),
+  xDomain, yDomain, xScale = 'linear', yScale = 'linear',
   radiusRange = [4, 22], className, emptyLabel = 'No observations in this window.',
 }: ScatterChartProps) {
   const host = useRef<HTMLDivElement>(null);
@@ -60,8 +61,20 @@ export default function ScatterChart({
   const margin = { top: 14, right: 20, bottom: 34, left: 52 };
   const left = margin.left;
   const right = Math.max(left + 1, width - margin.right);
-  const x = linearScale([Math.min(0, ...all.map(p => p.x)), niceMax(Math.max(...all.map(p => p.x)))], { from: left, to: right });
-  const y = linearScale([Math.min(0, ...all.map(p => p.y)), niceMax(Math.max(...all.map(p => p.y)))], { from: height - margin.bottom, to: margin.top });
+  // A derived domain rounds its top up so the axis ends on a readable number;
+  // a supplied one is taken as given, because the caller asking for it is
+  // usually asking to stop spending a third of the plot on empty space.
+  const axis = (
+    values: number[],
+    supplied: [number, number] | undefined,
+    kind: 'linear' | 'log',
+    range: { from: number; to: number },
+  ) => {
+    const domain = supplied ?? [Math.min(0, ...values), niceMax(Math.max(...values))];
+    return kind === 'log' ? logScale(domain, range) : linearScale(domain, range);
+  };
+  const x = axis(all.map(p => p.x), xDomain, xScale, { from: left, to: right });
+  const y = axis(all.map(p => p.y), yDomain, yScale, { from: height - margin.bottom, to: margin.top });
   const r = radiusScale([0, Math.max(...all.map(p => p.size ?? 1))], { from: radiusRange[0], to: radiusRange[1] });
 
   // Hover indices go stale when a polling caller shrinks the data mid-hover;

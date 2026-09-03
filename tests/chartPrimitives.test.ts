@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { curvePath, splinePath, monotonePath, bumpPath, linearPath, stepPath, areaFrom, areaBetween, polygonPoints, arcPath } from '../src/charts/curve';
-import { linearScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../src/charts/scale';
+import { linearScale, logScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../src/charts/scale';
 import { squarify } from '../src/charts/treemapLayout';
 import { SERIES_VARS, SERIES_SLOT_COUNT, STATUS_VARS, CHART_INK, seriesColor, resolveSeriesColor } from '../src/charts/palette';
 
@@ -356,4 +356,55 @@ test('reduced motion HIDES the shimmer and the ping instead of freezing them lit
   assert.match(hidden![0], /opacity:\s*0\s*!important/, 'they stop by disappearing');
   const entrance = block.match(/\.rosh-viz-wipe[\s\S]*?\{[^}]*\}/);
   assert.ok(entrance && !/shimmer|ping/.test(entrance[0]), 'the visible-rest rule no longer claims them');
+});
+
+// ── log scale ───────────────────────────────────────────────────────────────
+
+test('a log axis spreads a long tail that a linear one collapses', () => {
+  // Per-route request counts: most routes are quiet, two are not. On a linear
+  // axis every quiet route lands within a pixel or two of the origin, and the
+  // chart answers only about the outliers.
+  const range = { from: 0, to: 300 };
+  const linear = linearScale([0, 30000], range);
+  const log = logScale([1, 30000], range);
+  const quiet = [1, 10, 100, 1000];
+
+  const linearSpread = linear(quiet[3]) - linear(quiet[0]);
+  const logSpread = log(quiet[3]) - log(quiet[0]);
+  assert.ok(linearSpread < 12, `linear should clump: ${linearSpread}`);
+  assert.ok(logSpread > 150, `log should separate: ${logSpread}`);
+});
+
+test('each power of ten is one even step along a log axis', () => {
+  const log = logScale([1, 10000], { from: 0, to: 400 });
+  const steps = [1, 10, 100, 1000, 10000].map(v => log(v));
+  const gaps = steps.slice(1).map((v, i) => v - steps[i]);
+  for (const gap of gaps) assert.ok(Math.abs(gap - 100) < 0.001, `uneven decade: ${gap}`);
+});
+
+test('a log axis ticks in powers of ten, not in even slices', () => {
+  // Evenly spaced values are nonsense here: a tick at 25,000 sits almost on
+  // top of one at 50,000, while everything below 10,000 gets nothing.
+  assert.deepEqual(logScale([1, 10000], { from: 0, to: 400 }).ticks(5), [1, 10, 100, 1000, 10000]);
+});
+
+test('a log domain narrower than one decade still labels its ends', () => {
+  // Nothing between 3,000 and 9,000 is a power of ten. Returning no ticks
+  // would print an axis with no numbers on it at all.
+  assert.deepEqual(logScale([3000, 9000], { from: 0, to: 400 }).ticks(5), [3000, 9000]);
+});
+
+test('zero draws at the log floor rather than at negative infinity', () => {
+  // Math.log10(0) is -Infinity, which becomes NaN geometry and an invisible
+  // mark. A count of zero belongs at the axis floor, drawn and honest.
+  const log = logScale([0, 1000], { from: 0, to: 300 });
+  assert.equal(log(0), 0);
+  assert.equal(log.domain[0], 1, 'the floor is raised to 1, since zero has no logarithm');
+  assert.ok(Number.isFinite(log(0)));
+});
+
+test('a single-value log domain maps to the low edge instead of dividing by zero', () => {
+  const log = logScale([500, 500], { from: 10, to: 300 });
+  assert.equal(log(500), 10);
+  assert.deepEqual(log.ticks(5), [500]);
 });

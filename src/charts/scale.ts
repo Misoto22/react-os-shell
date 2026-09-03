@@ -148,6 +148,54 @@ export function niceMax(value: number): number {
   return step * magnitude;
 }
 
+/**
+ * A continuous value → pixel mapping on a logarithmic axis.
+ *
+ * The case this exists for is a long tail: per-route request counts where most
+ * routes sit near the origin and two or three run into the tens of thousands.
+ * On a linear axis the many collapse into one unreadable clump against the
+ * axis, and the chart answers only a question about the outliers.
+ *
+ * Zero and negatives have no logarithm, and clamping them to the low edge would
+ * place "never called" and "called once" on the same pixel. The domain floor is
+ * therefore raised to at least `1` by the caller, and any value below the floor
+ * draws at the floor — visible, and not claimed to be distinguishable.
+ *
+ * `ticks` returns powers of ten inside the domain rather than even spacing,
+ * because evenly spaced values on a log axis land at absurd positions (a tick
+ * at 25,000 sits almost on top of one at 50,000).
+ */
+export function logScale(
+  domain: [number, number],
+  range: Range,
+): LinearScale {
+  const lo = Math.max(1, Math.min(domain[0], domain[1]));
+  const hi = Math.max(lo, Math.max(domain[0], domain[1]));
+  const logLo = Math.log10(lo);
+  const span = Math.log10(hi) - logLo;
+  const scale = ((value: number) => {
+    if (span === 0) return range.from;
+    const clamped = Math.max(lo, value);
+    return range.from + ((Math.log10(clamped) - logLo) / span) * (range.to - range.from);
+  }) as LinearScale;
+  scale.domain = [lo, hi];
+  scale.range = range;
+  scale.ticks = (count: number) => {
+    if (count < 2 || span === 0) return [lo];
+    const first = Math.ceil(logLo);
+    const last = Math.floor(Math.log10(hi));
+    const powers: number[] = [];
+    for (let e = first; e <= last; e += 1) powers.push(10 ** e);
+    // A domain narrow enough to contain no power of ten still needs its ends
+    // labelled, or the axis prints nothing at all.
+    if (powers.length === 0) return [lo, hi];
+    if (powers[0] > lo) powers.unshift(lo);
+    if (powers[powers.length - 1] < hi) powers.push(hi);
+    return powers;
+  };
+  return scale;
+}
+
 export interface AngleScale {
   (index: number): number;
   /** Radians per slot. */

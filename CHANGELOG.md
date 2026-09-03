@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.92.0
+
+- **`ScatterChart` takes an axis domain, instead of always deriving one.** The
+  derived domain rounds its top up to a readable number, which is right when
+  the reader compares against a round target and wasteful when they do not: a
+  maximum of 33,000 becomes an axis to 50,000 and spends a third of the plot
+  on range the data never reaches. `xDomain` / `yDomain` say "the data's own
+  extent is the interesting range" and get the whole width for it.
+
+- **`ScatterChart` can put either axis on a log scale.** `xScale="log"` /
+  `yScale="log"` for a long tail — per-route request counts where most points
+  sit near the origin and two or three run orders of magnitude past them. On a
+  linear axis the many collapse into one clump against the axis and the chart
+  only answers about the outliers. The domain floor is raised to `1`, since
+  zero has no logarithm, and a zero draws at that floor: visible, and not
+  claimed to be distinguishable from one.
+
+- **New `logScale` export**, alongside `linearScale`. It ticks in powers of
+  ten rather than in even slices — evenly spaced values on a log axis land at
+  absurd positions, a tick at 25,000 almost touching one at 50,000 while
+  everything below 10,000 goes unlabelled. A domain too narrow to contain a
+  power of ten still labels its own ends, so the axis is never blank.
+
 ## 4.91.0
 
 - **The What's New window no longer ends in a large blank area.** Its body was

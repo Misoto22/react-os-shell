@@ -531,6 +531,25 @@ export interface ScatterChartProps {
   yLabel?: string;
   formatX?: (value: number) => string;
   formatY?: (value: number) => string;
+  /**
+   * Override the axis domain instead of deriving it from the data.
+   *
+   * The derived one rounds its top up to a "nice" number, which is right for a
+   * value the reader compares against a round target and wasteful for one they
+   * do not: a maximum of 33,000 becomes an axis to 50,000, spending a third of
+   * the plot on emptiness. Pass a domain when the data's own extent is the
+   * interesting range.
+   */
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+  /**
+   * `log` for a long tail — per-route counts where most points sit near the
+   * origin and a few run orders of magnitude past them. On a linear axis those
+   * many collapse into one clump and the chart only answers for the outliers.
+   * The domain floor is raised to 1, since zero has no logarithm.
+   */
+  xScale?: 'linear' | 'log';
+  yScale?: 'linear' | 'log';
   radiusRange?: [number, number];
   className?: string;
   emptyLabel?: string;
