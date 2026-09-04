@@ -42,6 +42,7 @@
  * for a dry run. Exported for `tests/releaseFragments.test.ts`.
  */
 import { readFileSync, writeFileSync, readdirSync, unlinkSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 export const CHANGES_DIR = '.changes';
@@ -106,16 +107,84 @@ export function pendingFragments(dir = CHANGES_DIR) {
     .map(n => parseFragment(readFileSync(path.join(dir, n), 'utf8'), path.join(dir, n)));
 }
 
-export function nextVersion(current, bumps) {
+/**
+ * Versions the registry already holds.
+ *
+ * `package.json` is not the whole truth about which numbers are taken. A
+ * version published by hand from a branch never reaches `main`, so the tree
+ * has no idea it is gone — and npm is append-only: a number that has shipped
+ * describes one tarball for ever, to everyone who installed it.
+ *
+ * That is not hypothetical. 4.93.0 was published from a branch at 04:41 on
+ * 2026-09-04 carrying one popup fix; two hours later this assembler read
+ * `main` at 4.92.0, saw eight fragments, and stamped **the same number** on a
+ * different set of changes. Both are called 4.93.0 and only one is installable.
+ *
+ * Returns null — rather than throwing or an empty list — when the registry
+ * cannot be reached, so the caller can decide. An empty list would read as
+ * "nothing is published", which is the exact wrong answer to fail towards.
+ */
+/**
+ * @param {string} [name]
+ * @param {string} [pkg]
+ * @returns {Set<string> | null}
+ */
+export function publishedVersions(name, pkg = PACKAGE_JSON) {
+  const packageName = name ?? JSON.parse(readFileSync(pkg, 'utf8')).name;
+  try {
+    const out = execFileSync('npm', ['view', packageName, 'versions', '--json'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 60_000,
+    });
+    const parsed = JSON.parse(out);
+    return new Set(Array.isArray(parsed) ? parsed : [parsed]);
+  } catch (err) {
+    // A package that has never been published is a clean empty set, not a
+    // failure — `npm view` exits non-zero with E404 for it.
+    if (String(err.stdout ?? '').includes('E404') || String(err.message).includes('E404')) return new Set();
+    return null;
+  }
+}
+
+/**
+ * The next version, skipping any the registry already holds.
+ *
+ * The skip walks the PATCH digit and never the minor or major: 4.93.0 taken
+ * means 4.93.1, not 4.94.0. A minor bump has already said what compatibility
+ * this release claims, and stepping it again to dodge a number would overstate
+ * that — the skip is bookkeeping, not a second opinion about the change.
+ *
+ * @param {string} current
+ * @param {string[]} bumps
+ * @param {Set<string> | null} [published] omit where there is no registry to
+ *   consult — a fork, a private mirror — and the plain arithmetic applies.
+ * @returns {string}
+ */
+export function nextVersion(current, bumps, published = null) {
   if (!/^\d+\.\d+\.\d+$/.test(current)) {
     throw new FragmentError(`current version ${JSON.stringify(current)} is not plain MAJOR.MINOR.PATCH`);
   }
   const [major, minor, patch] = current.split('.').map(Number);
   // One release per run: merges that race batch under the highest bump asked
   // for, which is why no branch ever has to guess at a number.
-  if (bumps.includes('major')) return `${major + 1}.0.0`;
-  if (bumps.includes('minor')) return `${major}.${minor + 1}.0`;
-  return `${major}.${minor}.${patch + 1}`;
+  let next;
+  if (bumps.includes('major')) next = `${major + 1}.0.0`;
+  else if (bumps.includes('minor')) next = `${major}.${minor + 1}.0`;
+  else next = `${major}.${minor}.${patch + 1}`;
+  if (!published) return next;
+
+  const start = next;
+  let guard = 0;
+  while (published.has(next)) {
+    const [a, b, c] = next.split('.').map(Number);
+    next = `${a}.${b}.${c + 1}`;
+    if ((guard += 1) > 1000) {
+      throw new FragmentError(`could not find a free version above ${start} — 1000 consecutive patches are published`);
+    }
+  }
+  if (next !== start) {
+    console.error(`::warning::${start} is already on the registry — assigning ${next} instead`);
+  }
+  return next;
 }
 
 export function readCurrentVersion(packageJson = PACKAGE_JSON) {
@@ -172,7 +241,17 @@ export function assemble() {
   const fragments = pendingFragments();
   if (!fragments.length) throw new FragmentError('no pending fragments under .changes/ — nothing to assemble');
   const current = readCurrentVersion();
-  const version = nextVersion(current, fragments.map(f => f.bump));
+  // Fail closed. Reaching npm is cheap and a collision is not: a number that
+  // has shipped cannot be taken back, and the branch that would have to be
+  // renumbered is already merged by the time anyone notices.
+  const published = publishedVersions();
+  if (!published) {
+    throw new FragmentError(
+      'could not read the published versions from npm — refusing to assign a number blind, '
+      + 'because a collision with an already-published version is not reversible. Re-run when the registry is reachable.',
+    );
+  }
+  const version = nextVersion(current, fragments.map(f => f.bump), published);
   prependSection(renderSection(version, fragments));
   writeVersion(version);
   for (const f of fragments) unlinkSync(f.name);

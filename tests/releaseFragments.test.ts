@@ -22,7 +22,7 @@ import { tmpdir } from 'node:os';
 import path, { resolve } from 'node:path';
 
 import {
-  FragmentError, parseFragment, pendingFragments, nextVersion,
+  FragmentError, parseFragment, pendingFragments, nextVersion, publishedVersions,
   renderSection, prependSection, writeVersion, readCurrentVersion,
 } from '../scripts/release-fragments.mjs';
 
@@ -203,4 +203,47 @@ test('the assembler module runs nothing on import', () => {
     readFileSync(path.join(root, 'scripts/assemble-release.mjs'), 'utf8'), /assemble\(\)/,
     'and assemble-release.mjs must actually call it',
   );
+});
+
+// ── the registry ────────────────────────────────────────────────────────────
+
+test('a number the registry already holds is skipped', () => {
+  // The incident this exists for. 4.93.0 was published from a BRANCH at 04:41
+  // on 2026-09-04 carrying one popup fix. That publish never reached `main`,
+  // so two hours later the assembler read main at 4.92.0, saw eight fragments,
+  // and stamped the same 4.93.0 on a different set of changes. Both are called
+  // 4.93.0; only one is installable.
+  //
+  // package.json is not the whole truth about which numbers are taken, and npm
+  // is append-only — a shipped number describes one tarball for ever.
+  const published = new Set(['4.88.0', '4.93.0']);
+  assert.equal(nextVersion('4.92.0', ['minor'], published), '4.93.1');
+});
+
+test('the skip walks the patch digit, never the minor', () => {
+  // A minor bump has already said what compatibility this release claims.
+  // Stepping it again to dodge a taken number would overstate that: the skip
+  // is bookkeeping, not a second opinion about the change.
+  const published = new Set(['4.93.0', '4.93.1', '4.93.2']);
+  assert.equal(nextVersion('4.92.0', ['minor'], published), '4.93.3');
+});
+
+test('with nothing published the number is untouched', () => {
+  assert.equal(nextVersion('4.92.0', ['minor'], new Set()), '4.93.0');
+  assert.equal(nextVersion('4.92.0', ['patch'], new Set()), '4.92.1');
+});
+
+test('omitting the published set entirely keeps the old behaviour', () => {
+  // Callers that genuinely have no registry — a fork, a private mirror — pass
+  // nothing and get the plain arithmetic.
+  assert.equal(nextVersion('4.92.0', ['minor']), '4.93.0');
+});
+
+test('a registry that cannot be read is not an empty registry', () => {
+  // `publishedVersions` returns null on failure rather than an empty Set,
+  // because an empty Set reads as "nothing is published" — the exact wrong
+  // answer to fail towards. `assemble` refuses to run on null.
+  const missing = publishedVersions('a-package-name-that-will-never-exist-9f3a2b', 'package.json');
+  assert.ok(missing === null || missing instanceof Set,
+    'either the registry said 404 (empty set) or it was unreachable (null) — never a guess');
 });
