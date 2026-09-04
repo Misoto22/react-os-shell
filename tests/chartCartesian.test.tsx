@@ -96,6 +96,35 @@ test('a log x axis separates points a linear one stacks on the origin', () => {
   assert.ok(spread(log) > 100, `log should separate them: ${spread(log)}`);
 });
 
+test('a point outside a SUPPLIED domain is dropped, and the drop is announced', () => {
+  // The scales extrapolate rather than clamp, so an out-of-domain point drew
+  // OUTSIDE the plot: one just past the edge painted over the y-axis tick
+  // labels, one further out was clipped away entirely — and both still took a
+  // stop in the keyboard walk. A domain is a window; what falls outside it is
+  // not drawn, and the count says so rather than nothing saying anything.
+  const points = [{ x: 5, y: 1 }, { x: 200, y: 2 }, { x: 800, y: 3 }];
+  const markup = html(
+    <ScatterChart width={400} xDomain={[100, 1000]} series={[{ key: 's', label: 'S', points }]} />,
+  );
+  const cx = [...markup.matchAll(/<circle[^>]*cx="([-\d.]+)"/g)].map(m => Number(m[1]));
+  assert.equal(cx.length, 2, 'the x=5 point is not drawn');
+  for (const x of cx) assert.ok(x >= 52, `nothing is drawn left of the axis: ${x}`);
+  assert.match(markup, /1 point outside the shown range/);
+});
+
+test('a derived log domain starts at the smallest value, not at zero', () => {
+  // `Math.min(0, …)` is right for a linear axis and wrong for a log one: zero
+  // has no logarithm, so it forced a borrowed floor and discarded the real
+  // low end the data already had. Seconds, here — the case that collapsed.
+  const points = [{ x: 0.02, y: 1 }, { x: 0.2, y: 2 }, { x: 0.9, y: 3 }];
+  const markup = html(
+    <ScatterChart width={400} xScale="log" series={[{ key: 's', label: 'S', points }]} />,
+  );
+  const cx = [...markup.matchAll(/<circle[^>]*cx="([\d.]+)"/g)].map(m => Number(m[1]));
+  assert.equal(new Set(cx).size, 3, `three distinct columns, not one: ${cx}`);
+  assert.ok(Math.max(...cx) - Math.min(...cx) > 100, `spread across the plot: ${cx}`);
+});
+
 test('a range band is one filled path, not two lines hoping to meet', () => {
   const markup = html(
     <RangeChart width={520} labels={MONTHS} rows={MONTHS.map((_, i) => ({ low: i, high: i + 5 }))} />,

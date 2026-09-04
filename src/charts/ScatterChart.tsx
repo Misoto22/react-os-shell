@@ -51,7 +51,24 @@ export default function ScatterChart({
     });
   }, [hover]);
 
-  const drawn = series.filter(s => s.points.length > 0).slice(0, SCATTER_SERIES_CAP);
+  // A SUPPLIED domain is a window on the data, so points outside it are not
+  // drawable: the scales extrapolate rather than clamp, and the plot's clip is
+  // padded by one bubble radius so an edge bubble is not sliced in half. Left
+  // alone, a point just outside painted over the y-axis tick labels and one
+  // further out vanished with nothing said — while still occupying a stop in
+  // the keyboard walk and a tooltip. Drop them from the series instead, and
+  // say how many in the accessible label.
+  const inDomain = (v: number, d: [number, number] | undefined) =>
+    !d || (v >= Math.min(d[0], d[1]) && v <= Math.max(d[0], d[1]));
+  const offered = series.filter(s => s.points.length > 0).slice(0, SCATTER_SERIES_CAP);
+  const drawn = (xDomain || yDomain)
+    ? offered
+      .map(s => ({ ...s, points: s.points.filter(p => inDomain(p.x, xDomain) && inDomain(p.y, yDomain)) }))
+      .filter(s => s.points.length > 0)
+    : offered;
+  const omitted = offered.reduce((n, s) => n + s.points.length, 0)
+    - drawn.reduce((n, s) => n + s.points.length, 0);
+
   if (drawn.length === 0) {
     return <div className={className} ref={host}><p className="flex items-center justify-center text-sm text-gray-500" style={{ height }}>{emptyLabel}</p></div>;
   }
@@ -64,13 +81,26 @@ export default function ScatterChart({
   // A derived domain rounds its top up so the axis ends on a readable number;
   // a supplied one is taken as given, because the caller asking for it is
   // usually asking to stop spending a third of the plot on empty space.
+  //
+  // A derived LOG domain starts at the smallest value present rather than at
+  // zero. `Math.min(0, …)` is right for a linear axis, where the origin is the
+  // reference the reader measures against; on a log axis it is a value with no
+  // logarithm, so it forced `logScale` to borrow a floor and threw away the
+  // real one the data already had.
   const axis = (
     values: number[],
     supplied: [number, number] | undefined,
     kind: 'linear' | 'log',
     range: { from: number; to: number },
   ) => {
-    const domain = supplied ?? [Math.min(0, ...values), niceMax(Math.max(...values))];
+    // `Math.min()` of nothing is Infinity, and a domain starting there is not
+    // a domain. Data with no positive value at all has no log form; hand the
+    // zero through and let `logScale` degenerate rather than emit NaN geometry.
+    const positive = values.filter(v => v > 0);
+    const base = kind === 'log'
+      ? (positive.length > 0 ? Math.min(...positive) : 0)
+      : Math.min(0, ...values);
+    const domain = supplied ?? [base, niceMax(Math.max(...values))];
     return kind === 'log' ? logScale(domain, range) : linearScale(domain, range);
   };
   const x = axis(all.map(p => p.x), xDomain, xScale, { from: left, to: right });
@@ -97,7 +127,8 @@ export default function ScatterChart({
   return (
     <div className={`relative ${className ?? ''}`} ref={host}>
       <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} role="img"
-        aria-label={`${drawn.map(s => s.label).join(', ')}: ${yLabel ?? 'y'} against ${xLabel ?? 'x'}`}
+        aria-label={`${drawn.map(s => s.label).join(', ')}: ${yLabel ?? 'y'} against ${xLabel ?? 'x'}`
+          + (omitted > 0 ? `. ${omitted} ${omitted === 1 ? 'point' : 'points'} outside the shown range` : '')}
         tabIndex={0}
         className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         onMouseLeave={() => setHover(null)} onBlur={() => setHover(null)} onKeyDown={onKey}>

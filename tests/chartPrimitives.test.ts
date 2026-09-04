@@ -408,3 +408,39 @@ test('a single-value log domain maps to the low edge instead of dividing by zero
   assert.equal(log(500), 10);
   assert.deepEqual(log.ticks(5), [500]);
 });
+
+test('a fractional log domain spreads, instead of collapsing onto one pixel', () => {
+  // Latency in SECONDS. The floor used to be a hard `Math.max(1, …)` on both
+  // ends, so this domain came back as [1, 1]: every point on one pixel column,
+  // under an axis labelled `1`, for data that never reaches 1. Fractional data
+  // is exactly what a log axis is for.
+  const log = logScale([0.02, 0.9], { from: 0, to: 300 });
+  assert.deepEqual(log.domain, [0.02, 0.9], 'the domain is the data, not a constant');
+  assert.equal(log(0.02), 0, 'the low end anchors the low edge');
+  assert.equal(log(0.9), 300, 'and the high end the high edge');
+  assert.ok(log(0.2) > 10 && log(0.2) < 290, `a middle value lands between: ${log(0.2)}`);
+});
+
+test('a log domain reaching zero borrows a floor from its TOP, not from 1', () => {
+  // Zero has no logarithm, so a floor has to come from somewhere. Three
+  // decades under the top is the range a long tail occupies, and for counts
+  // that still lands on the 1 the old constant hard-coded.
+  assert.equal(logScale([0, 1000], { from: 0, to: 300 }).domain[0], 1);
+  assert.equal(logScale([0, 0.5], { from: 0, to: 300 }).domain[0], 0.001,
+    'a fractional top gets a fractional floor, not 1');
+});
+
+test('a log domain with nothing positive in it degenerates instead of emitting NaN', () => {
+  const log = logScale([-5, -1], { from: 10, to: 300 });
+  assert.ok(Number.isFinite(log(-2)), 'no NaN geometry');
+  assert.equal(log(-2), 10);
+  assert.deepEqual(log.ticks(5), [0]);
+});
+
+test('a log axis does not label an end that sits on top of a power of ten', () => {
+  // 1,000 and 1,200 are a twelfth of a decade apart — 16px on a 400px plot,
+  // which is two ~30px labels printed over each other.
+  assert.deepEqual(logScale([1, 1200], { from: 0, to: 400 }).ticks(5), [1, 10, 100, 1000]);
+  // Far enough from 1,000 to be worth its own tick.
+  assert.deepEqual(logScale([1, 5000], { from: 0, to: 400 }).ticks(5), [1, 10, 100, 1000, 5000]);
+});
