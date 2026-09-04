@@ -294,7 +294,7 @@ export {
   SERIES_VARS, SERIES_SLOT_COUNT, STATUS_VARS, CHART_INK,
   seriesColor, resolveSeriesColor,
 } from '../charts/palette';
-export { linearScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../charts/scale';
+export { linearScale, logScale, bandScale, ladderScale, niceMax, angleScale, radiusScale, binValues } from '../charts/scale';
 export type { LinearScale, BandScale, LadderScale, AngleScale, Range } from '../charts/scale';
 export { curvePath, monotonePath, splinePath, bumpPath, stepPath, linearPath, areaFrom, areaBetween, arcPath, polygonPoints } from '../charts/curve';
 export type { Curve, Point } from '../charts/curve';

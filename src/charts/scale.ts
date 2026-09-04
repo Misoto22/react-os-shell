@@ -148,6 +148,76 @@ export function niceMax(value: number): number {
   return step * magnitude;
 }
 
+/**
+ * A continuous value → pixel mapping on a logarithmic axis.
+ *
+ * The case this exists for is a long tail: per-route request counts where most
+ * routes sit near the origin and two or three run into the tens of thousands.
+ * On a linear axis the many collapse into one unreadable clump against the
+ * axis, and the chart answers only a question about the outliers.
+ *
+ * Zero and negatives have no logarithm, and clamping them to the low edge would
+ * place "never called" and "called once" on the same pixel. So the floor is the
+ * domain's own low end whenever that is positive, and only a domain reaching
+ * zero or below borrows one — three decades under the top, which is the range a
+ * long tail actually occupies. Any value beneath the floor draws AT it —
+ * visible, and not claimed to be distinguishable from its neighbours.
+ *
+ * The floor used to be a hard `Math.max(1, …)` on BOTH ends, which was right
+ * for counts and silently wrong for everything else: a domain of seconds like
+ * `[0.02, 0.9]` came back as `[1, 1]`, so every point drew on one pixel column
+ * under an axis labelled `1`. Fractional data is exactly what a log axis is
+ * for, and there was no way for a caller to opt out of the constant.
+ *
+ * `ticks` returns powers of ten inside the domain rather than even spacing,
+ * because evenly spaced values on a log axis land at absurd positions (a tick
+ * at 25,000 sits almost on top of one at 50,000). The domain's own ends are
+ * added when no power of ten is near them — near being measured in DECADES,
+ * since that is what the axis is spaced in: `[1, 1200]` would otherwise label
+ * both 1,000 and 1,200, sixteen pixels apart on a 400px plot.
+ */
+/** How much of a decade two ticks must be apart to both be worth labelling. */
+const TICK_DECADE_GAP = 0.15;
+
+export function logScale(
+  domain: [number, number],
+  range: Range,
+): LinearScale {
+  const top = Math.max(domain[0], domain[1]);
+  const bottom = Math.min(domain[0], domain[1]);
+  // A domain that never reaches a positive number has no logarithmic form at
+  // all; it degenerates rather than returning NaN geometry.
+  const hi = top > 0 ? top : 0;
+  const lo = bottom > 0 ? bottom : hi > 0 ? 10 ** (Math.ceil(Math.log10(hi)) - 3) : 0;
+  const logLo = Math.log10(lo);
+  const span = hi > 0 && lo > 0 ? Math.log10(hi) - logLo : 0;
+  const scale = ((value: number) => {
+    if (span <= 0) return range.from;
+    const clamped = Math.max(lo, value);
+    return range.from + ((Math.log10(clamped) - logLo) / span) * (range.to - range.from);
+  }) as LinearScale;
+  scale.domain = [lo, hi];
+  scale.range = range;
+  scale.ticks = (count: number) => {
+    if (count < 2 || span <= 0) return [lo];
+    const first = Math.ceil(logLo);
+    const last = Math.floor(Math.log10(hi));
+    const powers: number[] = [];
+    for (let e = first; e <= last; e += 1) powers.push(10 ** e);
+    // A domain narrow enough to contain no power of ten still needs its ends
+    // labelled, or the axis prints nothing at all.
+    if (powers.length === 0) return [lo, hi];
+    // An end is worth its own tick only when no power of ten already sits
+    // within a sixth of a decade of it. Distance is measured in decades
+    // because that is the axis's own spacing: 1,000 and 1,200 are 200 apart
+    // and a twelfth of a decade, which is two labels on top of each other.
+    if (Math.log10(powers[0]) - logLo > TICK_DECADE_GAP) powers.unshift(lo);
+    if (Math.log10(hi) - Math.log10(powers[powers.length - 1]) > TICK_DECADE_GAP) powers.push(hi);
+    return powers;
+  };
+  return scale;
+}
+
 export interface AngleScale {
   (index: number): number;
   /** Radians per slot. */

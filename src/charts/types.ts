@@ -558,6 +558,33 @@ export interface ScatterChartProps {
   yLabel?: string;
   formatX?: (value: number) => string;
   formatY?: (value: number) => string;
+  /**
+   * Override the axis domain instead of deriving it from the data.
+   *
+   * The derived one rounds its top up to a "nice" number, which is right for a
+   * value the reader compares against a round target and wasteful for one they
+   * do not: a maximum of 33,000 becomes an axis to 50,000, spending a third of
+   * the plot on emptiness. Pass a domain when the data's own extent is the
+   * interesting range.
+   *
+   * A domain is a WINDOW on the data: points outside it are not drawn, and are
+   * counted in the chart's accessible label rather than dropped in silence.
+   */
+  xDomain?: [number, number];
+  yDomain?: [number, number];
+  /**
+   * `log` for a long tail — per-route counts where most points sit near the
+   * origin and a few run orders of magnitude past them. On a linear axis those
+   * many collapse into one clump and the chart only answers for the outliers.
+   *
+   * A derived log domain starts at the smallest positive value in the data,
+   * not at zero, so fractional data — seconds, rates — spreads across the plot
+   * rather than collapsing. Only a domain that reaches zero or below borrows a
+   * floor, three decades under its top, since those have no logarithm; values
+   * beneath the floor draw at it.
+   */
+  xScale?: 'linear' | 'log';
+  yScale?: 'linear' | 'log';
   radiusRange?: [number, number];
   className?: string;
   emptyLabel?: string;
