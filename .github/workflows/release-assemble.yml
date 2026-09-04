@@ -1,0 +1,82 @@
+# Assign the version, on main, once, at merge time.
+#
+# This is the automation CI-13 asks for: where two branches are each correct
+# alone and wrong together — two version bumps to the same number — the
+# collision is resolved by one deterministic run on the integrated tree, never
+# pre-resolved on a branch that can only guess.
+#
+# It consumes every pending `.changes/*.md` fragment, bumps `package.json` and
+# `package-lock.json` by the highest bump among them, prepends one `## X.Y.Z`
+# section to `CHANGELOG.md`, deletes the fragments, and pushes a single
+# `release: X.Y.Z` commit.
+#
+# It does NOT publish. Merging assigns a number; npm receives it only when a
+# GitHub Release tagged `v<version>` is cut (release.yml). Those are separate
+# on purpose: four portals pin this package, so a version reaching the registry
+# is a commitment to them rather than an internal event.
+name: Release assemble
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Serialised, and NOT cancel-in-progress: every run must consume the fragments
+# it can see. A cancelled assemble would drop a merged pull request's release
+# note on the floor with nothing said.
+concurrency:
+  group: release-assemble
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # The one job in this repository that writes to main. Scoped here rather
+      # than at workflow level so nothing else inherits it (CI-6).
+      contents: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+
+      - name: Assemble release fragments
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          attempts=6
+          for attempt in $(seq 1 $attempts); do
+            git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+            git reset --hard refs/remotes/origin/main
+            # Re-read the CURRENT tip rather than the sha that triggered this
+            # run: a merge that landed while this was queued must be released
+            # too, and the loop below is what makes that safe.
+            if ! ls .changes/*.md 2>/dev/null | grep -qv 'README\.md'; then
+              echo 'No pending release fragments — nothing to release.'
+              break
+            fi
+            NEW_VERSION=$(node scripts/assemble-release.mjs)
+            git add -A .changes CHANGELOG.md package.json package-lock.json
+            git commit -m "release: ${NEW_VERSION}"
+            if git push origin HEAD:main; then
+              echo "Released ${NEW_VERSION} as $(git rev-parse HEAD)"
+              echo "### Released \`${NEW_VERSION}\`" >> "$GITHUB_STEP_SUMMARY"
+              echo "" >> "$GITHUB_STEP_SUMMARY"
+              echo "Cut a GitHub Release tagged \`v${NEW_VERSION}\` to publish it to npm." >> "$GITHUB_STEP_SUMMARY"
+              break
+            fi
+            echo "::warning::push rejected (main moved underneath) — retrying (${attempt}/${attempts})"
+            if [ "$attempt" -eq "$attempts" ]; then
+              echo "::error title=release assembly failed::could not push the release commit after ${attempts} attempts"
+              exit 1
+            fi
+            # Optimistic-lock backoff: a bounded random sleep, so racing runs
+            # do not re-collide in lockstep on the next fetch -> push.
+            sleep $(( (RANDOM % 5) + attempt ))
+          done

@@ -1,0 +1,56 @@
+# Fail a pull request whose release metadata is wrong.
+#
+# Versions are not chosen on a branch any more. Parallel sessions raced the
+# number constantly and git auto-merged `package.json` to the colliding value:
+# the pull request looked clean and CI stayed green. On 2026-09-04 four open
+# pull requests claimed 4.93.0 at once, and all 28 pairs among the nine open
+# branches conflicted — on `CHANGELOG.md`, `package.json` and
+# `package-lock.json` and on nothing else.
+#
+# Instead each pull request ADDS one `.changes/<slug>.md` fragment and the
+# merge-time job in release-assemble.yml assigns the version on main,
+# serialised — so collisions cannot exist by construction. This guard enforces
+# the convention: a fragment must be present and valid, and the bot-owned
+# release files must be untouched.
+#
+# A pull request that legitimately ships no release: add the `no-version-bump`
+# label. This lives in its own workflow so the labeled/unlabeled triggers
+# re-run only this cheap check, never the build matrix.
+name: Version check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: version-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    name: Release fragment present and valid
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'no-version-bump') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # fetch-depth 2: the script diffs the merge ref against its first parent
+      # (HEAD^1) when the shallow clone has no merge base with origin/main.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 22
+
+      # Explicit refspec: the checkout is a shallow merge-ref clone, so make
+      # sure refs/remotes/origin/main exists for the script's merge-base try.
+      - name: Fetch origin/main
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+
+      - name: Check release fragment against origin/main
+        run: node scripts/check-release-fragment.mjs
