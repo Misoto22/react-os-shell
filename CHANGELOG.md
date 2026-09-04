@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.92.0
+
+- **`Meter` can draw a fill made of parts.** Business Central and NetSuite both
+  put fulfilment ON the order line — 80 of 100 shipped, 15 more picked —
+  because "what is still owed" is a spatial question rather than one the reader
+  should do arithmetic for. `Meter` could only draw one fill, so consumers
+  hand-rolled a layered track instead. Pass `segments` and they are laid end to
+  end on the same track, each named with its share underneath, so the meaning
+  survives greyscale, CVD and forced-colors the way the single-value form's
+  written-out value already does.
+
+  `value` still governs the readout, the ARIA value and the objective verdict —
+  pass the TOTAL. The first segment takes that verdict's tone unless it names
+  its own, so the bar and the figure above it cannot disagree, and the rest
+  default to `neutral`. Segments hold their stated widths: a set summing past
+  the track has its tail clipped at the end rather than every part shrunk to
+  fit, which would leave the bar contradicting both the breakdown printed under
+  it and the objective marker drawn over it. A meter with no `segments` renders
+  exactly as before.
+
 ## 4.91.1
 
 - **Opacity-modified utilities now get their dark treatment too.** A Tailwind
