@@ -28,6 +28,8 @@ The kit is built with **Tailwind v4 utility classes**, and the shipped styleshee
 
 The glass menus/panels read DS tokens `--window-*`, `--menu-*`, `--taskbar-*` (defined in the stylesheet); don't redefine them.
 
+**Not a portal?** A report, an emailed document, or a standalone page has no React and no build step, so it does not compose the kit at all. It links `react-os-shell/brand.css` — this stylesheet compiled, plus the `ef-*` report primitives (`ef-table-wrap`, `ef-stat-strip`, `ef-bar-list`, …) documented in the README under *Brand surfaces*. Those surfaces are governed by the EFFICIENT harness, `52-brand-surface.md`, not by this guide.
+
 ## Form controls
 
 `Button` (`variant`: `primary | secondary | ghost | danger`), `Input`, `Textarea`, `Select` (native, short lists — `SearchableSelect` is the searchable/free-text one), `Checkbox`, `Radio`, and the `FormField` wrapper (label + control + `hint`/`error`). Controlled the kit way: `value` + `onChange(value)` (`onChange(checked)` for checkbox/radio); `Input`/`Textarea` forward native props so `react-hook-form` `register()` spreads onto them. `primary` buttons and the check/radio fills follow the active accent automatically.

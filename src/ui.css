@@ -67,6 +67,20 @@
    generated when consumers import react-os-shell/ui.css. */
 @source "./**/*.js";
 
+/* Tailwind scans every text file it can reach, prose included, so a class
+   NAMED in the README, the CHANGELOG or a contributor guide is compiled into
+   the bundle as if a component used it. That is not academic: `h-[440px]` and
+   `bg-[#abc]`, which .design-sync/conventions.md cites as examples of values
+   that render as NOTHING, were both real classes in the shipped stylesheet.
+   Worse downstream — harness 52-brand-surface.md treats the compiled bundle as
+   the published vocabulary, so a passing mention in prose silently widened the
+   organisation's brand contract. Excluding the documentation dropped 21 such
+   classes and none the code uses. Excluding a path that does not exist is not
+   an error, so these hold for a consumer's node_modules copy too. */
+@source not "../*.md";
+@source not "../docs/**";
+@source not "../.design-sync/**";
+
 /* The default `utils/glass.ts` already assumes at `getMenuOpacity()`'s
    fallback. Declared here so a ui-only consumer gets identical glass to a shell
    consumer at rest, and has one knob to dial it. <Layout> overrides it inline
@@ -103,6 +117,41 @@ html.rosh-reduce-transparency *::after {
 }
 
 /* ═══════════════════════════════════════════════════
+   The neutral ramp, light
+   ═══════════════════════════════════════════════════ */
+/*
+ * The dark block below has named these twelve roles since 4.16; light named
+ * none of them, so `var(--ink)` resolved to nothing outside a dark theme.
+ * That is the same shape the --viz-* palette further down already gets right:
+ * declared for both themes, read by role.
+ *
+ * Adding light values is render-neutral for existing consumers — no rule
+ * outside a `[data-theme="dark"]` scope reads any of these twelve, in CSS or
+ * in TSX. It exists so a surface built WITHOUT the kit's utility classes —
+ * a report, an emailed document, a standalone page — can read the same roles
+ * the portals do. That surface is governed by harness 52-brand-surface.md and
+ * loads `react-os-shell/brand.css`.
+ *
+ * The values are the Tailwind steps the dark block opposite already remaps:
+ * white/gray-50/gray-100 surfaces, gray-100/200/300 lines, gray-900 down to
+ * gray-400 ink. Keep the two blocks in step.
+ */
+:root {
+  --surface: #ffffff;
+  --surface-sunken: #f9fafb;
+  --surface-raised: #f3f4f6;
+  --line-subtle: #f3f4f6;
+  --line: #e5e7eb;
+  --line-strong: #d1d5db;
+  --ink-faintest: #9ca3af;
+  --ink-faint: #6b7280;
+  --ink-muted: #4b5563;
+  --ink: #374151;
+  --ink-strong: #1f2937;
+  --ink-strongest: #111827;
+}
+
+/* ═══════════════════════════════════════════════════
    Theme: Dark
    ═══════════════════════════════════════════════════ */
 [data-theme="dark"] {
@@ -129,7 +178,9 @@ html.rosh-reduce-transparency *::after {
   --line: #313244;
   --line-strong: #45475a;
   --ink-faintest: #6c7086;
-  --ink-faint: #7f849c;
+  /* 4.79:1 on --surface. Was #7f849c at 4.44:1 — under AA, and this step
+     is what `.text-gray-500` renders as in dark, so it carries real text. */
+  --ink-faint: #848aa2;
   /*
    * Currently unreachable, and worth knowing before you set it.
    *

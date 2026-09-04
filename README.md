@@ -370,6 +370,46 @@ layers without preflight.
 `react-os-shell` (the root entry) is unchanged and remains a superset: same
 components, same bindings, plus the shell.
 
+### Brand surfaces — `react-os-shell/brand.css`
+
+For output that is not a portal window — a report, a published artifact, a
+proposal, an HTML email, a shop page. Those have no React and no build step,
+so they cannot compose the kit; they link one stylesheet instead:
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/react-os-shell/dist/brand.css">
+```
+
+It is `styles.css` compiled and self-contained, plus the tokens a page without
+utility classes cannot express (accent and `--accent-text`/`--on-accent`,
+status hues and their `-text` variants, radius, type), plus the **report
+primitives** — a small semantic layer in
+`@layer components`, so a utility on the same element still wins:
+
+| Group | Classes |
+|---|---|
+| Shell | `ef-report` `ef-shell` `ef-skip-link` `ef-masthead` `ef-identity` `ef-logo-light` `ef-logo-dark` `ef-document-meta` `ef-footer` |
+| Opening, structure | `ef-opening` `ef-opening-claim` `ef-opening-proof` `ef-section` `ef-section-title` `ef-flow` `ef-reading` `ef-peers` |
+| Type roles | `ef-label` `ef-caption` `ef-mono` `ef-numeric` `ef-visually-hidden` `ef-sources` |
+| Figures | `ef-stat-strip` `ef-stat` `ef-stat-label` `ef-stat-value` `ef-stat-unit` `ef-stat-detail` `ef-unavailable` |
+| Evidence | `ef-table-wrap` (caption, header, baseline-aligned cells, `ef-numeric` columns) · `ef-status[data-status]` over the nine groups |
+| Bars, charts | `ef-bar-list` `ef-bar-label` `ef-bar-track` `ef-bar-fill` (`style="--ef-bar: 48%"`) `ef-bar-value` · `ef-chart` `ef-series-1…6` `ef-series-stroke` `ef-series-fill` `ef-chart-axis` `ef-chart-gridline` `ef-chart-label` |
+| Controls | `ef-field` `ef-helper` `ef-error` `ef-button[data-variant]` |
+
+A page that stamps no `data-theme` follows the reader's OS preference: the
+stylesheet carries the dark ramp under `prefers-color-scheme`, guarded so any
+explicit stamp wins. Utility colour classes remap only under
+`[data-theme="dark"]`, so a page that paints with utilities stamps the
+attribute itself.
+
+The list is the API. The stylesheet is compiled, so an `ef-` name outside it
+renders as nothing, the same as `h-[440px]`. The layout primitives exist to
+make the recurring generated-page defects unexpressible rather than merely
+detectable: `ef-table-wrap` owns the full width of its section, `ef-bar-list`
+owns one shared label, plot and value lane, `ef-stat-strip` owns the peer
+grid. The organisation contract that governs these surfaces, and the audit
+that checks them, live in the EFFICIENT harness (`52-brand-surface.md`).
+
 ### Editorial markup — `react-os-shell/markup`
 
 One grammar for copy a human types into a plain text box, so a toolbar button and

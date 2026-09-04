@@ -1,0 +1,543 @@
+/**
+ * react-os-shell/brand.css — the published EFFICIENT brand stylesheet.
+ *
+ * For a surface rendered OUTSIDE a portal window: a report, a published
+ * artifact, a proposal, an HTML email, a shop or marketing page. Those have no
+ * React, no component kit, and no build step, so they cannot resolve a value
+ * to `react-os-shell` the way harness FT-1 asks a portal to. Harness
+ * `52-brand-surface.md` governs them, and this file is the vocabulary it names.
+ *
+ *   <link rel="stylesheet" href=".../react-os-shell/brand.css">
+ *
+ * Two rules follow from what this file IS, and both are in that contract:
+ *
+ *   BRAND-2 — it loads in the browser, never into a model's context. It is
+ *   also COMPILED, so it contains exactly the classes the kit uses and nothing
+ *   else: `h-[440px]` and `bg-[#abc]` render as nothing. A one-off value uses
+ *   an inline style reading a token below.
+ *
+ *   BRAND-1 — when it cannot be loaded at all (an email client, an offline
+ *   artifact), the contract's token block is inlined instead. That block is
+ *   these same roles with these same values.
+ *
+ * The neutral ramp is not repeated here: styles.css declares it for both
+ * themes. What IS here is what a portal expresses as a utility class and a
+ * standalone page cannot — accent, status hues, radius, and type.
+ */
+
+@import "./styles.css";
+
+:root {
+  --accent-50: #eff6ff;
+  --accent-100: #dbeafe;
+  --accent-500: #3b82f6;
+  --accent-600: #2563eb;
+  --accent-700: #1d4ed8;
+
+  /* Literal in both themes, deliberately: danger means the same thing in
+     every EFFICIENT product. Redefining it is a different conversation from
+     restyling neutrals — the same boundary ui.css draws.
+
+     These are the FILL hues — a bar, a dot, a rule, a border. They are not
+     safe as text: amber on white is 2.15:1, which fails WCAG 2.2 AA and even
+     the large-text bar. Status TEXT reads the -text variants below, which are
+     the same hues moved until they clear 4.5:1 against the surface of their
+     own theme. */
+  --danger: #dc2626;
+  --warning: #f59e0b;
+  --success: #16a34a;
+
+  --danger-text: #dc2626;   /* 4.83:1 on --surface */
+  --warning-text: #b45309;  /* 5.02:1 — amber-700; #f59e0b is 2.15:1 here */
+  --success-text: #15803d;  /* 5.02:1 */
+
+  /* The accent as TEXT — a link, an emphasised figure. --accent-600 itself is
+     5.17:1 on white and 3.17:1 on the dark surface, so it is a fill, not an
+     ink. --on-accent is the ink that sits ON an accent fill; it is white in
+     both themes because the fill does not move. */
+  --accent-text: #1d4ed8;   /* 6.70:1 — blue-700 */
+  --on-accent: #ffffff;     /* 5.17:1 on --accent-600 */
+
+  --radius: 0.375rem;
+  --radius-lg: 0.5rem;
+
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+/*
+ * The fill hues hold across themes; the text variants cannot, because the
+ * surface behind them moves. Scoped to [data-theme] rather than a media query
+ * to match the rest of the kit: the portals let a user pick a theme, and an OS
+ * preference must not override that choice. An offline surface that has no
+ * theme switch inlines the same values under
+ * `@media (prefers-color-scheme: dark)` instead — see harness BRAND-1.
+ */
+:root[data-theme="dark"] {
+  --danger-text: #f87171;   /* 5.93:1 on the dark --surface */
+  --warning-text: #f59e0b;  /* 7.64:1 */
+  --success-text: #16a34a;  /* 4.98:1 */
+  --accent-text: #60a5fa;   /* 6.45:1 — blue-400 */
+}
+
+/*
+ * A page that links this stylesheet and stamps no data-theme still has a
+ * reader with an OS preference. The portals never take this path — they stamp
+ * the attribute from the user's own choice, which must beat the OS — but a
+ * report, a published artifact, a standalone page has no switch of its own,
+ * so the roles and the primitives follow prefers-color-scheme by themselves.
+ *
+ * Guarded on :not([data-theme]): any explicit stamp, light or dark or an
+ * accent theme, wins over the OS. The values ARE the kit's dark values, and
+ * tests/brandStylesheet.test.ts pins them equal to ui.css so they cannot
+ * drift. Utility colour classes remap only under [data-theme="dark"]
+ * (themes.css), so a page that paints with utilities stamps the attribute
+ * itself — one line of matchMedia — or does not paint with utilities.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --surface: #1e1e2e;
+    --surface-sunken: #181825;
+    --surface-raised: #313244;
+    --line-subtle: #2a2a3c;
+    --line: #313244;
+    --line-strong: #45475a;
+    --ink-faintest: #6c7086;
+    --ink-faint: #848aa2;
+    --ink-muted: #9399b2;
+    --ink: #a6adc8;
+    --ink-strong: #bac2de;
+    --ink-strongest: #cdd6f4;
+    --danger-text: #f87171;
+    --warning-text: #f59e0b;
+    --success-text: #16a34a;
+    --accent-text: #60a5fa;
+  }
+}
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────
+ * The report primitives — the generator-facing API of a brand surface.
+ *
+ * Utility classes let a page express anything, which is the problem: a
+ * generated report composes its layout from scratch every time, and the
+ * recurring defects — a table at reading width, three metric boxes that do
+ * not share a baseline, bars that do not share a scale — are all layout the
+ * author had to get right by hand. These primitives take that decision away.
+ * `.ef-table-wrap` owns the full width of its section, so prose-width data
+ * is not expressible through it; `.ef-bar-list` owns one shared label lane,
+ * plot lane, and value lane, so a bar that resizes its own row is not
+ * expressible either. That is harness GOV-9's first rung: make the wrong
+ * thing unavailable, and only then check for it.
+ *
+ * The names below ARE the API. Harness BRAND-2 lists them, and a class that
+ * starts with `ef-` and is not on that list is a defect, not a near miss —
+ * an invented `ef-stat-note` renders as nothing, like any class the bundle
+ * does not contain.
+ *
+ * Everything reads the roles declared above and in ui.css; nothing here
+ * declares a colour of its own.
+ *
+ * They sit in @layer components so a utility class on the same element
+ * still wins, the way the kit's own components yield to utilities.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+@layer components {
+  /* ── Shell ── */
+  .ef-report {
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font);
+    line-height: 1.5;
+    min-height: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+  .ef-shell {
+    max-width: 64rem;
+    margin-inline: auto;
+    padding-inline: 1.25rem;
+  }
+  @media (min-width: 40rem) {
+    .ef-shell { padding-inline: 2rem; }
+  }
+  .ef-skip-link {
+    position: absolute;
+    top: 0;
+    left: -100vw;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem; /* BRAND-8: a 44px target, like every control */
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink-strongest);
+  }
+  .ef-skip-link:focus {
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+  .ef-masthead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 1rem;
+    border-bottom: 1px solid var(--ink-strongest);
+  }
+  .ef-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ink-strongest);
+  }
+  .ef-identity img {
+    display: block;
+    width: auto;
+    height: 1.5rem;
+  }
+  /* BRAND-7: a logo has two slots, and the print logo is not the on-dark one. */
+  .ef-logo-dark { display: none; }
+  [data-theme="dark"] .ef-logo-light { display: none; }
+  [data-theme="dark"] .ef-logo-dark { display: block; }
+  .ef-document-meta {
+    font-size: 0.75rem;
+    color: var(--ink-faint);
+  }
+  .ef-document-meta > * + *::before {
+    content: "·";
+    margin-inline: 0.5em;
+  }
+  .ef-footer {
+    margin-top: 2rem;
+    padding-block: 1rem 1.5rem;
+    border-top: 1px solid var(--line-subtle);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--ink-faint);
+  }
+
+  /* ── Opening and structure ── */
+  .ef-opening { padding-top: 2rem; }
+  .ef-opening-claim {
+    margin: 0;
+    max-width: 48rem;
+    font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.25rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    color: var(--ink-strongest);
+  }
+  .ef-opening-proof {
+    margin-top: 1.5rem;
+    max-width: 42rem;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: var(--ink-muted);
+  }
+  /* A flow owns the gaps between its children; the children add none. It is
+     declared BEFORE .ef-section so a section placed inside a flow keeps its
+     own 2rem, by source order — both selectors are (0,1,0). */
+  .ef-flow > * + * { margin-top: 1rem; }
+  .ef-flow > .ef-section-title + * { margin-top: 0.75rem; }
+  .ef-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line-subtle);
+  }
+  .ef-section-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink-strongest);
+  }
+  /* Prose measure. Never a table's ancestor — that is BRAND-4.1. */
+  .ef-reading { max-width: 42rem; }
+  .ef-peers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 2.5rem;
+  }
+  .ef-peers > * { min-width: 0; }
+
+  /* ── Type roles ── */
+  .ef-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ink-faint);
+  }
+  .ef-caption {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+  .ef-mono {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+  .ef-numeric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .ef-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .ef-sources {
+    max-width: 42rem;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--ink-faint);
+  }
+
+  /* ── Figures ── */
+  .ef-stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 2.5rem;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--line-subtle);
+  }
+  .ef-stat { min-width: 0; }
+  .ef-stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--ink-faint);
+  }
+  .ef-stat-value {
+    margin-top: 1rem;
+    font-size: 2.25rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    color: var(--ink-strongest);
+  }
+  .ef-stat-unit {
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--ink-faint);
+  }
+  .ef-stat-detail {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+  }
+  /* BRAND-6: an unavailable figure is shown as unavailable, never as zero. */
+  .ef-unavailable {
+    font-weight: 300;
+    color: var(--ink-faint);
+  }
+
+  /* ── Evidence tables ──
+     The wrap owns the full width of its section. A table at reading width
+     is not expressible through it, and a wide table scrolls inside it
+     rather than pushing the page body sideways (BRAND-8). */
+  .ef-table-wrap {
+    width: 100%;
+    margin-top: 1.5rem;
+    overflow-x: auto;
+  }
+  .ef-table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .ef-table-wrap caption {
+    caption-side: top;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    text-align: left;
+    color: var(--ink-muted);
+  }
+  .ef-table-wrap thead tr { border-bottom: 2px solid var(--ink-strongest); }
+  .ef-table-wrap th {
+    padding: 0.625rem 1.5rem 0.625rem 0;
+    font-weight: 500;
+    text-align: left;
+    vertical-align: bottom;
+    color: var(--ink-faint);
+  }
+  .ef-table-wrap td {
+    padding: 0.75rem 1.5rem 0.75rem 0;
+    vertical-align: baseline;
+    color: var(--ink-strong);
+  }
+  .ef-table-wrap th:last-child,
+  .ef-table-wrap td:last-child { padding-right: 0; }
+  .ef-table-wrap tbody tr { border-bottom: 1px solid var(--line-subtle); }
+  .ef-table-wrap tbody tr:last-child { border-bottom: 0; }
+  .ef-table-wrap th[scope="row"] {
+    font-weight: 500;
+    color: var(--ink-strongest);
+  }
+  .ef-table-wrap tfoot th,
+  .ef-table-wrap tfoot td {
+    border-top: 2px solid var(--line-strong);
+    font-weight: 600;
+    color: var(--ink-strongest);
+  }
+  /* A numeric header aligns like its column; the cell rule alone would not. */
+  .ef-table-wrap .ef-numeric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* ── Status ──
+     BRAND-5: the nine groups, named in text. Colour reinforces the three
+     that carry meaning; the rest stay in ink. Every hue is a -text variant,
+     because the fill hues do not hold AA as text. */
+  .ef-status {
+    font-weight: 500;
+    color: var(--ink-muted);
+  }
+  .ef-status[data-status="active"] { color: var(--ink-strongest); }
+  .ef-status[data-status="success"] { color: var(--success-text); }
+  .ef-status[data-status="warning"] { color: var(--warning-text); }
+  .ef-status[data-status="danger"] { color: var(--danger-text); }
+
+  /* ── Bars ──
+     One shared label lane, plot lane, and value lane for the whole set. A
+     row whose label or value changes the plot width is not expressible. The
+     fill reads its length from --ef-bar, set inline per row. */
+  .ef-bar-list {
+    display: grid;
+    grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr) max-content;
+    column-gap: 1rem;
+    row-gap: 0.625rem;
+    align-items: center;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+  }
+  .ef-bar-list > * { min-width: 0; }
+  .ef-bar-label { color: var(--ink-strong); }
+  .ef-bar-track {
+    display: block;
+    height: 0.5rem;
+    background: var(--surface-raised);
+  }
+  .ef-bar-fill {
+    display: block;
+    width: var(--ef-bar, 0%);
+    height: 100%;
+    background: var(--ink-strong);
+  }
+  .ef-bar-fill[data-tone="success"] { background: var(--success); }
+  .ef-bar-fill[data-tone="warning"] { background: var(--warning); }
+  .ef-bar-fill[data-tone="danger"] { background: var(--danger); }
+  .ef-bar-value {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink-strong);
+  }
+
+  /* ── Charts (inline SVG) ── */
+  .ef-chart {
+    width: 100%;
+    margin: 1.5rem 0 0;
+  }
+  .ef-chart svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .ef-chart figcaption {
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--ink-muted);
+  }
+  .ef-series-1 { --ef-series: var(--viz-series-1); }
+  .ef-series-2 { --ef-series: var(--viz-series-2); }
+  .ef-series-3 { --ef-series: var(--viz-series-3); }
+  .ef-series-4 { --ef-series: var(--viz-series-4); }
+  .ef-series-5 { --ef-series: var(--viz-series-5); }
+  .ef-series-6 { --ef-series: var(--viz-series-6); }
+  .ef-series-stroke {
+    stroke: var(--ef-series);
+    stroke-width: 2;
+    fill: none;
+  }
+  .ef-series-fill { fill: var(--ef-series); }
+  .ef-chart-axis { stroke: var(--viz-axis); }
+  .ef-chart-gridline { stroke: var(--viz-grid); }
+  .ef-chart-label {
+    fill: var(--viz-label);
+    font-family: var(--font);
+    font-size: 0.75rem;
+  }
+
+  /* ── Controls ── */
+  .ef-field {
+    display: grid;
+    gap: 0.375rem;
+  }
+  .ef-field > label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink-strong);
+  }
+  .ef-field > input,
+  .ef-field > select,
+  .ef-field > textarea {
+    min-height: 2.75rem; /* BRAND-8: a 44px target */
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink-strongest);
+    font: inherit;
+  }
+  .ef-field > input:focus-visible,
+  .ef-field > select:focus-visible,
+  .ef-field > textarea:focus-visible,
+  .ef-button:focus-visible {
+    outline: 2px solid var(--accent-600);
+    outline-offset: 2px;
+  }
+  .ef-helper {
+    font-size: 0.875rem;
+    color: var(--ink-muted);
+  }
+  .ef-error {
+    font-size: 0.875rem;
+    color: var(--danger-text);
+  }
+  .ef-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: var(--accent-600);
+    color: var(--on-accent);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .ef-button[data-variant="secondary"] {
+    border-color: var(--line-strong);
+    background: var(--surface);
+    color: var(--ink-strongest);
+  }
+
+  @media print {
+    .ef-skip-link { display: none; }
+  }
+}
