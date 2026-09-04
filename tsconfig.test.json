@@ -11,6 +11,11 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "rootDir": ".",
+    // The release assembler under scripts/ is plain ESM JavaScript, like the
+    // rest of scripts/, and tests/releaseFragments.test.ts imports it. Without
+    // this the spec cannot resolve it and the one piece of automation that
+    // owns the version number would go untypechecked.
+    "allowJs": true,
     "noEmit": true,
     "declaration": false,
     "declarationMap": false,
