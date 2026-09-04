@@ -280,7 +280,10 @@ export interface RankedBarsProps {
 /** One filled part of a segmented meter track. */
 export interface MeterSegment {
   /** 0–1 of the WHOLE track, not of the remainder. Segments are laid end to
-   *  end, so they should sum to at most 1; the excess is clipped. */
+   *  end and HOLD their stated widths, so a set summing past 1 has its tail
+   *  clipped at the end of the track rather than every part shrunk to fit —
+   *  a rescale would leave the bar disagreeing with the breakdown printed
+   *  under it. */
   value: number;
   /** What this part IS — "Shipped", "Loaded". Read out with its share, so the
    *  meaning survives greyscale, CVD and forced-colors like the single-value
@@ -298,7 +301,10 @@ export interface MeterProps {
    *
    * `value` still governs the readout, the ARIA value and the objective
    * verdict, so a segmented meter is the same control with its fill broken up;
-   * pass the TOTAL as `value`. Without this the props behave exactly as before.
+   * pass the TOTAL as `value`. The first segment takes that verdict's tone
+   * unless it names its own, so the bar and the figure above it never
+   * disagree; the rest default to `neutral`. Without this the props behave
+   * exactly as before.
    */
   segments?: MeterSegment[];
   /** 0–1. Marked on the track. */
