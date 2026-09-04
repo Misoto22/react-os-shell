@@ -2,6 +2,258 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.93.0
+
+- **New `react-os-shell/brand.css`.** A surface rendered outside a portal
+  window — a report, a published artifact, a proposal, an HTML email, a printed
+  invoice — has no React and no build step, so "resolve the value to
+  react-os-shell" has nothing to resolve to. This publishes what those surfaces
+  link: `@import "./styles.css"` plus the tokens a page without utility classes
+  cannot express (accent scale, status hues, radius, type). Never a hand-copied
+  rule, so a class the kit adds tomorrow reaches a brand surface without a
+  second edit. `@tailwindcss/cli` compiles it after the copy step, so the
+  published export is never the uncompiled entry.
+
+- **New `ef-*` report primitives, in `@layer components`.** A brand surface had
+  a vocabulary of utility classes and nothing above it, so every report composed
+  its layout from scratch — and the recurring defects (a table at reading width,
+  metric boxes that do not share a baseline, bars that do not share a scale)
+  were all layout the author had to get right by hand. The primitives take that
+  decision away: `.ef-table-wrap` owns the full width of its section,
+  `.ef-bar-list` owns one shared label, plot and value lane, `.ef-stat-strip`
+  owns the peer grid and its baseline.
+
+  Fifty-three names in seven groups — shell, opening and structure, type roles,
+  figures, evidence tables, status, bars and charts, controls. The list is the
+  API: harness `52-brand-surface.md` BRAND-2 enumerates the same names, and the
+  brand checker reports an `ef-` class outside the list as a defect, so an
+  invented `ef-stat-note` renders as nothing exactly like a spacing step the kit
+  never compiles. `tests/brandStylesheet.test.ts` pins the list, pins that
+  nothing but `ef-*` is declared here, and pins the three layout guarantees.
+
+  Render-neutral for every portal: no portal loads `brand.css`.
+
+- **A page with no `data-theme` follows the OS.** Dark was keyed only to
+  `[data-theme="dark"]`, which a portal stamps from the user's own choice. A
+  standalone report has no such switch, so every one of those pages rendered
+  light to a dark-preferring reader. `brand.css` now carries the kit's dark
+  values under `@media (prefers-color-scheme: dark)`, guarded on
+  `:root:not([data-theme])` so any explicit stamp still wins. Render-neutral for
+  the portals, which always stamp; the test pins the block's values equal to
+  `ui.css` so the two cannot drift.
+
+- **New `--accent-text` and `--on-accent`.** `--accent-600` is 5.17:1 on white
+  and **3.17:1** on the dark surface, so it is a fill and never an ink, and
+  there was no accent counterpart to `--danger-text`. A link on a dark page had
+  no AA-safe colour. `--accent-text` is `#1d4ed8` light (6.70:1) and `#60a5fa`
+  dark (6.45:1); `--on-accent` is the ink that sits on an accent fill, `#ffffff`
+  in both themes, and `.ef-button` reads it instead of a literal.
+
+- **Dark `--ink-faint` clears AA.** It was `#7f849c`, which measures 4.44:1
+  against the dark surface — 0.06 under the 4.5:1 bar for normal text. That step
+  is what `.text-gray-500` renders as in a dark theme, so it carries real text
+  on every portal and has been marginally failing all along. Now `#848aa2` at
+  4.79:1. The light value is unchanged at 4.83:1. This is a small visual change
+  in dark mode: text using `.text-gray-500` lightens slightly, which is the fix
+  rather than a side effect.
+
+- **`.ef-skip-link` clears the 44px target**, where it computed to about 42px —
+  the only control on a typical report missing the floor the contract sets for
+  every other control. **`.ef-flow` is declared before `.ef-section`**: both are
+  specificity (0,1,0), so source order decided whether a section inside a flow
+  kept its own 2rem or collapsed to the flow's 1rem. It keeps its own now,
+  deliberately and testably.
+
+- **A class named in prose is no longer compiled into the stylesheet.** Tailwind
+  scans every text file it can reach, so mentioning a utility in the README or
+  the CHANGELOG put it in the bundle as if a component used it. `h-[440px]` and
+  `bg-[#abc]` — the two values `.design-sync/conventions.md` cites as examples
+  of things that render as **nothing** — were both real classes in the shipped
+  stylesheet, and the bundle is what the brand contract treats as the published
+  vocabulary. `ui.css` now excludes the documentation from the scan: 21 classes
+  dropped, none of which the kit's code uses, and none added. Render-neutral.
+
+- **A table now follows a column list that changes while it is open.**
+  `useColumnConfig` seeded its state once, in the `useState` initialiser, and
+  never looked at `defaultColumns` again. A consumer whose columns change while
+  the window stays mounted — a comparison period switched on, a mode revealing
+  extra measures, a permission resolving after the first paint — got nothing:
+  the new definitions never entered the state, so `orderedColumns` never
+  mentioned them and the table simply did not draw them. Closing the window and
+  opening it again was the only way to see them, and nothing on screen
+  suggested that.
+
+  Withdrawing a column had the mirror problem: its key stayed in the state
+  after its definition was gone, and `orderedColumns` spreads
+  `defaultColumns.find(...)!` over each entry — a non-null assertion on
+  `undefined`, leaving a column with a width and no key or label.
+
+  The user's decisions win wherever they exist: a column that is still declared
+  keeps its width, its hidden flag and its position. A new one lands beside the
+  column it was DECLARED next to rather than at the far right, because a column
+  that only reads next to another — a prior-period figure beside the current
+  one — is useless eleven columns away. A column that is withdrawn and then
+  comes back returns as the user left it, so a toggle cannot quietly undo their
+  choice to hide one.
+
+  Reconciliation is deliberately not persisted: a set that comes and goes with
+  a UI toggle would otherwise PATCH the user's profile on every flip. The
+  existing persist paths — resize, drag, hide, reset — still capture it as soon
+  as the user decides something.
+
+- **A field now points at its own error message.** `FormField` rendered the
+  hint and the error with ids — `${htmlFor}-hint`, `${htmlFor}-error` — and
+  pointed nothing at them, so those ids referenced nothing. A screen-reader
+  user who focused a field that had failed validation heard the label and
+  "invalid" and never the reason.
+
+  `role="alert"` is not a substitute: it announces the message the moment it
+  appears, while `aria-describedby` is what re-reads it when the user tabs BACK
+  to fix the field — which is exactly the moment they need it.
+
+  A single element child is cloned with `aria-describedby`. An
+  `aria-describedby` the control already carries is kept and appended to rather
+  than replaced; several children, a fragment or a bare string are left exactly
+  as they were, for the caller to wire as `MediaUploadField` and
+  `MediaUploadGrid` already do by hand.
+
+- **And it is announced as invalid.** The same clone carries `aria-invalid`
+  while `error` is set. Every input in the kit takes its own `invalid` prop, so
+  a caller had to pass the error to `FormField` and `invalid` to the control
+  and keep the two in step by hand — and a field that missed one reads as valid
+  with a red message under it. `error` is already the statement that the field
+  failed. A control that sets its own `aria-invalid` keeps it, so `Input`,
+  `Select`, `Textarea` and the pickers stay authoritative over their own
+  attribute.
+
+- **A dropdown no longer opens onto the desktop beside the window that owns
+  it.** Every anchored popup in the kit — `Select`, `SearchableSelect`,
+  `TagInput`, `DatePicker`, `DateRangePicker` — is portalled to `<body>` so an
+  `overflow-hidden` window body cannot clip it in half. That escape was about
+  clipping, and the placement then measured its room against the VIEWPORT: on a
+  1150px window in the middle of a wide screen, a filter near the window's right
+  edge opened a 448px option list 200px past the window and onto the wallpaper.
+  Nothing was hidden and nothing looked broken; the menu simply stopped
+  belonging to anything. Placement is now measured against the shell window the
+  trigger sits in (`[data-modal-panel]`, intersected with the viewport so a
+  half-dragged window still behaves), falling back to the viewport on a routed
+  page or a till. A window narrower than the menu's preferred width caps the
+  menu instead of letting it overhang.
+
+- **One placement helper, not three.** `Select` carried its own copy of the
+  flip/track/clamp maths and `DateRangePicker` a third, so the same trigger
+  placed its popup differently depending on which control was under it. Both now
+  take `useDropdownPosition`; `Select` asks for its native-select width with the
+  new `matchTriggerWidth` option, and `DateRangePicker`'s panel is portalled
+  like every other one.
+
+- **The date-range panel can no longer be resized by the page around it.** Its
+  panel used to be an `absolute` child of the trigger, which put it inside a
+  consumer's layout: a filter bar that stretched its controls with
+  `[&>div>div]:w-full` also stretched — and therefore shrank — the calendar, so
+  a panel needing 450×370 computed to the trigger's 280×36 and drew the calendar
+  and its preset column onto the page behind it with no surface underneath.
+  Portalled, the panel is out of reach of that CSS and states its own size.
+
+- **`DateRangePicker` takes `fullWidth`.** The trigger is `inline-flex`, which
+  is right in a toolbar row and wrong in a filter grid where every other control
+  is `block w-full`. That gap is what consumers were papering over with
+  descendant selectors; the prop is the supported answer, and it truncates a
+  long range label rather than wrapping the field.
+
+- **The version number is no longer chosen on a branch.** A pull request adds
+  one `.changes/<slug>.md` fragment and the merge-time job on `main` assigns
+  the number, writes the `## X.Y.Z` section, and deletes the fragment —
+  several merges that race batch into one release.
+
+  Nothing a consumer imports changes. The entry you are reading was assembled
+  by that job.
+
+- **`ScatterChart` takes an axis domain, instead of always deriving one.** The
+  derived domain rounds its top up to a readable number, which is right when
+  the reader compares against a round target and wasteful when they do not: a
+  maximum of 33,000 becomes an axis to 50,000 and spends a third of the plot
+  on range the data never reaches. `xDomain` / `yDomain` say "the data's own
+  extent is the interesting range" and get the whole width for it.
+
+- **`ScatterChart` can put either axis on a log scale.** `xScale="log"` /
+  `yScale="log"` for a long tail — per-route request counts where most points
+  sit near the origin and two or three run orders of magnitude past them. On a
+  linear axis the many collapse into one clump against the axis and the chart
+  only answers about the outliers. A value at or below the floor draws AT it:
+  visible, and not claimed to be distinguishable from its neighbours.
+
+- **New `logScale` export**, alongside `linearScale`. It ticks in powers of
+  ten rather than in even slices — evenly spaced values on a log axis land at
+  absurd positions, a tick at 25,000 almost touching one at 50,000 while
+  everything below 10,000 goes unlabelled. A domain too narrow to contain a
+  power of ten still labels its own ends, so the axis is never blank.
+
+- **A log axis derives its floor from the data, not from the constant 1.** The
+  floor was a hard `Math.max(1, …)` applied to BOTH ends of the domain, which
+  is right for counts and silently wrong for everything else: a domain of
+  seconds like `[0.02, 0.9]` came back as `[1, 1]`, so every point drew on one
+  pixel column beneath an axis labelled `1`, and no caller could opt out.
+  Fractional data is exactly what a log axis is for. The floor is now the
+  domain's own low end whenever that is positive; only a domain reaching zero
+  or below borrows one, three decades under its top — which for counts still
+  lands on the 1 the constant hard-coded. `ScatterChart` derives a log domain
+  from the smallest POSITIVE value rather than `Math.min(0, …)`, and a domain
+  with nothing positive in it degenerates rather than emitting NaN geometry.
+
+- **A log axis stops labelling an end that sits on top of a power of ten.** The
+  domain's ends were appended unconditionally, so `[1, 1200]` printed both
+  1,000 and 1,200 — a twelfth of a decade apart, sixteen pixels on a 400px
+  plot, two thirty-pixel labels over each other. An end now earns its tick only
+  when no power of ten is within a sixth of a decade of it.
+
+- **A point outside a supplied domain is dropped, and the drop is announced.**
+  The scales extrapolate rather than clamp, and the plot's clip is padded by a
+  bubble radius so an edge bubble is not sliced in half — so a point just
+  outside the domain painted over the y-axis tick labels, and one further out
+  vanished entirely while still taking a stop in the keyboard walk and a
+  tooltip. A domain is a window on the data: what falls outside it is not
+  drawn, and the count reaches the chart's accessible label instead of nothing
+  reaching anywhere.
+
+- **`StatusBadge` takes an optional `label`.** It derived its text from the raw
+  status — underscores to spaces, title case — with no way to override it. That
+  is right for a status the system named itself and wrong for one that arrived
+  from somewhere else: Stripe's `trialing` reads as "Trialing" rather than
+  "Trial", and its `canceled` puts an American spelling in front of a
+  British-English tenant.
+
+  A consumer needing one word changed had to abandon the badge and hand-roll
+  the whole pill — and took the colours with it, which is exactly the drift
+  this component exists to prevent. In admin-portal that is five files, each
+  carrying its own status→colour literals.
+
+  The tone still comes from `status`, so the group mapping stays the single
+  source of truth for colour whatever is written on the pill. An empty string
+  is honoured rather than falling back, for an icon-only pill.
+
+- **A wide table now scrolls sideways instead of crushing its columns.**
+  `ResizableTable` turned each column's width into a percentage of the running
+  total and put it on a `w-full` table, which made every width a RATIO and
+  never a size. The table therefore always measured exactly its container:
+  thirteen columns in a 1118px window came out at 91px each, and every currency
+  figure truncated to `A$514…`. Adding a column made every other column
+  narrower, and a list with 45 columns had nowhere to go at all.
+
+  Two things followed from the same line. The body's `overflow-x-auto` was dead
+  code — a table that can never exceed its container never overflows, so there
+  was nothing to scroll to. And a resize handle could only STEAL width from
+  other columns: widening one narrowed its neighbours and the total never
+  moved, which is not what dragging a column edge means anywhere else.
+
+  Widths are pixels now, with the table floored at `min-width: 100%`. Under-full
+  it still stretches to the container and `table-layout: fixed` distributes the
+  slack proportionally, exactly as the percentages did — narrow lists are
+  unchanged. Over-full it is finally wider than its container and scrolls. The
+  header is its own table outside that scroller, so it is driven by the body's
+  scroll; left alone it would sit still while the rows moved under it and the
+  labels would stop naming the columns beneath them.
+
 ## 4.92.0
 
 - **`Meter` can draw a fill made of parts.** Business Central and NetSuite both
