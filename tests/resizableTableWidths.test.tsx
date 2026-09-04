@@ -97,3 +97,27 @@ test('the header sits in a scroller the user cannot drag', () => {
   assert.match(head.className, /overflow-x-hidden/);
   view.unmount();
 });
+
+test('the body drags the header along with it', () => {
+  // The other half of the same fix, and the one a screenshot cannot catch.
+  // Header and body are two separate tables and only the body scrolls, so
+  // without this the labels sit still while the rows move under them — every
+  // column is then named by the wrong heading, which reads as correct data in
+  // the wrong place rather than as a broken table.
+  //
+  // scrollLeft is defined rather than assigned: jsdom performs no layout, so a
+  // plain write is discarded and the assertion would pass against a handler
+  // that never ran.
+  localStorage.clear();
+  const view = mount(WIDE, 'widths-headsync');
+  const head = view.container.querySelector('.overflow-x-hidden') as HTMLElement;
+  const body = view.container.querySelector('.overflow-x-auto') as HTMLElement;
+  assert.ok(head && body, 'a header scroller and a body scroller');
+
+  Object.defineProperty(body, 'scrollLeft', { value: 240, configurable: true });
+  Object.defineProperty(head, 'scrollLeft', { value: 0, writable: true, configurable: true });
+  body.dispatchEvent(new Event('scroll', { bubbles: false }));
+
+  assert.equal(head.scrollLeft, 240, 'the header follows the body, to the pixel');
+  view.unmount();
+});
