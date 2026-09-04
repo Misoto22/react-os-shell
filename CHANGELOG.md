@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 4.94.1
+## 4.97.1
 
 - **A class named in prose is no longer compiled into the stylesheet.**
   Tailwind scans every text file it can reach, so mentioning a utility in the
@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. The format 
   dropped, none of which the kit's code uses, and none added. Render-neutral
   for every consumer.
 
-## 4.94.0
+## 4.97.0
 
 Six fresh agents composed brand surfaces from `brand.css` and the harness
 contract alone. Every one of them hit the same four gaps.
@@ -49,7 +49,7 @@ contract alone. Every one of them hit the same four gaps.
   own 2rem or collapsed to the flow's 1rem. It keeps its own now, deliberately
   and testably.
 
-## 4.93.0
+## 4.96.0
 
 `brand.css` grows a semantic layer: the report primitives.
 
@@ -85,7 +85,7 @@ contract alone. Every one of them hit the same four gaps.
 
   Render-neutral for every portal: no portal loads `brand.css`.
 
-## 4.92.0
+## 4.95.0
 
 - **Dark `--ink-faint` clears AA.** It was `#7f849c`, which measures 4.44:1
   against the dark surface — 0.06 under the 4.5:1 bar for normal text. That
@@ -97,66 +97,85 @@ contract alone. Every one of them hit the same four gaps.
   This is a small visual change in dark mode: text that used `.text-gray-500`
   lightens slightly. That is the fix, not a side effect.
 
+## 4.91.1
+
+- **Opacity-modified utilities now get their dark treatment too.** A Tailwind
+  opacity modifier compiles to a DIFFERENT class name, so every remap in
+  `ui.css` — all written against bare class names — stopped at the base:
+  `bg-indigo-50` was remapped and `bg-indigo-50/40` was not, leaving a
+  near-white lavender panel under the dark sheet's light body text. This is
+  the same escape the `!` important-modifier makes for `.\!bg-blue-*`, which
+  the sheet has always handled by naming each variant.
+
+  Covered here: the `/40` and `/50` indigo tints, the gray `/70`–`/95`
+  surfaces and their hover pairs, the blue `/80`–`/90` tints and the blue,
+  amber and green inks that carry a modifier, plus `text-violet-600/700` and
+  `border-indigo-100/200`, whose bare forms were missing entirely. Each value
+  is tuned rather than derived: a `/70` of an already subtle tint does not
+  take 70% of its alpha, because a proportional slice of it disappears. Gray
+  is the exception and takes a real alpha, because there the utility paints a
+  surface rather than a tint over one.
+
 ## 4.91.0
 
-Status colour was never safe as text, and nothing said so.
+- **The What's New window no longer ends in a large blank area.** Its body was
+  a single box capped at `max-h-[60vh]`, which cannot grow into a window whose
+  height comes off the size ladder — so once the body was taller than 60vh of
+  the viewport, the difference sat under the last changelog entry as dead
+  space: roughly 100px in a default window, and about a third of it maximized,
+  where the window is the whole work area. The list now flows in the modal
+  body and the body scrolls it, which is what every other flowing-content
+  window in the shell already does. An empty changelog is centred in the space
+  the window has, rather than leaving one grey line at the top of it.
 
-- **New `--danger-text`, `--warning-text`, `--success-text`, per theme.**
-  `--danger`, `--warning` and `--success` are literal in both themes on
-  purpose — danger means the same thing in every product. That holds for a
-  fill: a bar, a dot, a rule. It does not hold for text, because the surface
-  behind it moves. `--warning` on white measures **2.15:1**, below WCAG 2.2 AA
-  and below even the large-text bar; `--danger` on the dark surface is 3.40:1.
-  A label written in either looks correct to its author and is unreadable to
-  its reader, with nothing in the stylesheet to catch it.
+  The window sizes its CONTENT to the window, not the window to its content.
+  A host with a two-line changelog still gets a `md`-ladder window with room
+  to spare; `autoHeight` / `autoMinHeight` are how a host asks for the other
+  behaviour.
 
-  The text variants are the same hues moved until they clear 4.5:1 against the
-  surface of their own theme — amber-700 on light, amber-500 on dark, and so
-  on. The fill hues are unchanged, so nothing that renders today moves.
-
-  Scoped to `[data-theme]` like the rest of the kit, not to a media query: the
-  portals let a user pick a theme and an OS preference must not override that
-  choice. A surface with no theme switch — an email — inlines the same values
-  under `@media (prefers-color-scheme: dark)`.
-
-  `tests/brandStylesheet.test.ts` pins both halves and rejects a text variant
-  that survives a theme swap unchanged, which is the shape of the bug.
+- **Changelog entries render their Markdown instead of printing it.** Every
+  consumer writes these entries in Markdown, and this window put them on
+  screen as a raw text node, so a heading like `**Commission Plans**` showed
+  its asterisks. It now goes through `MarkdownLite`, the renderer the package
+  already ships and the one the admin portal's own two changelog surfaces
+  (`VersionsPanel`, `AboutSettings`) already use for the same strings.
 
 ## 4.90.0
 
-A published `brand.css`, and the light half of a token ramp that has only
-ever had its dark half.
+- **Right-clicking a grouped taskbar tab now acts on the group.** A tab that
+  stands for several windows — same-route `multiInstance` copies, or a
+  cross-route `taskbarGroup` — used to borrow one window's own menu, so
+  "Close" there closed a single instance and left the rest of the stack open.
+  That made the item no better than closing each window by hand, which is the
+  one thing a group menu exists to save you. A grouped tab now gets its own
+  menu, headed by the group's name: **Minimize all**, **Restore all**, and
+  **Close all (N)** with the count spelled out. A tab standing for one window
+  is unchanged — it still delegates to that window's menu, which carries
+  per-window items the taskbar knows nothing about (pin on top, Add to
+  desktop, anything the page registered).
 
-- **New export `react-os-shell/brand.css`.** A compiled, self-contained
-  stylesheet for a surface rendered outside a portal window — a report, a
-  published artifact, a proposal, an HTML email, a shop page. Those have no
-  React and no build step, so "resolve the value to react-os-shell" has
-  nothing to resolve to; they link this file instead. It is the kit's own
-  compiled vocabulary (`@import "./styles.css"`, never a hand-copied rule)
-  plus the tokens a page without utility classes cannot express: the accent
-  scale, the status hues, radius, and type. Being compiled is the point —
-  it contains exactly the classes the kit uses, so an arbitrary value like
-  `h-[440px]` renders as nothing rather than silently almost-working.
+- **A taskbar menu opened on exactly one window, instead of on every window
+  sharing its label.** `modal-context-menu` and `modal-center` addressed a
+  window by matching its title against a label, but multi-instance windows
+  deliberately share one registry label so the taskbar can group them. Every
+  copy therefore claimed the event: three open purchase invoices meant three
+  identical context menus stacked at the same point, and the "Close" you
+  clicked belonged to whichever one happened to draw on top. Both events now
+  carry the `windowKey` and are claimed by that window alone; the label match
+  survives only as the fallback for a sender with no key.
 
-- **The neutral ramp is declared for light, not only dark.** `--surface`,
-  `--ink`, `--line` and their nine siblings have named their roles inside
-  `[data-theme="dark"]` since 4.16, and nowhere else — so `var(--ink)`
-  resolved to nothing in a light theme. Invisible in the portals, which read
-  the utility classes rather than the roles, and fatal on a standalone page
-  that reads only the roles. Light now declares the same twelve, with the
-  Tailwind steps the dark block opposite already remaps, in the same shape
-  the `--viz-*` palette below it already used.
+- **The discard prompt names the window it would discard.** "Close all" fires
+  one close per window, each through that window's own guard, and confirms
+  queue rather than drop — so several unsaved windows produce several prompts
+  in turn. An unnamed *"You have unsaved changes"* is unanswerable in that
+  queue: every dialog looks the same and none says what it is about to throw
+  away. The message now opens with the window's title, falling back to the old
+  wording for a title carrying no plain text.
 
-  This changes nothing that renders today: no rule outside a
-  `[data-theme="dark"]` scope reads any of the twelve, in CSS or in TSX. The
-  light block sits immediately before the dark one because both are
-  specificity (0,1,0) and source order is the only thing keeping dark ahead
-  — `tests/brandStylesheet.test.ts` pins that order, and pins the two blocks
-  to the same twelve role names.
+  Deliberately *not* one aggregated dialog listing every unsaved window: that
+  needs a public close path that bypasses the per-window guard, which is the
+  thing `forceRemoveWindow` is kept private to prevent.
 
-- **`npm run build` now emits `dist/brand.css`.** `@tailwindcss/cli` compiles
-  `src/brand.css` after the copy step, so the published export is never the
-  uncompiled entry.
 ## 4.89.1
 
 - **"Reset" in the column picker no longer un-hides every `defaultHidden`
