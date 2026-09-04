@@ -19,9 +19,6 @@ on:
   release:
     types: [published]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -32,10 +29,13 @@ jobs:
       # consumers.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to a full commit SHA, with the tag in the comment (harness
+      # CI-7): a mutable tag on the one workflow that can publish to npm is
+      # a supply-chain hole with a registry on the other side of it.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
           cache: npm
