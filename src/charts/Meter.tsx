@@ -24,6 +24,7 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 export default function Meter({
   value,
+  segments,
   objective,
   label,
   detail,
@@ -66,10 +67,28 @@ export default function Meter({
         aria-valuetext={formatValue(value)}
         aria-label={label}
       >
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${(filled * 100).toFixed(2)}%`, backgroundColor: colour }}
-        />
+        {segments?.length ? (
+          // Laid end to end in one track. The first and last keep the track's
+          // radius so a segmented meter still reads as one bar rather than a
+          // row of pills; the joins stay square so the split is visible.
+          <div className="flex h-full overflow-hidden rounded-full">
+            {segments.map((seg, i) => (
+              <div
+                key={`${seg.label}-${i}`}
+                className="h-full"
+                style={{
+                  width: `${(clamp01(seg.value) * 100).toFixed(2)}%`,
+                  backgroundColor: STATUS_VARS[seg.tone ?? (i === 0 ? 'good' : 'neutral')],
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${(filled * 100).toFixed(2)}%`, backgroundColor: colour }}
+          />
+        )}
         {/* Inline ink, not a gray class: bg-gray-600 has no dark remap in
             ui.css, so the objective marker vanished against a dark track. */}
         {objective != null && (
@@ -80,6 +99,13 @@ export default function Meter({
           />
         )}
       </div>
+      {segments?.length ? (
+        // Colour never travels alone: each part is named with its share, so a
+        // segmented meter survives greyscale, CVD and forced-colors.
+        <p className="mt-1.5 text-xs text-gray-500">
+          {segments.map(seg => `${seg.label} ${formatValue(seg.value)}`).join(' · ')}
+        </p>
+      ) : null}
       {(detail || objective != null) && (
         <p className="mt-1.5 text-xs text-gray-500">
           {detail}

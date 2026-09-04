@@ -277,9 +277,30 @@ export interface RankedBarsProps {
   emptyLabel?: string;
 }
 
+/** One filled part of a segmented meter track. */
+export interface MeterSegment {
+  /** 0–1 of the WHOLE track, not of the remainder. Segments are laid end to
+   *  end, so they should sum to at most 1; the excess is clipped. */
+  value: number;
+  /** What this part IS — "Shipped", "Loaded". Read out with its share, so the
+   *  meaning survives greyscale, CVD and forced-colors like the single-value
+   *  form's does. */
+  label: string;
+  tone?: ChartStatusTone;
+}
+
 export interface MeterProps {
   /** 0–1. `null` renders the unavailable state rather than a zero bar. */
   value: number | null | undefined;
+  /**
+   * Parts of one whole, laid end to end on the same track — "80 of 100 shipped,
+   * 15 more picked" rather than two meters or two numbers to subtract.
+   *
+   * `value` still governs the readout, the ARIA value and the objective
+   * verdict, so a segmented meter is the same control with its fill broken up;
+   * pass the TOTAL as `value`. Without this the props behave exactly as before.
+   */
+  segments?: MeterSegment[];
   /** 0–1. Marked on the track. */
   objective?: number;
   label: string;
