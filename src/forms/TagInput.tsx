@@ -196,7 +196,7 @@ export default function TagInput({
             top: menuPos?.top,
             bottom: menuPos?.bottom,
             minWidth: menuPos?.minWidth,
-            maxWidth: POPUP_MAX_WIDTH,
+            maxWidth: menuPos?.maxWidth ?? POPUP_MAX_WIDTH,
             width: 'max-content',
             // Hidden for the first paint until the layout effect measures the
             // trigger, so the menu never flashes at (0,0).
