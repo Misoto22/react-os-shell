@@ -51,17 +51,32 @@ export function StatusBadgeProvider({
 
 interface StatusBadgeProps {
   status: string;
+  /**
+   * What to SHOW, when the raw status is not what a reader should see.
+   *
+   * The derived label — underscores to spaces, title case — is right for a
+   * status this system named. It is wrong for one that arrived from somewhere
+   * else: Stripe's `trialing` reads as "Trialing" rather than "Trial", and its
+   * `canceled` puts an American spelling in front of a British-English tenant.
+   *
+   * Without this, a consumer that needs one word changed has to abandon the
+   * badge and hand-roll the whole pill — and takes the colours with it, which
+   * is precisely the drift `StatusBadge` exists to prevent. The tone still
+   * comes from `status`, so the group mapping stays the single source of
+   * truth for colour no matter what is written on the pill.
+   */
+  label?: ReactNode;
 }
 
-export default function StatusBadge({ status }: StatusBadgeProps) {
+export default function StatusBadge({ status, label }: StatusBadgeProps) {
   const groups = useContext(StatusGroupsContext);
   const group = groups[status] ?? 'neutral';
   const color = GROUP_COLORS[group];
-  const label = status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const text = label ?? status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${color}`}>
-      {label}
+      {text}
     </span>
   );
 }
