@@ -355,6 +355,10 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.18) !important; }
 [data-theme="dark"] .bg-purple-100 { background-color: rgba(168, 85, 247, 0.18) !important; }
 [data-theme="dark"] .text-green-700 { color: #86efac !important; }
+/* The /70 form is a separate class, so the remap above misses it. The amber
+   block already covers its own /30../50 tints; green did not, and dark green
+   on the green tint was the result. */
+[data-theme="dark"] .text-green-700\/70 { color: rgba(134, 239, 172, 0.7) !important; }
 [data-theme="dark"] .text-emerald-700 { color: #6ee7b7 !important; }
 [data-theme="dark"] .text-sky-700 { color: #7dd3fc !important; }
 [data-theme="dark"] .text-amber-700 { color: #fcd34d !important; }
@@ -550,6 +554,8 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] .text-purple-900 { color: #e9d5ff !important; }
 [data-theme="dark"] .bg-violet-100 { background-color: rgba(139, 92, 246, 0.18) !important; }
 [data-theme="dark"] .border-violet-300 { border-color: rgba(139, 92, 246, 0.45) !important; }
+[data-theme="dark"] .text-violet-600 { color: #a78bfa !important; }
+[data-theme="dark"] .text-violet-700 { color: #c4b5fd !important; }
 [data-theme="dark"] .text-violet-800 { color: #ddd6fe !important; }
 
 /* Pink / rose */
@@ -565,8 +571,19 @@ html.rosh-reduce-transparency *::after {
 
 /* Indigo / slate */
 [data-theme="dark"] .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15) !important; }
+/* An OPACITY MODIFIER makes a different class name, so the remap above does
+   not reach `bg-indigo-50/40`. Same escape the `!` important-modifier makes,
+   handled for `.\!bg-blue-*` earlier in this sheet, and already handled for
+   amber's own `/30../50` tints below. `/40` and `/50`
+   of a -50 tint both land inside the base tint's own alpha, so they take it
+   rather than a proportional slice: a near-white lavender panel under the dark
+   sheet's light body text is unreadable, which is what shipped. */
+[data-theme="dark"] .bg-indigo-50\/40 { background-color: rgba(99, 102, 241, 0.12) !important; }
+[data-theme="dark"] .bg-indigo-50\/50 { background-color: rgba(99, 102, 241, 0.15) !important; }
 [data-theme="dark"] .hover\:bg-indigo-100:hover { background-color: rgba(99, 102, 241, 0.25) !important; }
 [data-theme="dark"] .text-indigo-600 { color: #a5b4fc !important; }
+[data-theme="dark"] .border-indigo-100 { border-color: rgba(99, 102, 241, 0.30) !important; }
+[data-theme="dark"] .border-indigo-200 { border-color: rgba(99, 102, 241, 0.35) !important; }
 [data-theme="dark"] .border-indigo-300 { border-color: rgba(99, 102, 241, 0.45) !important; }
 [data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; } /* slate-600/800 left for the Calculator LCD */
 [data-theme="dark"] .border-slate-300 { border-color: rgba(148, 163, 184, 0.35) !important; }
@@ -656,3 +673,34 @@ html.rosh-reduce-transparency *::after {
 [data-theme="dark"] ::-webkit-scrollbar-track { background: var(--surface-sunken); }
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #585b70; }
+
+/* ── Opacity-modified utilities ───────────────────────────────────────────
+   A Tailwind opacity modifier makes a DIFFERENT class name, so every remap in
+   this sheet — all written against bare class names — stops at the base. The
+   same escape the `!` important-modifier makes for `.\!bg-blue-*` above.
+
+   Everything below is a class whose BASE this sheet already remaps: the colour
+   was already judged to need a dark treatment, and only the modifier escaped.
+   The values are the ones a consumer portal had to hand-write locally and has
+   been shipping, so they are tuned rather than derived: a `/70` of a tint does
+   NOT take 70% of the tint's alpha, because a proportional slice of an already
+   subtle tint disappears. Gray is the exception and does take a real alpha,
+   because there the utility paints a surface rather than a tint over one. */
+[data-theme="dark"] .bg-gray-50\/70 { background-color: rgba(24, 24, 37, 0.7) !important; }
+[data-theme="dark"] .bg-gray-50\/80 { background-color: rgba(24, 24, 37, 0.8) !important; }
+[data-theme="dark"] .bg-gray-50\/95 { background-color: rgba(24, 24, 37, 0.95) !important; }
+[data-theme="dark"] .bg-gray-100\/90 { background-color: rgba(30, 30, 46, 0.9) !important; }
+[data-theme="dark"] .bg-gray-200\/80 { background-color: rgba(49, 50, 68, 0.8) !important; }
+[data-theme="dark"] .hover\:bg-gray-200\/70:hover { background-color: rgba(49, 50, 68, 0.7) !important; }
+[data-theme="dark"] .hover\:bg-gray-200\/90:hover { background-color: rgba(49, 50, 68, 0.9) !important; }
+[data-theme="dark"] .border-gray-200\/60 { border-color: rgba(69, 71, 90, 0.6) !important; }
+[data-theme="dark"] .bg-blue-50\/80 { background-color: rgba(59, 130, 246, 0.24) !important; }
+[data-theme="dark"] .bg-blue-50\/90 { background-color: rgba(59, 130, 246, 0.26) !important; }
+[data-theme="dark"] .text-blue-600\/70 { color: rgba(147, 197, 253, 0.7) !important; }
+[data-theme="dark"] .text-blue-700\/70 { color: rgba(191, 219, 254, 0.7) !important; }
+[data-theme="dark"] .text-blue-800\/80 { color: rgba(191, 219, 254, 0.8) !important; }
+[data-theme="dark"] .text-blue-900\/60 { color: rgba(191, 219, 254, 0.6) !important; }
+[data-theme="dark"] .bg-amber-200\/70 { background-color: rgba(245, 158, 11, 0.20) !important; }
+[data-theme="dark"] .hover\:bg-amber-50\/70:hover { background-color: rgba(245, 158, 11, 0.12) !important; }
+[data-theme="dark"] .text-amber-800\/80 { color: rgba(253, 230, 138, 0.8) !important; }
+[data-theme="dark"] .text-green-700\/80 { color: rgba(134, 239, 172, 0.8) !important; }

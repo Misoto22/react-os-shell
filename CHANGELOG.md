@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.91.1
+
+- **Opacity-modified utilities now get their dark treatment too.** A Tailwind
+  opacity modifier compiles to a DIFFERENT class name, so every remap in
+  `ui.css` — all written against bare class names — stopped at the base:
+  `bg-indigo-50` was remapped and `bg-indigo-50/40` was not, leaving a
+  near-white lavender panel under the dark sheet's light body text. This is
+  the same escape the `!` important-modifier makes for `.\!bg-blue-*`, which
+  the sheet has always handled by naming each variant.
+
+  Covered here: the `/40` and `/50` indigo tints, the gray `/70`–`/95`
+  surfaces and their hover pairs, the blue `/80`–`/90` tints and the blue,
+  amber and green inks that carry a modifier, plus `text-violet-600/700` and
+  `border-indigo-100/200`, whose bare forms were missing entirely. Each value
+  is tuned rather than derived: a `/70` of an already subtle tint does not
+  take 70% of its alpha, because a proportional slice of it disappears. Gray
+  is the exception and takes a real alpha, because there the utility paints a
+  surface rather than a tint over one.
+
 ## 4.91.0
 
 - **The What's New window no longer ends in a large blank area.** Its body was
