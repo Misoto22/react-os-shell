@@ -2,25 +2,7 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 4.92.3
-
-- **A field now points at its own error message.** `FormField` rendered the
-  hint and the error with ids — `${htmlFor}-hint`, `${htmlFor}-error` — and
-  pointed nothing at them, so those ids referenced nothing. A screen-reader
-  user who focused a field that had failed validation heard the label and
-  "invalid" and never the reason.
-
-  `role="alert"` is not a substitute: it announces the message the moment it
-  appears, while `aria-describedby` is what re-reads it when the user tabs BACK
-  to fix the field — which is exactly the moment they need it.
-
-  A single element child is cloned with `aria-describedby`. An
-  `aria-describedby` the control already carries is kept and appended to rather
-  than replaced; several children, a fragment or a bare string are left exactly
-  as they were, for the caller to wire as `MediaUploadField` and
-  `MediaUploadGrid` already do by hand.
-
-
+## 4.92.0
 
 - **`Meter` can draw a fill made of parts.** Business Central and NetSuite both
   put fulfilment ON the order line — 80 of 100 shipped, 15 more picked —

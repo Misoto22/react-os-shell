@@ -13,6 +13,13 @@
  * The shell's own `MediaUploadField` and `MediaUploadGrid` already wire exactly
  * this by hand — which is where the id shape came from, and why the general
  * primitive not doing it was the gap rather than the design.
+ *
+ * `aria-invalid` rides the same clone, for the same reason. Every input in the
+ * kit takes an `invalid` prop, so a caller had to pass `error` here and
+ * `invalid` there and keep the two in step by hand; a field that missed one is
+ * announced as valid with a red message under it. The tests that matter are
+ * the two at the bottom: the attribute appears with the error, and a control
+ * that states its own keeps it.
  */
 import './dom';
 import { test } from 'node:test';
@@ -103,5 +110,58 @@ test('several children are left exactly as they were', () => {
   for (const input of view.container.querySelectorAll('input')) {
     assert.equal(input.getAttribute('aria-describedby'), null);
   }
+  view.unmount();
+});
+
+test('an error marks the control invalid, without the caller saying so twice', () => {
+  // `error` is already the statement that the field failed. Making the caller
+  // repeat it as `invalid` on the control is a second source of truth for one
+  // fact, and the failure mode is silent: the field reads as valid to a screen
+  // reader while a red message sits under it.
+  const view = render(
+    <FormField label="ABN" htmlFor="abn" error="That is not an ABN.">
+      <input id="abn" />
+    </FormField>,
+  );
+  const input = view.container.querySelector('input')!;
+  assert.equal(input.getAttribute('aria-invalid'), 'true');
+  assert.equal(input.getAttribute('aria-describedby'), 'abn-error', 'and still describes itself');
+  view.unmount();
+});
+
+test('a hint alone never marks the control invalid', () => {
+  const view = render(
+    <FormField label="ABN" htmlFor="abn" hint="Eleven digits, no spaces.">
+      <input id="abn" />
+    </FormField>,
+  );
+  assert.equal(view.container.querySelector('input')!.getAttribute('aria-invalid'), null);
+  view.unmount();
+});
+
+test("a control that states its own aria-invalid keeps it", () => {
+  // `Input`, `Select`, `Textarea` and the pickers all render
+  // `aria-invalid={invalid || undefined}`. A caller who shows a message under a
+  // field WITHOUT marking it invalid — a warning, a running total that is not a
+  // validation failure — is the authority on its own control.
+  const view = render(
+    <FormField label="Total" htmlFor="total" error="Above the approval limit.">
+      <input id="total" aria-invalid={false} />
+    </FormField>,
+  );
+  assert.equal(view.container.querySelector('input')!.getAttribute('aria-invalid'), 'false');
+  view.unmount();
+});
+
+test('a field with no htmlFor is still marked invalid by its error', () => {
+  // The describedby half needs an id to point at; this half does not, and a
+  // field without one is exactly the case where the message is otherwise
+  // unreachable from the control.
+  const view = render(
+    <FormField label="Name" error="Required."><input /></FormField>,
+  );
+  const input = view.container.querySelector('input')!;
+  assert.equal(input.getAttribute('aria-invalid'), 'true');
+  assert.equal(input.getAttribute('aria-describedby'), null);
   view.unmount();
 });
