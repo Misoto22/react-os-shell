@@ -71,8 +71,39 @@ export default function ResizableTable({
 
   useClickOutside(pickerRef, useCallback(() => { if (pickerOpen) setPickerOpen(false); }, [pickerOpen]));
 
+  /**
+   * Column widths in PIXELS, with the table floored at the container width.
+   *
+   * These were percentages of the running total, on a `w-full` table — which
+   * made every width a RATIO, never a size. The table then always measured
+   * exactly its container, so:
+   *
+   *   - a wide list crushed every column to fit. Thirteen columns in a 1118px
+   *     window came out at 91px each, and every currency figure was truncated
+   *     to `A$514…`. Adding a column made every other column narrower;
+   *   - the body's `overflow-x-auto` was dead code, because a table that can
+   *     never exceed its container never overflows;
+   *   - dragging a resize handle could only STEAL width from other columns.
+   *     Widening one narrowed its neighbours and the total never moved.
+   *
+   * Pixels plus `min-width: 100%` keep both behaviours honest. Under-full, the
+   * table still stretches to the container and `table-layout: fixed`
+   * distributes the slack proportionally, exactly as the percentages did.
+   * Over-full, the table is finally wider than its container and scrolls
+   * sideways instead of compressing.
+   */
   const totalWidth = orderedColumns.reduce((sum, col) => sum + col.width, 0);
-  const colWidths = orderedColumns.map(col => `${(col.width / totalWidth) * 100}%`);
+  const colWidths = orderedColumns.map(col => `${col.width}px`);
+  const tableStyle = { tableLayout: 'fixed' as const, width: totalWidth, minWidth: '100%' };
+
+  // The header is its own table, outside the body's scroller, so it has to be
+  // driven: without this it stays put while the body scrolls under it and the
+  // labels stop naming the columns beneath them.
+  const headScrollRef = useRef<HTMLDivElement>(null);
+  const onBodyScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const head = headScrollRef.current;
+    if (head) head.scrollLeft = e.currentTarget.scrollLeft;
+  }, []);
 
   const saveAsDefault = async () => {
     setSavingDefault(true);
@@ -99,8 +130,11 @@ export default function ResizableTable({
 
   return (
     <div className={`flex flex-col flex-1 min-h-0 ${isMobile ? '-mx-4' : ''}`}>
-      {/* Fixed header */}
-      <table className="w-full divide-y divide-gray-200 shrink-0" style={{ tableLayout: 'fixed' }}>
+      {/* Fixed header — scrolled sideways by the body, never by the user, so
+          `overflow-x-hidden` rather than `auto`: two horizontal scrollbars on
+          one table is worse than none. */}
+      <div ref={headScrollRef} className="shrink-0 overflow-x-hidden">
+      <table className="divide-y divide-gray-200" style={tableStyle}>
         <colgroup>
           {orderedColumns.map((col, i) => (
             <col key={col.key} style={{ width: colWidths[i] }} />
@@ -152,10 +186,11 @@ export default function ResizableTable({
           </tr>
         </thead>
       </table>
+      </div>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0">
-        <table className="w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed' }}>
+      <div className="flex-1 overflow-y-auto overflow-x-auto min-h-0" onScroll={onBodyScroll}>
+        <table className="divide-y divide-gray-200" style={tableStyle}>
           <colgroup>
             {orderedColumns.map((col, i) => (
               <col key={col.key} style={{ width: colWidths[i] }} />
