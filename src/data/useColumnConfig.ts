@@ -21,6 +21,63 @@ function pinSelectColumn(cols: ColumnState[]): ColumnState[] {
 }
 
 /**
+ * Fold a changed `defaultColumns` back into live column state.
+ *
+ * `columns` is seeded once, at mount. A consumer whose column list changes
+ * WHILE mounted — a comparison period switched on, a mode that reveals extra
+ * measures, a permission resolving late — got nothing: the new columns never
+ * reached the state, so they never rendered, and the only way to see them was
+ * to close the window and open it again. Withdrawn columns had the mirror
+ * problem, lingering in state until `orderedColumns` spread an `undefined`
+ * definition over them.
+ *
+ * The user's own decisions win wherever they exist: an existing column keeps
+ * its width, its hidden flag and its place in the order. A new one lands
+ * beside the column it was DECLARED next to rather than at the far right,
+ * because a column that only makes sense next to another — a prior-period
+ * figure beside the current one — is useless eleven columns away from it.
+ *
+ * Returns `prev` unchanged when nothing differs, so a consumer that rebuilds
+ * its `ColumnDef[]` array every render causes no re-render.
+ */
+function reconcileColumns(
+  prev: ColumnState[],
+  defaultColumns: ColumnDef[],
+  withdrawn: Map<string, ColumnState>,
+): ColumnState[] {
+  const declared = new Set(defaultColumns.map(d => d.key));
+  const known = new Set(prev.map(c => c.key));
+  const added = defaultColumns.filter(d => !known.has(d.key));
+  // `_select` is the grid's own column and is never in the consumer's list.
+  const kept = prev.filter(c => c.key === '_select' || declared.has(c.key));
+  if (!added.length && kept.length === prev.length) return prev;
+
+  // Remember what the user had done to a column the consumer has withdrawn,
+  // so a set that comes back — a comparison toggled off and on again —
+  // returns as they left it instead of resetting to the declaration.
+  for (const col of prev) {
+    if (col.key !== '_select' && !declared.has(col.key)) withdrawn.set(col.key, col);
+  }
+
+  const out = [...kept];
+  for (const def of added) {
+    const at = defaultColumns.indexOf(def);
+    // Walk back through the declaration for the nearest column already
+    // placed, and land just after it. Consecutive new columns chain, so a
+    // declared pair stays a pair.
+    let anchor = -1;
+    for (let i = at - 1; i >= 0; i -= 1) {
+      const idx = out.findIndex(c => c.key === defaultColumns[i].key);
+      if (idx >= 0) { anchor = idx; break; }
+    }
+    out.splice(anchor + 1, 0, withdrawn.get(def.key)
+      ?? { key: def.key, width: def.defaultWidth || 150, hidden: def.defaultHidden });
+    withdrawn.delete(def.key);
+  }
+  return pinSelectColumn(out);
+}
+
+/**
  * Resizable + reorderable + hideable column state for `<ResizableTable>`.
  *
  * Persists per-user via `PATCH /auth/me/` (`preferences.columns_{tableId}`)
@@ -109,6 +166,16 @@ export function useColumnConfig(tableId: string, defaultColumns: ColumnDef[]) {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableId]);
+
+  // Follow the consumer's column list for as long as this stays mounted.
+  // Deliberately NOT persisted: a column set that comes and goes with a UI
+  // toggle would otherwise PATCH the user's profile on every flip. The
+  // existing persist paths — resize, drag, hide, reset — still capture it the
+  // moment the user actually decides something.
+  const withdrawnRef = useRef(new Map<string, ColumnState>());
+  useEffect(() => {
+    setColumns(prev => reconcileColumns(prev, defaultColumns, withdrawnRef.current));
+  }, [defaultColumns]);
 
   const visibleColumns = columns.filter(c => !c.hidden);
 
