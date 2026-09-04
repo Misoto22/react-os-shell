@@ -2,7 +2,15 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 4.93.0
+## 4.94.0
+
+> **Not 4.93.0.** That number was published to npm by hand from a branch on
+> 2026-09-04, carrying only the anchored-popup fix, and npm is append-only — a
+> shipped number describes one tarball for ever. This release, assembled from
+> eight fragments two hours later, would have been a second and different
+> 4.93.0. The registry keeps the number it has; this one moves. 4.93.0 on npm
+> is therefore a subset of what follows, and nothing else was ever published
+> between 4.88.0 and here.
 
 - **New `react-os-shell/brand.css`.** A surface rendered outside a portal
   window — a report, a published artifact, a proposal, an HTML email, a printed
