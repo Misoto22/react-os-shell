@@ -24,6 +24,7 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
 export default function Meter({
   value,
+  segments,
   objective,
   label,
   detail,
@@ -43,7 +44,20 @@ export default function Meter({
 
   const filled = clamp01(value);
   const met = objective == null || value >= objective;
-  const colour = STATUS_VARS[tone ?? (met ? 'good' : 'critical')];
+  const verdictTone = tone ?? (met ? 'good' : 'critical');
+  const colour = STATUS_VARS[verdictTone];
+
+  // One caption line, whatever it is made of. A segmented meter used to add a
+  // SECOND paragraph beside this one, so a meter with segments and an
+  // objective printed two stacked grey lines where every other form of this
+  // control prints one.
+  const caption = [
+    segments?.length
+      ? segments.map(seg => `${seg.label} ${formatValue(seg.value)}`).join(' · ')
+      : '',
+    detail ?? '',
+    objective != null ? `objective ${formatValue(objective)}${met ? ' met' : ' missed'}` : '',
+  ].filter(Boolean).join(' · ');
 
   return (
     <div className={className}>
@@ -66,10 +80,40 @@ export default function Meter({
         aria-valuetext={formatValue(value)}
         aria-label={label}
       >
-        <div
-          className="h-full rounded-full"
-          style={{ width: `${(filled * 100).toFixed(2)}%`, backgroundColor: colour }}
-        />
+        {segments?.length ? (
+          // Laid end to end in one track. The container keeps the track's
+          // radius and clips to it, and the last part rounds its own trailing
+          // edge, so a segmented meter ends the way the single-value fill does
+          // rather than on a square cut mid-track; the joins between parts stay
+          // square, so the split stays visible.
+          //
+          // `shrink-0` is load-bearing. Flex items shrink by default, so a set
+          // of segments summing past the track was RESCALED to fit rather than
+          // clipped — an 80/50 pair rendering as 61.5/38.5 — which disagrees
+          // with both the written breakdown below and the objective marker,
+          // silently and in the reader's favour. Held at their stated widths,
+          // the excess is clipped, which is what the overflow rule is for.
+          <div className="flex h-full overflow-hidden rounded-full">
+            {segments.map((seg, i) => (
+              <div
+                key={`${seg.label}-${i}`}
+                className={`h-full shrink-0${i === segments.length - 1 ? ' rounded-r-full' : ''}`}
+                style={{
+                  width: `${(clamp01(seg.value) * 100).toFixed(2)}%`,
+                  // The first part carries the meter's own verdict, not a
+                  // hard-coded `good`: a missed objective painted the readout
+                  // red and the bar under it green.
+                  backgroundColor: STATUS_VARS[seg.tone ?? (i === 0 ? verdictTone : 'neutral')],
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${(filled * 100).toFixed(2)}%`, backgroundColor: colour }}
+          />
+        )}
         {/* Inline ink, not a gray class: bg-gray-600 has no dark remap in
             ui.css, so the objective marker vanished against a dark track. */}
         {objective != null && (
@@ -80,18 +124,10 @@ export default function Meter({
           />
         )}
       </div>
-      {(detail || objective != null) && (
-        <p className="mt-1.5 text-xs text-gray-500">
-          {detail}
-          {objective != null && (
-            <>
-              {detail ? ' · ' : ''}
-              objective {formatValue(objective)}
-              {met ? ' met' : ' missed'}
-            </>
-          )}
-        </p>
-      )}
+      {/* Colour never travels alone: each part is named with its share, so a
+          segmented meter survives greyscale, CVD and forced-colors exactly as
+          the single-value form's written-out value does. */}
+      {caption && <p className="mt-1.5 text-xs text-gray-500">{caption}</p>}
     </div>
   );
 }
