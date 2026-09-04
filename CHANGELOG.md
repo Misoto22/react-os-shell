@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.94.0
+
+Four changes that merged with their code and lost their changelog entries: each
+edited this file at the same anchor from the same base, so every squash after
+the first resolved the file to main's side. One section rather than four
+back-dated version numbers, because none of them was ever published — the
+registry is still on 4.88.0.
+
+- **`StatusBadge` takes an optional `label`.** It derived its text from the raw
+  status — underscores to spaces, title case — with no way to override it. Right
+  for a status the system named itself, wrong for one that arrived from
+  elsewhere: Stripe's `trialing` reads as "Trialing" rather than "Trial", and
+  its `canceled` puts an American spelling in front of a British-English
+  tenant. A consumer needing one word changed had to abandon the badge and
+  hand-roll the whole pill, taking the colours with it — exactly the drift this
+  component exists to prevent. The tone still comes from `status`, so the group
+  mapping stays the single source of truth for colour whatever the pill says.
+
+- **A field points at its own error message.** `FormField` rendered the hint and
+  the error with ids and pointed nothing at them, so a screen-reader user who
+  focused a failed field heard the label and "invalid" and never the reason.
+  `role="alert"` announces the message when it appears; `aria-describedby` is
+  what re-reads it when the user tabs BACK to fix the field. A single element
+  child is now cloned with it, appending to any value the control already
+  carries.
+
+- **A wide table scrolls sideways instead of crushing its columns.**
+  `ResizableTable` turned each width into a percentage of the running total on
+  a `w-full` table, making every width a ratio and never a size: thirteen
+  columns in a 1118px window came out at 91px each, the body's
+  `overflow-x-auto` was dead code, and a resize handle could only steal width
+  from its neighbours. Widths are pixels now, floored at `min-width: 100%`, so
+  a narrow list renders exactly as before and a wide one finally scrolls.
+
+- **A table follows a column list that changes while it is open.**
+  `useColumnConfig` seeded its state once and never read `defaultColumns`
+  again, so a consumer whose columns changed mid-window got nothing — closing
+  and reopening was the only way to see them. Withdrawn columns had the mirror
+  problem. The user's width, hidden flag and ordering all survive the
+  reconciliation.
+
 ## 4.93.0
 
 - **New `react-os-shell/brand.css`.** A surface rendered outside a portal
