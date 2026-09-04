@@ -1,0 +1,89 @@
+# Publish to npm — only ever from a GitHub Release.
+#
+# Deliberately NOT on push to main. A merge is not a release: this package is
+# consumed by four portals that pin it, `CHANGELOG.md` and `package.json` are
+# hand-edited in the PR, and two PRs regularly claim the same version number
+# before one of them rebases. Publishing on merge would turn every one of those
+# collisions into an irreversible registry entry.
+#
+# The release IS the trigger, so cutting one is the single deliberate act:
+# tag + notes + publish, in that order, from one button.
+#
+# Setup this needs once, by a repo admin:
+#   1. Settings → Secrets → Actions → new repository secret `NPM_TOKEN`,
+#      an npm *granular access token* scoped to write `react-os-shell` only.
+#   2. Nothing else. The workflow re-runs the full CI gate before it publishes.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # npm provenance: lets the registry attest that this tarball was built
+      # from this commit in this workflow. Costs nothing and is checkable by
+      # consumers.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      # The tag is what a human typed; package.json is what actually gets
+      # published. A mismatch means the release notes describe one version and
+      # the registry receives another — so fail here rather than after the
+      # publish, which cannot be taken back.
+      - name: Tag must match package.json
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::release tag '$GITHUB_REF_NAME' does not match package.json version '$pkg'"
+            exit 1
+          fi
+          echo "publishing $pkg"
+
+      # Refuse to re-publish a version the registry already has. npm would
+      # reject it anyway, but failing here says WHY in one line instead of in a
+      # stack of registry output.
+      - name: Version must not already be published
+        run: |
+          pkg="$(node -p "require('./package.json').version")"
+          if npm view "react-os-shell@$pkg" version >/dev/null 2>&1; then
+            echo "::error::react-os-shell@$pkg is already on the registry"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The same gate ci.yml runs, in the same order. A release is the one time
+      # it is worth paying for twice: publishing is the irreversible step.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify the published artifact
+        run: node scripts/verify-dist.mjs
+
+      - name: Publish
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
