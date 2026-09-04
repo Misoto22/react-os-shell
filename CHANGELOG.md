@@ -2,7 +2,25 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## 4.92.0
+## 4.93.0
+
+- **`StatusBadge` takes an optional `label`.** It derived its text from the raw
+  status — underscores to spaces, title case — with no way to override it. That
+  is right for a status the system named itself and wrong for one that arrived
+  from somewhere else: Stripe's `trialing` reads as "Trialing" rather than
+  "Trial", and its `canceled` puts an American spelling in front of a
+  British-English tenant.
+
+  A consumer needing one word changed had to abandon the badge and hand-roll
+  the whole pill — and took the colours with it, which is exactly the drift
+  this component exists to prevent. In admin-portal that is five files, each
+  carrying its own status→colour literals.
+
+  The tone still comes from `status`, so the group mapping stays the single
+  source of truth for colour whatever is written on the pill. An empty string
+  is honoured rather than falling back, for an icon-only pill.
+
+
 
 - **`Meter` can draw a fill made of parts.** Business Central and NetSuite both
   put fulfilment ON the order line — 80 of 100 shipped, 15 more picked —
