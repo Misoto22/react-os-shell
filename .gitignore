@@ -25,3 +25,8 @@ ds-bundle-out/
 .playwright-mcp/
 .worktrees/
 .env.*.local
+
+# npm is this repo's package manager; a stray pnpm run must not commit a
+# second lockfile or its allowBuilds scaffold (#201).
+pnpm-lock.yaml
+pnpm-workspace.yaml

@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.92.0
+
+- **`Meter` can draw a fill made of parts.** Business Central and NetSuite both
+  put fulfilment ON the order line — 80 of 100 shipped, 15 more picked —
+  because "what is still owed" is a spatial question rather than one the reader
+  should do arithmetic for. `Meter` could only draw one fill, so consumers
+  hand-rolled a layered track instead. Pass `segments` and they are laid end to
+  end on the same track, each named with its share underneath, so the meaning
+  survives greyscale, CVD and forced-colors the way the single-value form's
+  written-out value already does.
+
+  `value` still governs the readout, the ARIA value and the objective verdict —
+  pass the TOTAL. The first segment takes that verdict's tone unless it names
+  its own, so the bar and the figure above it cannot disagree, and the rest
+  default to `neutral`. Segments hold their stated widths: a set summing past
+  the track has its tail clipped at the end rather than every part shrunk to
+  fit, which would leave the bar contradicting both the breakdown printed under
+  it and the objective marker drawn over it. A meter with no `segments` renders
+  exactly as before.
+
+## 4.91.1
+
+- **Opacity-modified utilities now get their dark treatment too.** A Tailwind
+  opacity modifier compiles to a DIFFERENT class name, so every remap in
+  `ui.css` — all written against bare class names — stopped at the base:
+  `bg-indigo-50` was remapped and `bg-indigo-50/40` was not, leaving a
+  near-white lavender panel under the dark sheet's light body text. This is
+  the same escape the `!` important-modifier makes for `.\!bg-blue-*`, which
+  the sheet has always handled by naming each variant.
+
+  Covered here: the `/40` and `/50` indigo tints, the gray `/70`–`/95`
+  surfaces and their hover pairs, the blue `/80`–`/90` tints and the blue,
+  amber and green inks that carry a modifier, plus `text-violet-600/700` and
+  `border-indigo-100/200`, whose bare forms were missing entirely. Each value
+  is tuned rather than derived: a `/70` of an already subtle tint does not
+  take 70% of its alpha, because a proportional slice of it disappears. Gray
+  is the exception and takes a real alpha, because there the utility paints a
+  surface rather than a tint over one.
+
 ## 4.91.0
 
 - **The What's New window no longer ends in a large blank area.** Its body was
