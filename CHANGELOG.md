@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## 4.91.1
+
+- **Opacity-modified utilities now get their dark treatment too.** A Tailwind
+  opacity modifier compiles to a DIFFERENT class name, so every remap in
+  `ui.css` — all written against bare class names — stopped at the base:
+  `bg-indigo-50` was remapped and `bg-indigo-50/40` was not, leaving a
+  near-white lavender panel under the dark sheet's light body text. This is
+  the same escape the `!` important-modifier makes for `.\!bg-blue-*`, which
+  the sheet has always handled by naming each variant.
+
+  Covered here: the `/40` and `/50` indigo tints, the gray `/70`–`/95`
+  surfaces and their hover pairs, the blue `/80`–`/90` tints and the blue,
+  amber and green inks that carry a modifier, plus `text-violet-600/700` and
+  `border-indigo-100/200`, whose bare forms were missing entirely. Each value
+  is tuned rather than derived: a `/70` of an already subtle tint does not
+  take 70% of its alpha, because a proportional slice of it disappears. Gray
+  is the exception and takes a real alpha, because there the utility paints a
+  surface rather than a tint over one.
+
+## 4.91.0
+
+- **The What's New window no longer ends in a large blank area.** Its body was
+  a single box capped at `max-h-[60vh]`, which cannot grow into a window whose
+  height comes off the size ladder — so once the body was taller than 60vh of
+  the viewport, the difference sat under the last changelog entry as dead
+  space: roughly 100px in a default window, and about a third of it maximized,
+  where the window is the whole work area. The list now flows in the modal
+  body and the body scrolls it, which is what every other flowing-content
+  window in the shell already does. An empty changelog is centred in the space
+  the window has, rather than leaving one grey line at the top of it.
+
+  The window sizes its CONTENT to the window, not the window to its content.
+  A host with a two-line changelog still gets a `md`-ladder window with room
+  to spare; `autoHeight` / `autoMinHeight` are how a host asks for the other
+  behaviour.
+
+- **Changelog entries render their Markdown instead of printing it.** Every
+  consumer writes these entries in Markdown, and this window put them on
+  screen as a raw text node, so a heading like `**Commission Plans**` showed
+  its asterisks. It now goes through `MarkdownLite`, the renderer the package
+  already ships and the one the admin portal's own two changelog surfaces
+  (`VersionsPanel`, `AboutSettings`) already use for the same strings.
+
 ## 4.90.0
 
 - **Right-clicking a grouped taskbar tab now acts on the group.** A tab that
